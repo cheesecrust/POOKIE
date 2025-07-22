@@ -3,6 +3,7 @@ package com.ssafy.pookie.webrtc.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.livekit.server.*;
+import jakarta.annotation.PostConstruct;
 import livekit.LivekitModels;
 import livekit.LivekitWebhook;
 import lombok.extern.slf4j.Slf4j;
@@ -42,11 +43,12 @@ public class WebRtcController {
         initLiveKitController();
     }
 
+    @PostConstruct
     private void initLiveKitController() {
         try {
             this.roomServiceClient = RoomServiceClient.create(
-                    LIVEKIT_URL.replace("ws://", "http")
-                            .replace("wss://", "htpps"),
+                    LIVEKIT_URL.replace("ws://", "http://")
+                            .replace("wss://", "https://"),
                     LIVEKIT_API_KEY,
                     LIVEKIT_API_SECRET
             );
@@ -79,7 +81,7 @@ public class WebRtcController {
         AccessToken token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
         token.setName(name);
         token.setIdentity(sub);
-        token.setMetadata(new ObjectMapper().writeValueAsString(Map.of("team", team)));
+        token.setMetadata(objectMapper.writeValueAsString(Map.of("team", team)));
         token.addGrants(new RoomJoin(true), new RoomName(room));
 
         log.info("Success token generate : "+name);
@@ -152,7 +154,7 @@ public class WebRtcController {
             messageData.put("type", type != null ? type : "chat");
             messageData.put("msg", msg);
             messageData.put("name", name);
-            messageData.put("timestamp", LocalDateTime.now());
+            messageData.put("timestamp", LocalDateTime.now().toString());
 
             // JSON을 바이트 배열로 변환
             String jsonMessage = objectMapper.writeValueAsString(messageData);
