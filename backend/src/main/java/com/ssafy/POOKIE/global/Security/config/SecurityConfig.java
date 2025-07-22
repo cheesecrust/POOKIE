@@ -1,4 +1,4 @@
-package com.ssafy.POOKIE.Global.Security.Config;
+package com.ssafy.pookie.global.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
