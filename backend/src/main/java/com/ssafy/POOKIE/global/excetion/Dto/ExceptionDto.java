@@ -1,4 +1,4 @@
-package com.ssafy.POOKIE.Global.Excetion.Dto;
+package com.ssafy.pookie.global.excetion.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
