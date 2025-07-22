@@ -18,8 +18,7 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
       interval: 30s
