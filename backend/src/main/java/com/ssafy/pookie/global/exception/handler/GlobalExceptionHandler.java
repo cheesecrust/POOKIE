@@ -1,6 +1,6 @@
-package com.ssafy.pookie.global.excetion.handler;
+package com.ssafy.pookie.global.exception.handler;
 
-import com.ssafy.pookie.global.excetion.dto.ExceptionDto;
+import com.ssafy.pookie.global.exception.dto.ExceptionDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
