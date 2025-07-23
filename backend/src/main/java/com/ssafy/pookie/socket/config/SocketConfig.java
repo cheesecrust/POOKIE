@@ -1,9 +1,8 @@
 package com.ssafy.pookie.socket.config;
 
-import com.ssafy.pookie.game.server.controller.GameServerController;
+import com.ssafy.pookie.game.server.handler.GameServerHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -13,11 +12,11 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @RequiredArgsConstructor
 public class SocketConfig implements WebSocketConfigurer {
 
-    private final GameServerController gameServerController;
+    private final GameServerHandler gameServerHandler;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(gameServerController, "ws/game")
+        registry.addHandler(gameServerHandler, "game")
                 .setAllowedOrigins("*");
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class JoinDto {
-    private UserDto user;
     private String roomId;
+    private UserDto user;
+    private String team;
 }
