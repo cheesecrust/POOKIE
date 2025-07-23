@@ -1,5 +1,5 @@
 const WaitingPage = () => {
-  return <div>WaitingPage</div>;
+  return <></>;
 };
 
 export default WaitingPage;

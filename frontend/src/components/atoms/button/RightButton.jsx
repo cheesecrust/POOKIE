@@ -1,5 +1,5 @@
-// src/components/atoms/button/BasicButton.jsx
-// 사용하실때  <BasicButton size="" className=''>텍스트</BasicButton>
+// 우클릭시 토글되는 버튼스타일
+// src/components/atoms/button/RightButton.jsx
 
 const sizeMap = {
   sm: "text-sm px-2 py-1",
@@ -7,7 +7,7 @@ const sizeMap = {
   lg: "text-lg px-6 py-3",
 };
 
-const BasicButton = ({
+const RightButton = ({
   children = "버튼",
   onClick,
   disabled = false,
@@ -18,7 +18,7 @@ const BasicButton = ({
   const sizeStyle = sizeMap[size] || sizeMap.sm;
 
   const baseStyle = `
-    bg-blue-500 hover:bg-blue-400 text-white py-2 px-4 border-b-3 border-blue-700 hover:border-blue-500 rounded
+    bg-white hover:bg-gray-100 py-2 px-4 border-2 border-black-400 shadow
     ${disabled ? "opacity-50 cursor-not-allowed" : ""}
   `;
 
@@ -34,4 +34,4 @@ const BasicButton = ({
   );
 };
 
-export default BasicButton;
+export default RightButton;
