@@ -152,6 +152,7 @@ public class GameServerService {
         유저를 세션에서 제거
      */
     public void removeFromLobby(WebSocketSession session) throws IOException {
+        removeSessionFromRooms(session);
         rooms.remove(session);
         session.close(CloseStatus.POLICY_VIOLATION);
     }
