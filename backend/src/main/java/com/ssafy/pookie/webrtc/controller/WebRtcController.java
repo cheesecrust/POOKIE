@@ -27,10 +27,10 @@ import java.util.Map;
 @Slf4j
 public class WebRtcController {
     @Value("${livekit.api.key}")
-    private String LIVEKIT_API_KEY;
+    private String LIVEKIT_API_KEY = "a604";
 
     @Value("${livekit.api.secret}")
-    private String LIVEKIT_API_SECRET;
+    private String LIVEKIT_API_SECRET = "9lHEHq7OFrvkJ0ehcUKA62upaQzih8ub";
 
     private final String LIVEKIT_URL = "wss://i13a604.p.ssafy.io:443";
 
