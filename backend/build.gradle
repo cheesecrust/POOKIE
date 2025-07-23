@@ -33,6 +33,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.cloud:spring-cloud-config-server'
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	// https://mvnrepository.com/artifact/io.livekit/livekit-server
 	implementation("io.livekit:livekit-server:0.10.0")
 	compileOnly 'org.projectlombok:lombok'
