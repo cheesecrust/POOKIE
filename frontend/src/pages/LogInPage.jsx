@@ -1,15 +1,16 @@
-import FriendList from "../components/molecules/common/FriendList";
 import ChatBox from "../components/molecules/common/ChatBox";
-import MessageList from "../components/molecules/common/MessageList";
-import FriendMessageTab from "../components/molecules/common/FriendMessageTab";
 
 const LogInPage = () => {
   return (
     <>
-
       <div>LogInPage</div>
+
+      <div style={{ width: '1000px', height: '1000px', position: 'relative', backgroundColor: '#f8f8f8' }}>
+        <div style={{ position: 'absolute', bottom: '0', left: 0, right: 0 }}>
+          <ChatBox />
+        </div>
+      </div>
     </>
-    
   );
 };
 
