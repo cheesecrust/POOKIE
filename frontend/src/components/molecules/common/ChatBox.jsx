@@ -10,12 +10,10 @@ const ChatBox = ({ width = '260px', height = '180px' }) => {
 
   return (
     <div
-      className="rounded-xl shadow-md p-2 flex flex-col justify-end"
+      className="rounded-xl shadow-md p-2 flex flex-col justify-end transition-all duration-200 bg-[#DCDCDC] overflow-hidden"
       style={{
-        width: width,
-        height: isOpen ? height : '50px',  
-        backgroundColor: '#DCDCDC',
-        transition: 'height 0.2s ease',
+        width,
+        height: isOpen ? height : '50px',
       }}
     >
       {isOpen && (
@@ -29,7 +27,7 @@ const ChatBox = ({ width = '260px', height = '180px' }) => {
         <input
           type="text"
           className="flex-1 rounded px-2 py-1 text-sm bg-white"
-          placeholder="메시지를 입력하세요"f
+          placeholder="메시지를 입력하세요"
         />
         <button
           className="w-6 h-6 rounded-full bg-sky-300 text-white text-xs flex items-center justify-center hover:bg-sky-400"
