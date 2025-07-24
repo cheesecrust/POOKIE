@@ -67,7 +67,7 @@ public class UserService {
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             UserAccounts userAccount = user.getUserAccount();
 
-            log.info(user.getPassword()+ " " + loginRequest.getPassword());
+            log.info(user.getPassword() + " " + loginRequest.getPassword());
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 throw new Exception("비밀번호가 일치하지 않습니다.");
             }
@@ -144,4 +144,5 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .build();
     }
+}
 
