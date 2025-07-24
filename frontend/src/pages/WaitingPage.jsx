@@ -7,6 +7,7 @@ import Timer from "../components/molecules/games/Timer";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
+import ChatBox from "../components/molecules/common/ChatBox";
 
 import { useState, useEffect } from "react";
 
@@ -121,6 +122,7 @@ const WaitingPage = () => {
 
         <SelfCamera />
         <div>chat components</div>
+        <ChatBox className="h-60"></ChatBox>
       </section>
     </div>
   );

@@ -16,7 +16,7 @@ const WaitingUserCard = ({ user }) => {
           relative
           w-24 sm:w-28 md:w-32 lg:w-36 xl:w-40
           aspect-[3/4]
-          rounded-xl
+        
           border-4
           ${borderColor}
           bg-white
