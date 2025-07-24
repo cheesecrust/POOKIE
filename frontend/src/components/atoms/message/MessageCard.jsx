@@ -4,7 +4,7 @@
 
 const MessageCard = ({messageType, nickname,date, messageContent,isRead,onDelete,onReport}) => {
     return (
-        <div className="relative w-full p-4 rounded-md bg-white border border-gray-300 shadow-sm">
+        <div className="relative w-full p-4 rounded-2xl bg-white border border-gray-300 shadow-sm">
           <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
             <span>{messageType === 'sent' ? `받은사람 : ${nickname}` : `보낸 사람 : ${nickname}`} </span>
             <span>{date}</span>
