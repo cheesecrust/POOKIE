@@ -1,5 +1,6 @@
 package com.ssafy.pookie.auth.controller;
 
+import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pookie.auth.dto.LoginRequestDto;
 import com.ssafy.pookie.auth.dto.LoginResponseDto;
 import com.ssafy.pookie.auth.dto.SignupRequestDto;
