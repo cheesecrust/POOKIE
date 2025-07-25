@@ -12,7 +12,7 @@ public class GameInfoDto {
     // 고요속의 외침, 일심동체 -> 1명, 이어그리기 n-1 명
     private List<UserDto> rep;
     private List<UserDto> normal;
-    private Set<Integer> keywordSet;
+    private Set<Long> keywordSet;
 
     public void setInit() {
         rep = new ArrayList<>();

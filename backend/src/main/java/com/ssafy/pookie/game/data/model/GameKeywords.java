@@ -2,11 +2,13 @@ package com.ssafy.pookie.game.data.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
 public class GameKeywords {
 
     @Id
