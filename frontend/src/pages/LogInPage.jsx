@@ -1,16 +1,24 @@
-import FriendList from "../components/molecules/common/FriendList";
-import ChatBox from "../components/molecules/common/ChatBox";
-import MessageList from "../components/molecules/common/MessageList";
-import FriendMessageTab from "../components/molecules/common/FriendMessageTab";
+// src/pages/LogInPage.jsx
+import LogInModal from "../components/organisms/login/LogInModal";
+import backgroundLogIn from "../assets/background/background_login.png"
+import { useState } from "react";
 
 const LogInPage = () => {
-  return (
-    <>
+    const [isOpen, setIsOpen] = useState(true);
 
-      <div>LogInPage</div>
-    </>
-    
-  );
-};
-
-export default LogInPage;
+    return (
+      <div className="relative w-full h-screen overflow-hidden">
+        {/* 배경 이미지 */}
+        <img
+          src={backgroundLogIn}
+          alt="login background"
+          className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+        />
+  
+        {/* 모달 */}
+        <LogInModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      </div>
+    );
+  };
+  
+  export default LogInPage;
