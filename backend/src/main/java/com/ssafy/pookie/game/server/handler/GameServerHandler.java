@@ -62,6 +62,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
+            // Game
             case GAME_START:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
@@ -73,7 +74,9 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
-                gameService.handleRoundOver();
+                gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
+                gameResult.getUserDto().setSession(session);
+                gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:
                 break;
