@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.room.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,6 +32,8 @@ public class RoomStateDto {
     private Status status = Status.WAITING;
     // 방장
     private UserDto roomMaster;
+    // 발화자 등 팀 대표
+    private GameInfoDto gameInfo;
     // 현재 접속중인 User 목록 ( 팀 구분 )
     // <팀정보, User 목록>
     private Map<String, List<UserDto>> users = new HashMap<>();

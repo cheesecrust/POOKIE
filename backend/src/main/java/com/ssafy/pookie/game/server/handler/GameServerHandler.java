@@ -34,11 +34,13 @@ public class GameServerHandler extends TextWebSocketHandler {
         TurnDto gameResult;
 
         switch(msg.getType()) {
+            // Lobby
             case ON:
                 UserDto on = objectMapper.convertValue(msg.getPayload(), UserDto.class);
                 on.setSession(session);
                 gameService.handleOn(session, on);
                 break;
+            // Room
             case JOIN:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
@@ -64,6 +66,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
+            // Game
             case GAME_START:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
