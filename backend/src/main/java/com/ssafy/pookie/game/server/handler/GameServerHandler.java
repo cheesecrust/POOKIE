@@ -84,23 +84,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
-
-        UserDto user = UserDto.builder()
-                .session(session)
-                .userAccountId((Long) session.getAttributes().get("userAccountId"))
-                .userEmail((String) session.getAttributes().get("userEmail"))
-                .userNickname((String) session.getAttributes().get("nickname"))
-                .status(UserDto.Status.NONE)
-                .grant(UserDto.Grant.NONE)
-                .build();
-        gameService.handleOn(session, user);
-
-        Long userId = (Long) session.getAttributes().get("userAccountId");
-        UserAccounts userAccount = userAccountsRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("user account not found"));
-
-        userAccount.updateOnline(true);
-        userAccountsRepository.save(userAccount);
+        gameService.joinInLobby(session);
     }
 
     @Override

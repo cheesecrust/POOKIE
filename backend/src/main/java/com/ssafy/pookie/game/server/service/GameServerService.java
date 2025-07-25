@@ -453,6 +453,25 @@ public class GameServerService {
         session.close(CloseStatus.POLICY_VIOLATION);
     }
 
+    public void joinInLobby(WebSocketSession session) throws IOException {
+        UserDto user = UserDto.builder()
+                .session(session)
+                .userAccountId((Long) session.getAttributes().get("userAccountId"))
+                .userEmail((String) session.getAttributes().get("userEmail"))
+                .userNickname((String) session.getAttributes().get("nickname"))
+                .status(UserDto.Status.NONE)
+                .grant(UserDto.Grant.NONE)
+                .build();
+        handleOn(session, user);
+
+        Long userId = (Long) session.getAttributes().get("userAccountId");
+        UserAccounts userAccount = userAccountsRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("user account not found"));
+
+        userAccount.updateOnline(true);
+        userAccountsRepository.save(userAccount);
+    }
+
     /*
         현재 세션에 해당 유저가 있는지 확인
      */
