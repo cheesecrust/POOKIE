@@ -1,7 +1,12 @@
 // 경로 : src/components/molecules/common/ChatBox.jsx
-// 사용 예시:
-//  <ChatBox width="260px" height="180px" /> 필요로하는 컴포넌트에서 width와 height를 props로 전달받아 사용하시면 됩니다.
 // 채팅들은 어떻게 가져올지 몰라서 일단 css만 구현 
+
+// 상위 컴포넌트에서 쓰실 때 예시:
+// <div className="relative w-[500px] h-[500px] bg-[#f8f8f8]"> w랑 h 채팅창 크기와 동일하게 하시면됩니다 
+//   <div className="absolute bottom-0 left-0 right-0">  
+//     <ChatBox width="300px" height="300px"/>           채팅창 원하는 w,h 값을 넣으시면됩니다.
+//   </div>
+// </div>
 
 import { useState } from 'react';
 
