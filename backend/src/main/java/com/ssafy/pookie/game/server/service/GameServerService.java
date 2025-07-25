@@ -349,7 +349,7 @@ public class GameServerService {
         // 게임 시작 설정
         room.setStatus(RoomStateDto.Status.START);
         // 라운드 설정
-        increaseRound(room);
+        if(!increaseRound(session, room)) return;
         // 턴 설정
         turnChange(room);
         // 키워드셋 설정
@@ -454,26 +454,39 @@ public class GameServerService {
     }
 
     // 게임 라운드 증가
-    public void increaseRound(RoomStateDto room) {
+    public Boolean increaseRound(WebSocketSession session, RoomStateDto room) throws IOException {
         // 현재 대기방의 현재 라운드
         int nowRound = room.getRound();
-
         // 1. 게임 끝
         if(nowRound == 3) { // 더 이상 진행 불가
             log.info("Room {} Game Over", room.getRoomId());
-            // TODO Client response msg
+
+            String win;
+            Integer redScore = room.getTeamScores().get("RED");
+            Integer blueScore = room.getTeamScores().get("BLUE");
+            if(redScore == blueScore) win = "DRAW";
+            else if(redScore > blueScore) win = "RED";
+            else win = "BLUE";
+            room.resetAfterGameOver();
+            // Client response msg
+            broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", "GAME_OVER",
+                    "room", room,
+                    "win", win,
+                    "finalScore", Map.of("RED", redScore, "BLUE", blueScore)
+            ));
+            return false;
         }
         // 2. 게임 진행
-        else {
-            room.setRound(nowRound+1);
-        }
+        room.setRound(nowRound+1);
+        return true;
     }
 
     // 턴 체인지
     public void turnChange(RoomStateDto room) {
-        // NONE 이라면 RED 선, 아니라면 BLUE 선
-        if(room.getTurn().toString().equals("NONE")) room.setTurn(RoomStateDto.Turn.RED);
-        else room.setTurn(RoomStateDto.Turn.BLUE);
+        // NONE / BLUE 라면 RED 로, RED 라면 BLUE 로
+        if(room.getTurn() ==  RoomStateDto.Turn.RED) room.setTurn(RoomStateDto.Turn.BLUE);
+        else room.setTurn(RoomStateDto.Turn.RED);
     }
 
     public void writeTempTeamScore(TurnDto result, RoomStateDto room) {
@@ -508,8 +521,9 @@ public class GameServerService {
         room.resetTempTeamScore();
         // gameInfo 초기화
         room.getGameInfo().setInit();
-        // 라운드 증가
-        increaseRound(room);
+        // 라운드 증가, 턴 체인지
+        turnChange(room);
+        if(!increaseRound(session ,room)) return;
 
         log.info("Turn Change\n Room : {}", room);
         // client response message

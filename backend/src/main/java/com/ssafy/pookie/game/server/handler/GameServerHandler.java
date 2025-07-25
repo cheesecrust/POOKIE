@@ -74,12 +74,12 @@ public class GameServerHandler extends TextWebSocketHandler {
                 break;
             case TURN_CHANGE:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
-                gameResult.getUserDto().setSession(session);
+                gameResult.getUser().setSession(session);
                 gameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
-                gameResult.getUserDto().setSession(session);
+                gameResult.getUser().setSession(session);
                 gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:

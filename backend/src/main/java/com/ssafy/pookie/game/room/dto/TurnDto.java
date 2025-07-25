@@ -12,5 +12,5 @@ public class TurnDto {
     private String roomId;
     private String team;
     private Integer score;
-    private UserDto userDto;
+    private UserDto user;
 }

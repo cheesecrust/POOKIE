@@ -15,12 +15,18 @@ public class GameInfoDto {
     private Set<Long> keywordSet;
 
     public GameInfoDto() {
-        rep = new ArrayList<>();
-        normal = new ArrayList<>();
+        this.rep = new ArrayList<>();
+        this.normal = new ArrayList<>();
     }
 
     public void setInit() {
-        rep.clear();
-        normal.clear();
+        this.rep.clear();
+        this.normal.clear();
+    }
+
+    public void resetAfterGameOver() {
+        this.rep.clear();
+        this.normal.clear();
+        this.keywordSet.clear();
     }
 }

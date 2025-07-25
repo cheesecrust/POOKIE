@@ -101,4 +101,14 @@ public class RoomStateDto {
         this.tempTeamScores.put("RED", 0);
         this.tempTeamScores.put("BLUE", 0);
     }
+
+    public void resetAfterGameOver() {
+        this.round = 0;
+        this.turn = Turn.NONE;
+        this.status = Status.WAITING;
+        this.gameInfo.resetAfterGameOver();
+        this.teamScores.computeIfPresent("RED", (k,v) -> 0);
+        this.teamScores.computeIfPresent("BLUE", (k,v)-> 0);
+        resetTempTeamScore();
+    }
 }
