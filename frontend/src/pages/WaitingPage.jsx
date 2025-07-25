@@ -61,7 +61,7 @@ const WaitingPage = () => {
       // 방장일 때 게임 시작 로직
       console.log("게임 시작");
       // 예: socket.emit('startGame');
-      navigate("/samepose"); // 게임 페이지로 이동
+      navigate("/sketchrelay"); // 게임 페이지로 이동
     } else {
       // 방장이 아닐 때는 아무 동작도 하지 않음
       console.log("방장이 아닙니다.");
@@ -143,22 +143,26 @@ const WaitingPage = () => {
       </section>
 
       {/* 우측 전체 박스 */}
-      <section className="basis-1/4 bg-rose-300">
-        <div className="m-4 flex justify-end">
+      <section className="basis-1/4 flex flex-col bg-rose-300">
+        <div className="basis-1/8 m-4 flex justify-end items-center">
           <ModalButton
-            className="
-    text-sm px-2 py-1 
-    sm:text-base sm:px-4 sm:py-2 
-    lg:text-lg lg:px-6 lg:py-3
-  "
+            className="text-lg px-2 py-1 rounded-md"
             onClick={handleLeaveRoom}
           >
             방 나가기
           </ModalButton>
         </div>
 
-        <SelfCamera />
-        <ChatBox></ChatBox>
+        {/*  */}
+        <div className="basis-3/8 flex flex-col justify-center items-center">
+          <SelfCamera />
+        </div>
+
+        <div className="basis-4/8 relative">
+          <div className="absolute bottom-0">
+            <ChatBox width="300px" height="250px" />
+          </div>
+        </div>
       </section>
     </div>
   );
