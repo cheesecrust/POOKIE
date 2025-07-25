@@ -351,11 +351,7 @@ public class GameServerService {
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         updateLobbyUserStatus(roomMaster, true, LobbyUserDto.Status.GAME);
-//        for(String team : room.getUsers().keySet()) {
-//            for(UserDto user : room.getUsers().get(team)) {
-//                log.info("{} : {}", lobby.get(user.getUserId()), lobby.get(user.getUserId()).getStatus());
-//            }
-//        }
+
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "GAME_START",
@@ -404,8 +400,8 @@ public class GameServerService {
         // 대표지
         // 이어그리기 n-1 명
         // 나머지 1 명
-        int rep = room.getGameType() == RoomStateDto.GameType.SKETCHRELAY ?
-                teamUsers.size()-1 : 1;
+        int rep = room.getGameType() == RoomStateDto.GameType.SKETCHRELAY ? teamUsers.size()-1 :
+                room.getGameType() == RoomStateDto.GameType.SAMEPOSE ? teamUsers.size() : 1;
         room.getGameInfo().setInit();
         List<UserDto> reqList = room.getGameInfo().getRep();
         List<UserDto> normalList = room.getGameInfo().getNormal();
@@ -445,13 +441,12 @@ public class GameServerService {
 
         // 1. 게임 끝
         if(nowRound == 3) { // 더 이상 진행 불가
+            log.info("Room {} Game Over", room.getRoomId());
             // TODO Client response msg
-            // 라운드 끝
         }
         // 2. 게임 진행
         else {
             room.setRound(nowRound+1);
-            // TODO Client response msg
         }
     }
 
@@ -467,8 +462,46 @@ public class GameServerService {
     }
 
     // 라운드 종료
-    public void handleRoundOver(WebSocketSession session, TurnDto gameResult) {
+    public void handleRoundOver(WebSocketSession session, TurnDto gameResult) throws IOException {
+        /*
+            1. 두 팀간 점수를 비교
+            2. 승 / 패 구분
+            3. RoomStateDto 의 teamScore 갱신 및 tempTeamScore 초기화
+            4. GameInfo Reset
+            5. Turn 교환
+         */
+        RoomStateDto room = rooms.get(gameResult.getRoomId());
+        // 라운드 끝, 팀별 점수 집계
+        writeTempTeamScore(gameResult, room);
 
+        int redScore = room.getTempTeamScores().get("RED");
+        int blueScore = room.getTempTeamScores().get("BLUE");
+
+        if(redScore > blueScore) {
+            room.getTeamScores().put("RED",room.getTeamScores().get("RED")+1);
+        } else if(redScore < blueScore) {
+            room.getTeamScores().put("BLUE",room.getTeamScores().get("BLUE")+1);
+        } else {
+            room.getTeamScores().put("RED",room.getTeamScores().get("RED")+1);
+            room.getTeamScores().put("BLUE",room.getTeamScores().get("BLUE")+1);
+        }
+        // 라운드별 점수 초기화
+        room.resetTempTeamScore();
+        // gameInfo 초기화
+        room.getGameInfo().setInit();
+        // 라운드 증가
+        increaseRound(room);
+
+        log.info("Turn Change\n Room : {}", room);
+        // client response message
+        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                "type", "NEW_ROUND",
+                "msg", "새로운 라운드가 시작됩니다.",
+                "round", room.getRound(),
+                "turn", room.getTurn().toString(),
+                "room", room
+        ));
+        deliverKeywords(room);
     }
 
     // 현재 방에 있는 유저들에게 BraodCast

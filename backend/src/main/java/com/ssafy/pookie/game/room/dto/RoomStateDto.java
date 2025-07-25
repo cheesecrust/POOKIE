@@ -15,6 +15,10 @@ import java.util.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+/*
+    7.25
+    roomTitle 과 roomId 구분
+ */
 public class RoomStateDto {
     public enum Status {WAITING, START, END};
     public enum Turn {RED, BLUE, NONE};
@@ -89,7 +93,12 @@ public class RoomStateDto {
 
         // 2. 팀원 수에 따라 배정
         // 팀원 수가 같다면 RED 가 우선권
-        if(redTeam <= blueTeam) return "BLUE";
+        if(redTeam <= blueTeam) return "RED";
         else return "BLUE";
+    }
+
+    public void resetTempTeamScore() {
+        this.tempTeamScores.put("RED", 0);
+        this.tempTeamScores.put("BLUE", 0);
     }
 }
