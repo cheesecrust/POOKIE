@@ -1,8 +1,17 @@
 // src/components/molecules/RoundInfo.jsx
 
-//round 정보 받아오고 teamscore? tempteamscore 받아서 써야함. 추후 다시
+//round 와 teamscore 서버에서 받아서 써야함
 
-const RoundInfo = ({ round = 1, redScore = 0, blueScore = 0 }) => {
+// 사용예시
+{
+  /* <RoundInfo
+  redScore={room.teamScores.Red}
+  blueScore={room.teamScores.Blue}
+  round={room.round}
+/> */
+}
+
+const RoundInfo = ({ round = 0, redScore = 0, blueScore = 0 }) => {
   return (
     <div className="flex flex-col items-center gap-2 text-center font-pixel text-black">
       {/* 라운드 표시 */}

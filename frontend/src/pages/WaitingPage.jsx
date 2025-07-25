@@ -9,6 +9,7 @@ import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 // 실제로는 안쓰는 더미 데이터
@@ -39,7 +40,36 @@ const dummyUsers = [
   },
 ];
 
+// WaitingPage 컴포넌트
 const WaitingPage = () => {
+  // useNavigate 훅을 사용한 페이지 이동 기능
+  const navigate = useNavigate();
+
+  // 방을 나가게 되면 socket 연결을 끊고 메인 페이지로 이동하는 함수 필요
+  const handleLeaveRoom = () => {
+    // 방 나가기 로직
+    console.log("방을 나가기");
+    // 방 나간 후 메인 페이지로 이동
+    navigate("/home");
+  };
+
+  // ##### 방장인 경우의 프론트 예
+  const isHost = true; // 예시로 방장인 경우
+
+  const handleStartGame = () => {
+    if (isHost) {
+      // 방장일 때 게임 시작 로직
+      console.log("게임 시작");
+      // 예: socket.emit('startGame');
+      navigate("/samepose"); // 게임 페이지로 이동
+    } else {
+      // 방장이 아닐 때는 아무 동작도 하지 않음
+      console.log("방장이 아닙니다.");
+    }
+  };
+
+  // 레디 상태 버튼 누르면 사용자의 레디 상태를 서버에 보내야 함
+
   const [userSlots, setUserSlots] = useState([
     null,
     null,
@@ -49,7 +79,7 @@ const WaitingPage = () => {
     null,
   ]);
 
-  // 테스트용
+  // ######### 테스트용
   useEffect(() => {
     // 테스트: 첫 유저 1초 후 입장, 두 번째는 2초, 세 번째는 3초 후 입장
     dummyUsers.forEach((user, i) => {
@@ -88,10 +118,16 @@ const WaitingPage = () => {
       >
         {/* 상하 박스    위: 방제, 버튼 */}
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4">room_list</h1>
+          <h1 className="p-4 text-3xl">room_list</h1>
           <div className="flex flex-row gap-2 p-2">
             <BasicButton>team</BasicButton>
-            <ModalButton>READY</ModalButton>
+
+            {/* 방장이라면 start를 봐야함 */}
+            {isHost ? (
+              <ModalButton onClick={handleStartGame}>START</ModalButton>
+            ) : (
+              <ModalButton>READY</ModalButton>
+            )}
           </div>
         </div>
 
@@ -115,14 +151,14 @@ const WaitingPage = () => {
     sm:text-base sm:px-4 sm:py-2 
     lg:text-lg lg:px-6 lg:py-3
   "
+            onClick={handleLeaveRoom}
           >
             방 나가기
           </ModalButton>
         </div>
 
         <SelfCamera />
-        <div>chat components</div>
-        <ChatBox className="h-60"></ChatBox>
+        <ChatBox></ChatBox>
       </section>
     </div>
   );
