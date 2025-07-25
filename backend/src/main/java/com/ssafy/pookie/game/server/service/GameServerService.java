@@ -1,8 +1,14 @@
 package com.ssafy.pookie.game.server.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.fasterxml.classmate.members.RawMember;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.game.data.model.GameKeywords;
+import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
+import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
@@ -19,9 +25,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -29,10 +33,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class GameServerService {
 
+    private final GameKeywordsRepository gameKeywordsRepository;
+
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userId, LobbyUserDto>
 
     private final UserAccountsRepository userAccountsRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+
     /*
         유저가 게임 Lobby 로 접속 시
      */
@@ -86,16 +94,16 @@ public class GameServerService {
             RoomStateDto newRoom = new RoomStateDto();
             newRoom.setRoomId(id);
             newRoom.setGameType(joinDto.getGameType());
-            newRoom.getTeamScores().computeIfAbsent("Red", k -> 0);
-            newRoom.getTeamScores().computeIfAbsent("Blue", k -> 0);
-            newRoom.getTempTeamScores().computeIfAbsent("Red", k -> 0);
-            newRoom.getTempTeamScores().computeIfAbsent("Blue", k -> 0);
-            newRoom.getUsers().put("Red", new ArrayList<>());
-            newRoom.getUsers().put("Blue", new ArrayList<>());
+            newRoom.getTeamScores().computeIfAbsent("RED", k -> 0);
+            newRoom.getTeamScores().computeIfAbsent("BLUE", k -> 0);
+            newRoom.getTempTeamScores().computeIfAbsent("RED", k -> 0);
+            newRoom.getTempTeamScores().computeIfAbsent("BLUE", k -> 0);
+            newRoom.getUsers().put("RED", new ArrayList<>());
+            newRoom.getUsers().put("BLUE", new ArrayList<>());
             joinDto.getUser().setGrant(UserDto.Grant.MASTER);
             joinDto.getUser().setStatus(UserDto.Status.READY);
             newRoom.setRoomMaster(joinDto.getUser());
-
+            newRoom.setGameInfo(new GameInfoDto());
             // 방 비밀번호가 있음
             if (joinDto.getRoomPw() != null) newRoom.setRoomPw(joinDto.getRoomPw());
 
@@ -211,10 +219,9 @@ public class GameServerService {
     // 방장 재배정
     public void regrantRoomMaster(RoomStateDto room) {
         Map<String, List<UserDto>> user = room.getUsers();
-        System.out.println(user);
-        String[] team = {"Red", "Blue"};
-        int teamIdx = (int) Math.random()*2;
-        int playerIdx = (int) Math.random()*user.get(team[teamIdx]).size();
+        String[] team = {"RED", "BLUE"};
+        int teamIdx = new Random().nextInt(2);
+        int playerIdx = new Random().nextInt(user.get(team[teamIdx]).size());
 
         if(user.get(team[teamIdx]).size() <= playerIdx) {
             teamIdx = (teamIdx+1)%2;
@@ -234,9 +241,7 @@ public class GameServerService {
         if(room == null || !room.getSessions().contains(session)) return;
         System.out.println(room);
         String fromTeam = teamChangeRequest.getFromTeam().toString();
-        System.out.println(room.getUsers().get("Red"));
         String toTeam = teamChangeRequest.getToTeam().toString();
-        System.out.println(room.getUsers().get("Blue"));
 
         for(UserDto user : room.getUsers().get(teamChangeRequest.getFromTeam().toString())) {
             if(user.getSession() == teamChangeRequest.getUser().getSession()) {
@@ -256,7 +261,7 @@ public class GameServerService {
     // 유저 READY 상태 변경
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
         RoomStateDto room = rooms.get(request.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() == session) return;
 
         UserDto.Status status;
         if(request.isReady()) {
@@ -316,39 +321,128 @@ public class GameServerService {
     public void hadleGameStart(WebSocketSession session, JoinDto roomMaster) throws IOException {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = rooms.get(roomMaster.getRoomId());
-        // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님
-        if(room == null || !room.getSessions().contains(session)) return;
+        // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
+        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() != session ) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
             session.sendMessage(new TextMessage("Required over 6 users"));
             return;
         }
+        if(room.getSessions().size() <= 6) {
+            // 모두 준비 완료 상태인지
+            int readyUserCnt = 0;
+            List<UserDto> teamUsers = room.getUsers().get("RED");
+            readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
+            teamUsers = room.getUsers().get("BLUE");
+            readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
+            log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomId(), room.getSessions().size(), readyUserCnt);
+            if(readyUserCnt != room.getSessions().size()) {
+                sendToMessageUser(session, Map.of(
+                        "type", "ERROR",
+                        "msg", "준비완료가 되지 않았습니다."
+                ));
+                return;
+            }
+        }
 
-        // 2. 인원 충족
+        // 2. 인원 충족, 모두 준비 완료
         // 게임 시작 설정
         room.setStatus(RoomStateDto.Status.START);
         // 라운드 설정
         increaseRound(room);
         // 턴 설정
         turnChange(room);
+        // 키워드셋 설정
+        room.getGameInfo().setKeywordSet(new HashSet<>());
+        log.info("RoomState : {}", room);
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         updateLobbyUserStatus(roomMaster, true, LobbyUserDto.Status.GAME);
+//        for(String team : room.getUsers().keySet()) {
+//            for(UserDto user : room.getUsers().get(team)) {
+//                log.info("{} : {}", lobby.get(user.getUserId()), lobby.get(user.getUserId()).getStatus());
+//            }
+//        }
+        // Client response msg
+        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                "type", "GAME_START",
+                "msg", "게임을 시작합니다."
+        ));
 
-        // TODO Client response msg
+        deliverKeywords(room);
+    }
+
+    // 제시어를 전달
+    public void deliverKeywords(RoomStateDto room) throws IOException{
+        pickTeamRep(room);
+        /*
+            일심 동체, 이어그리기 : 1 개
+            고요속의 외침 제시어 : 10 ~ 15 개
+         */
+        // DB 에서 게임 키워드 가져오기, 게임 종류에 따라 키워드가 다름
+        int keywordCnt = room.getGameType() == RoomStateDto.GameType.SILENTSCREAM ?
+        15 : 1;
+        // DB 에서 전체 키워드의 개수 추출
+        Long keywordSetCnt = gameKeywordsRepository.countByGameName(room.getGameType().toString());
+        Set<Long> keywordSet = room.getGameInfo().getKeywordSet();
+        Set<Long> tempKeywordSet = new HashSet<>();
+        while(tempKeywordSet.size() < keywordCnt) {
+            Long pkIdx = new Random().nextLong(keywordSetCnt)+1;
+
+            if(!keywordSet.add(pkIdx)) continue;
+            tempKeywordSet.add(pkIdx);
+        }
+        // DB 로 tempKeywordSet 전송하여 제시어 set 받아옴
+        // 제시어 set client 로 전달
+        List<GameKeywords> keywordList = gameKeywordsRepository.findByIdIn(tempKeywordSet);
+
+        for(UserDto rep : room.getGameInfo().getRep()) {
+            sendToMessageUser(rep.getSession(), Map.of(
+                    "type", "KEYWORD",
+                    "Keywords", keywordList
+            ));
+        }
+    }
+    // 현재 팀의 대표자 뽑기 ( 발화자 )
+    public void pickTeamRep(RoomStateDto room) {
+        // 현재 턴의 팀
+        List<UserDto> teamUsers = room.getUsers().get(room.getTurn().toString());
+
+        // 대표지
+        // 이어그리기 n-1 명
+        // 나머지 1 명
+        int rep = room.getGameType() == RoomStateDto.GameType.SKETCHRELAY ?
+                teamUsers.size()-1 : 1;
+        room.getGameInfo().setInit();
+        List<UserDto> reqList = room.getGameInfo().getRep();
+        List<UserDto> normalList = room.getGameInfo().getNormal();
+        while(room.getGameInfo().getRep().size() < rep) {
+            int repIdx = new Random().nextInt(teamUsers.size());
+            if(reqList.contains(teamUsers.get(repIdx))) continue;
+            reqList.add(teamUsers.get(repIdx));
+        }
+
+        for(UserDto user : teamUsers) {
+            if(reqList.contains(user)) continue;
+            normalList.add(user);
+        }
     }
 
     // 턴이 종료되었을 때
-    public void handleTurnChange(WebSocketSession session, TurnDto result) {
+    public void handleTurnChange(WebSocketSession session, TurnDto result) throws IOException {
         RoomStateDto room = rooms.get(result.getRoomId());
         if(room == null || !room.getSessions().contains(session)) return;
         // 현재 라운드 점수 기록
         writeTempTeamScore(result, room);
-
         // 턴 바꿔주기
         turnChange(room);
         log.info("Turn Change\n Room : {}", room);
-        // TODO Client response msg
+        // Client response msg
+        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                "type", "TURN_CHANGE",
+                "room", room
+        ));
+        deliverKeywords(room);
     }
 
     // 게임 라운드 증가
@@ -380,7 +474,7 @@ public class GameServerService {
     }
 
     // 라운드 종료
-    public void handleRoundOver() {
+    public void handleRoundOver(WebSocketSession session, TurnDto gameResult) {
 
     }
 
@@ -424,14 +518,10 @@ public class GameServerService {
         }
     }
 
-    private LobbyUserDto getLobbyUser(WebSocketSession session) throws IOException {
-        for (Map.Entry<String, LobbyUserDto> entry : lobby.entrySet()) {
-            LobbyUserDto user = entry.getValue();
-            if (user.getSession().equals(session)) {
-                return user;
-            }
-        }
-        throw new IOException("getLobbyUser: session is invalid");
+    private String getToken(WebSocketSession session) {
+        String auth = session.getHandshakeHeaders().getFirst("Authorization");
+        String token = Objects.requireNonNull(auth).substring(7);
+        return token;
     }
 
     /*
@@ -441,11 +531,13 @@ public class GameServerService {
     public void removeFromLobby(WebSocketSession session) throws IOException {
         String roomId = removeSessionFromRooms(session);
         if (roomId != null) rooms.remove(roomId);
-        LobbyUserDto lobbyUser = getLobbyUser(session);
-        lobby.remove(lobbyUser.getUser().getUserEmail());
+        String token = getToken(session);
+        String userEmail = jwtTokenProvider.getEmailFromToken(token);
+        lobby.remove(userEmail);
         
         // offline 처리
-        UserAccounts userAccount = userAccountsRepository.findById(lobbyUser.getUser().getUserAccountId())
+        Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
+        UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
                 .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
         userAccount.updateOnline(false);
         userAccountsRepository.save(userAccount);

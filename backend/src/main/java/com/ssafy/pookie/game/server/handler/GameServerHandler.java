@@ -1,14 +1,12 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
 import com.ssafy.pookie.game.server.service.GameServerService;
-import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
 import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +60,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
+            // Game
             case GAME_START:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
@@ -73,7 +72,9 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
-                gameService.handleRoundOver();
+                gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
+                gameResult.getUserDto().setSession(session);
+                gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:
                 break;
