@@ -111,4 +111,8 @@ public class RoomStateDto {
         this.teamScores.computeIfPresent("BLUE", (k,v)-> 0);
         resetTempTeamScore();
     }
+
+    public Boolean isIncluded(WebSocketSession session) {
+        return this.sessions.contains(session);
+    }
 }

@@ -152,7 +152,7 @@ public class GameServerService {
     // User 가 Room 을 떠날 때
     public void handleLeave(WebSocketSession session, String roomId) throws IOException {
         RoomStateDto room = rooms.get(roomId);
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
         String leaveUserNickName = "";
         // 해당 룸에서 세션과 유저 제거
         boolean find = false;
@@ -230,7 +230,7 @@ public class GameServerService {
     // User 팀 바꾸기
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
         RoomStateDto room = rooms.get(teamChangeRequest.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
         String fromTeam = teamChangeRequest.getFromTeam().toString();
         String toTeam = teamChangeRequest.getToTeam().toString();
 
@@ -252,7 +252,7 @@ public class GameServerService {
     // 유저 READY 상태 변경
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
         RoomStateDto room = rooms.get(request.getRoomId());
-        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() == session) return;
+        if(isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
 
         UserDto.Status status;
         if(request.isReady()) {
@@ -278,7 +278,7 @@ public class GameServerService {
     // 유저 강퇴 ( 방장만 )
     public void handleForcedRemoval(WebSocketSession session, RoomMasterForcedRemovalDto request) throws IOException {
         RoomStateDto room = rooms.get(request.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
 
         // 방장인지 확인
         if(room.getRoomMaster().getSession() != session) return;
@@ -313,7 +313,7 @@ public class GameServerService {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = rooms.get(roomMaster.getRoomId());
         // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() != session ) return;
+        if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session ) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
             session.sendMessage(new TextMessage("Required over 6 users"));
@@ -439,7 +439,9 @@ public class GameServerService {
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto result) throws IOException {
         RoomStateDto room = rooms.get(result.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
+        // TURN_CHANGE 이벤트는 RED 에서만 일어남
+        if(room.getTurn() != RoomStateDto.Turn.RED) return;
         // 현재 라운드 점수 기록
         writeTempTeamScore(result, room);
         // 턴 바꿔주기
@@ -543,7 +545,7 @@ public class GameServerService {
     // 2. 해당 대기방 전체
     public void broadCastMessageToRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
         RoomStateDto room = rooms.get(roomId);
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
         if(team != null) {
@@ -592,7 +594,12 @@ public class GameServerService {
     public LobbyUserDto isExistLobby(UserDto user) {
         return lobby.get(user.getUserId());
     }
-
+    /*
+        해당 방이 존재하고, 해당 유저의 권한이 있는지
+     */
+    public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
+        return room == null || !room.isIncluded(session);
+    }
     /*
         특정 유저에게만 Message 전달
      */
