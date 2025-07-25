@@ -40,15 +40,15 @@ public class UserAccounts {
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean isOnline = false;
+    private boolean online = false;
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean isBan = false;
+    private boolean banned = false;
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean isExit = false;
+    private boolean isExit = false;
 
     @CreatedDate
     @Column(updatable = false)
@@ -56,4 +56,8 @@ public class UserAccounts {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public void updateOnline(boolean online) {
+        this.online = online;
+    }
 }

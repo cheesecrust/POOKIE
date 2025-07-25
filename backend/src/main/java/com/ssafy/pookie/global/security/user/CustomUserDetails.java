@@ -11,14 +11,14 @@ import java.util.Collections;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private final Long userId;
+    private final Long userAccountId;
     private final String email;
     private final String nickname;
     private final String role;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(Long userId, String email, String nickname, String role) {
-        this.userId = userId;
+    public CustomUserDetails(Long userAccountId, String email, String nickname, String role) {
+        this.userAccountId = userAccountId;
         this.email = email;
         this.nickname = nickname;
         this.role = role;

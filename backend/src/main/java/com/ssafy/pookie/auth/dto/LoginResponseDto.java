@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public class LoginResponseDto {
 
-    private Long userId;
+    private Long userAccountId;
     private String email;
     private String nickname;
     private String accessToken;

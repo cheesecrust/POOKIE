@@ -1,6 +1,8 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
@@ -24,6 +26,7 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     private final GameServerService gameService;
     private final ObjectMapper objectMapper;
+    private final UserAccountsRepository userAccountsRepository;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -34,11 +37,6 @@ public class GameServerHandler extends TextWebSocketHandler {
         TurnDto gameResult;
 
         switch(msg.getType()) {
-            case ON:
-                UserDto on = objectMapper.convertValue(msg.getPayload(), UserDto.class);
-                on.setSession(session);
-                gameService.handleOn(session, on);
-                break;
             case JOIN:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
@@ -75,7 +73,6 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
-
                 gameService.handleRoundOver();
                 break;
             case GAME_OVER:
@@ -83,15 +80,32 @@ public class GameServerHandler extends TextWebSocketHandler {
         }
     }
 
-    // TODO 세션 연결 시, Lobby 에 추가할 수 있도록, Token 도입
+    // web socket 연결하는 순간 user를 만든다.
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
+
+        UserDto user = UserDto.builder()
+                .session(session)
+                .userAccountId((Long) session.getAttributes().get("userAccountId"))
+                .userEmail((String) session.getAttributes().get("userEmail"))
+                .userNickname((String) session.getAttributes().get("nickname"))
+                .status(UserDto.Status.NONE)
+                .grant(UserDto.Grant.NONE)
+                .build();
+        gameService.handleOn(session, user);
+
+        Long userId = (Long) session.getAttributes().get("userAccountId");
+        UserAccounts userAccount = userAccountsRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("user account not found"));
+
+        userAccount.updateOnline(true);
+        userAccountsRepository.save(userAccount);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        gameService.removeFromLobby(session);
         log.info("[WebSocket] Disconnected : "+ session.getId());
+        gameService.removeFromLobby(session);
     }
 }

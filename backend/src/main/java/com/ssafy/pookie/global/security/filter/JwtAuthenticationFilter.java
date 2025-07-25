@@ -63,6 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
 
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
+            log.info(bearerToken.substring(BEARER_PREFIX.length()));
             return bearerToken.substring(BEARER_PREFIX.length());
         }
 
@@ -72,17 +73,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void setAuthentication(HttpServletRequest request, String token) {
         try {
             // 토큰에서 사용자 정보 추출
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
+            Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
             String email = jwtTokenProvider.getEmailFromToken(token);
 
-            UserAccounts userAccount = userAccountsRepository.findById(userId)
+            UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
                     .orElseThrow(() -> new RuntimeException("잘못된 user account ID"));
 
             String nickname = userAccount.getNickname();
             String role = "USER"; // TODO: DB에서 조회
 
             // CustomUserDetails 생성
-            CustomUserDetails userDetails = new CustomUserDetails(userId, email, nickname, role);
+            CustomUserDetails userDetails = new CustomUserDetails(userAccountId, email, nickname, role);
 
             // 인증 객체 생성
             UsernamePasswordAuthenticationToken authentication =
@@ -97,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // SecurityContext에 인증 정보 저장
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.debug("JWT 인증 성공: userId={}, email={}", userId, email);
+            log.debug("JWT 인증 성공: userId={}, email={}", userAccountId, email);
 
         } catch (Exception e) {
             log.error("JWT 인증 객체 생성 실패: {}", e.getMessage());
