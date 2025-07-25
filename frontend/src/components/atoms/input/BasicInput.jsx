@@ -13,9 +13,10 @@
 //   onChange={(e) => setText(e.target.value)}
 //   onKeyDown={handleKeyDown}
 //   placeholder="내용을 입력하세요"
+//   className=""   
 // />
 
-const BasicInput = ({ value, onChange, onKeyDown, placeholder }) => {
+const BasicInput = ({ value, onChange, onKeyDown, placeholder, className = "" }) => {
     return (
         <input
             type="text"
@@ -23,7 +24,7 @@ const BasicInput = ({ value, onChange, onKeyDown, placeholder }) => {
             onChange={onChange}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="w-[350px] h-[50px] rounded border-2 border-black shadow-md outline-none px-2 text-lg text-black bg-white"
+            className={`w-[350px] h-[50px] rounded border-2 border-black shadow-md outline-none px-2 text-lg text-black bg-white ${className}`}
         />
     )
 }
