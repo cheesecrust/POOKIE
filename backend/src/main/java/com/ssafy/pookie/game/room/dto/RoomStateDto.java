@@ -8,6 +8,7 @@ import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -25,8 +26,9 @@ public class RoomStateDto {
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
 
     private String roomId;
+    private String roomTitle;
     private GameType gameType;
-    private String roomPw = "";
+    private String roomPw;
     //  라운드는 1~3 라운드
     //  -> 게임 시작 전에는 0 Default
     private int round = 0;
@@ -50,7 +52,7 @@ public class RoomStateDto {
     public String toJson() throws JsonProcessingException {
         return new ObjectMapper().writeValueAsString(
                 Map.of(
-                        "roomId", roomId,
+                        "roomTitle", roomTitle,
                         "gameType", gameType.toString(),
                         "round", round,
                         "turn", turn.toString(),

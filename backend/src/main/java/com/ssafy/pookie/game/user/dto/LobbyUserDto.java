@@ -12,13 +12,12 @@ public class LobbyUserDto {
     public enum Status {ON, GAME, OFF};
 
     // 초기 설정 이후 변경 불가
-    private final WebSocketSession session;
     private final UserDto user;
     private Status status;
 
     public LobbyUserDto(WebSocketSession session, UserDto user) {
-        this.session = session;
         this.user = user;
+        this.user.setSession(session);
     }
 
     public void setStatus(Status status) {

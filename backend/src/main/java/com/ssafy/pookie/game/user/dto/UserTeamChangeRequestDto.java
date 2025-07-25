@@ -8,6 +8,7 @@ public class UserTeamChangeRequestDto {
     public enum Team {RED, BLUE};
 
     private String roomId;
+    private String roomTitle;
     private UserDto user;
     private Team fromTeam;
     private Team toTeam;

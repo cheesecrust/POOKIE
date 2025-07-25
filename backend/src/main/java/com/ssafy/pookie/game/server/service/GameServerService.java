@@ -24,6 +24,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +51,7 @@ public class GameServerService {
             if(isExist.getStatus() != LobbyUserDto.Status.ON) {
                 isExist.setStatus(LobbyUserDto.Status.ON);
             } else {
-                removeFromLobby(isExist.getSession());
+                removeFromLobby(isExist.getUser().getSession());
                 log.warn("Duplicated user : {}", isExist.getUser().getUserId());
             }
         }
@@ -67,7 +68,12 @@ public class GameServerService {
         sendToMessageUser(session, Map.of(
                 "type", "ON",
                 "msg", "연결되었습니다.",
-                "user", userDto
+                "user", Map.of(
+                        "userId", userDto.getUserId(),
+                        "userNickname", userDto.getUserNickname(),
+                        "repImg", userDto.getReqImg() == null ? "" : userDto.getReqImg()
+                ),
+                "globalStatus", lobbyUserDto.getStatus().toString()
         ));
     }
 
@@ -85,10 +91,24 @@ public class GameServerService {
         }
         // 현재 사용자가 다른 방에도 있다면, 기존 방에서 제거
         removeSessionFromRooms(session);
+
+        if(joinDto.getRoomId() == null || joinDto.getRoomId().isEmpty()) {
+            String tempUUID = UUID.randomUUID().toString();
+            while(rooms.contains(tempUUID)) tempUUID = UUID.randomUUID().toString();
+
+            joinDto.setRoomId(tempUUID);
+        } else if(!rooms.containsKey(joinDto.getRoomId())){
+            sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "존재하지 않는 방입니다."
+            ));
+            return;
+        }
         // 기존에 있던 방이라면 입장, 없던 방이라면 생성
         RoomStateDto room = rooms.computeIfAbsent(joinDto.getRoomId(), id -> {
             RoomStateDto newRoom = new RoomStateDto();
             newRoom.setRoomId(id);
+            newRoom.setRoomTitle(joinDto.getRoomTitle());
             newRoom.setGameType(joinDto.getGameType());
             newRoom.getTeamScores().computeIfAbsent("RED", k -> 0);
             newRoom.getTeamScores().computeIfAbsent("BLUE", k -> 0);
@@ -139,19 +159,48 @@ public class GameServerService {
                 .add(joinDto.getUser());
 
         room.getSessions().add(session);
-        log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomId());
+        log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null,
                 Map.of(
                         "type", "JOIN",
-                        "room", room,
-                        "msg", joinDto.getUser().getUserId()+"가 입장하였습니다."
-                ));
+                        "msg", joinDto.getUser().getUserId()+"가 입장하였습니다.",
+                        "room", Map.of(
+                                "id", room.getRoomId(),
+                                "name", room.getRoomTitle(),
+                                "master", Map.of(
+                                        "id", room.getRoomMaster().getUserId(),
+                                        "nickname", room.getRoomMaster().getUserNickname(),
+                                        "grant", room.getRoomMaster().getGrant().toString(),
+                                        "repImg", room.getRoomMaster().getReqImg() == null ? "" : room.getRoomMaster().getReqImg()
+                                ),
+                                "RED", room.getUsers().get("RED").stream().map((user) -> {
+                                    return Map.of(
+                                            "id", user.getUserId(),
+                                            "nickname", user.getUserNickname(),
+                                            "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                                            "status", user.getStatus().toString()
+                                    );
+                                }).collect(Collectors.toList()),
+                                "BLUE", room.getUsers().get("BLUE").stream().map((user) -> {
+                                    return Map.of(
+                                            "id", user.getUserId(),
+                                            "nickname", user.getUserNickname(),
+                                            "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                                            "status", user.getStatus().toString()
+                                    );
+                                }).collect(Collectors.toList()),
+                                "teamInfo", Map.of(
+                                        "RED", room.getUsers().get("RED").size(),
+                                        "BLUE", room.getUsers().get("BLUE").size()
+                                )
+                        )
+                        ));
     }
 
     // User 가 Room 을 떠날 때
-    public void handleLeave(WebSocketSession session, String roomId) throws IOException {
-        RoomStateDto room = rooms.get(roomId);
+    public void handleLeave(WebSocketSession session, String RoomId) throws IOException {
+        RoomStateDto room = rooms.get(RoomId);
         if(isAuthorized(session, room)) return;
         String leaveUserNickName = "";
         // 해당 룸에서 세션과 유저 제거
@@ -170,7 +219,7 @@ public class GameServerService {
 
                     // 방에 아무도 남지 않은 경우 -> 방 삭제
                     if(room.getSessions().isEmpty()) {
-                        removeRoomFromServer(roomId);
+                        removeRoomFromServer(RoomId);
                         return;
                     }
 
@@ -223,8 +272,8 @@ public class GameServerService {
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
     }
     // 방 삭제
-    public void removeRoomFromServer(String roomId) {
-        rooms.remove(roomId);
+    public void removeRoomFromServer(String getRoomId) {
+        rooms.remove(getRoomId);
     }
 
     // User 팀 바꾸기
@@ -335,7 +384,7 @@ public class GameServerService {
                 ));
                 return;
             }
-            log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomId(), room.getSessions().size(), readyUserCnt);
+            log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
             if(readyUserCnt != room.getSessions().size()) {
                 sendToMessageUser(session, Map.of(
                         "type", "ERROR",
@@ -461,7 +510,7 @@ public class GameServerService {
         int nowRound = room.getRound();
         // 1. 게임 끝
         if(nowRound == 3) { // 더 이상 진행 불가
-            log.info("Room {} Game Over", room.getRoomId());
+            log.info("Room {} Game Over", room.getRoomTitle());
 
             String win;
             Integer redScore = room.getTeamScores().get("RED");
@@ -543,8 +592,8 @@ public class GameServerService {
     // 메시지 전달 유형
     // 1. 해당 팀원들에게만
     // 2. 해당 대기방 전체
-    public void broadCastMessageToRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
-        RoomStateDto room = rooms.get(roomId);
+    public void broadCastMessageToRoomUser(WebSocketSession session, String RoomId, String team, Map<String, Object> msg) throws IOException {
+        RoomStateDto room = rooms.get(RoomId);
         if(isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
