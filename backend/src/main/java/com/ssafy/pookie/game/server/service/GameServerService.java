@@ -229,10 +229,8 @@ public class GameServerService {
 
     // User 팀 바꾸기
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
-        System.out.println(teamChangeRequest);
         RoomStateDto room = rooms.get(teamChangeRequest.getRoomId());
         if(room == null || !room.getSessions().contains(session)) return;
-        System.out.println(room);
         String fromTeam = teamChangeRequest.getFromTeam().toString();
         String toTeam = teamChangeRequest.getToTeam().toString();
 
@@ -325,9 +323,18 @@ public class GameServerService {
             // 모두 준비 완료 상태인지
             int readyUserCnt = 0;
             List<UserDto> teamUsers = room.getUsers().get("RED");
+            int redTeamCnt = teamUsers.size();
             readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
             teamUsers = room.getUsers().get("BLUE");
+            int blueTeamCnt = teamUsers.size();
             readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
+            if(redTeamCnt != blueTeamCnt) {
+                sendToMessageUser(session, Map.of(
+                        "type", "ERROR",
+                        "msg", "팀원이 맞지 않습니다."
+                ));
+                return;
+            }
             log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomId(), room.getSessions().size(), readyUserCnt);
             if(readyUserCnt != room.getSessions().size()) {
                 sendToMessageUser(session, Map.of(
@@ -400,8 +407,20 @@ public class GameServerService {
         // 대표지
         // 이어그리기 n-1 명
         // 나머지 1 명
-        int rep = room.getGameType() == RoomStateDto.GameType.SKETCHRELAY ? teamUsers.size()-1 :
-                room.getGameType() == RoomStateDto.GameType.SAMEPOSE ? teamUsers.size() : 1;
+        Integer rep = null;
+
+        switch (room.getGameType().toString()) {
+            case "SAMEPOSE":
+                rep = teamUsers.size();
+                break;
+            case "SILENTSCREAM":
+                rep = 1;
+                break;
+            case "SKETCHRELAY":
+                rep = teamUsers.size()-1;
+                break;
+        }
+
         room.getGameInfo().setInit();
         List<UserDto> reqList = room.getGameInfo().getRep();
         List<UserDto> normalList = room.getGameInfo().getNormal();
