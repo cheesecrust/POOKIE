@@ -14,8 +14,19 @@ public class GameInfoDto {
     private List<UserDto> normal;
     private Set<Long> keywordSet;
 
+    public GameInfoDto() {
+        this.rep = new ArrayList<>();
+        this.normal = new ArrayList<>();
+    }
+
     public void setInit() {
-        rep = new ArrayList<>();
-        normal = new ArrayList<>();
+        this.rep.clear();
+        this.normal.clear();
+    }
+
+    public void resetAfterGameOver() {
+        this.rep.clear();
+        this.normal.clear();
+        this.keywordSet.clear();
     }
 }

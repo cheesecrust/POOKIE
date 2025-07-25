@@ -5,7 +5,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 @Data
 public class UserTeamChangeRequestDto {
-    public enum Team {Red, Blue};
+    public enum Team {RED, BLUE};
 
     private String roomId;
     private UserDto user;

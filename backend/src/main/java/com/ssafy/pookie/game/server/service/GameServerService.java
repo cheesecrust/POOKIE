@@ -152,7 +152,7 @@ public class GameServerService {
     // User 가 Room 을 떠날 때
     public void handleLeave(WebSocketSession session, String roomId) throws IOException {
         RoomStateDto room = rooms.get(roomId);
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
         String leaveUserNickName = "";
         // 해당 룸에서 세션과 유저 제거
         boolean find = false;
@@ -229,10 +229,8 @@ public class GameServerService {
 
     // User 팀 바꾸기
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
-        System.out.println(teamChangeRequest);
         RoomStateDto room = rooms.get(teamChangeRequest.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
-        System.out.println(room);
+        if(isAuthorized(session, room)) return;
         String fromTeam = teamChangeRequest.getFromTeam().toString();
         String toTeam = teamChangeRequest.getToTeam().toString();
 
@@ -254,7 +252,7 @@ public class GameServerService {
     // 유저 READY 상태 변경
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
         RoomStateDto room = rooms.get(request.getRoomId());
-        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() == session) return;
+        if(isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
 
         UserDto.Status status;
         if(request.isReady()) {
@@ -280,7 +278,7 @@ public class GameServerService {
     // 유저 강퇴 ( 방장만 )
     public void handleForcedRemoval(WebSocketSession session, RoomMasterForcedRemovalDto request) throws IOException {
         RoomStateDto room = rooms.get(request.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
 
         // 방장인지 확인
         if(room.getRoomMaster().getSession() != session) return;
@@ -315,7 +313,7 @@ public class GameServerService {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = rooms.get(roomMaster.getRoomId());
         // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-        if(room == null || !room.getSessions().contains(session) || room.getRoomMaster().getSession() != session ) return;
+        if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session ) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
             session.sendMessage(new TextMessage("Required over 6 users"));
@@ -325,9 +323,18 @@ public class GameServerService {
             // 모두 준비 완료 상태인지
             int readyUserCnt = 0;
             List<UserDto> teamUsers = room.getUsers().get("RED");
+            int redTeamCnt = teamUsers.size();
             readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
             teamUsers = room.getUsers().get("BLUE");
+            int blueTeamCnt = teamUsers.size();
             readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
+            if(redTeamCnt != blueTeamCnt) {
+                sendToMessageUser(session, Map.of(
+                        "type", "ERROR",
+                        "msg", "팀원이 맞지 않습니다."
+                ));
+                return;
+            }
             log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomId(), room.getSessions().size(), readyUserCnt);
             if(readyUserCnt != room.getSessions().size()) {
                 sendToMessageUser(session, Map.of(
@@ -342,7 +349,7 @@ public class GameServerService {
         // 게임 시작 설정
         room.setStatus(RoomStateDto.Status.START);
         // 라운드 설정
-        increaseRound(room);
+        if(!increaseRound(session, room)) return;
         // 턴 설정
         turnChange(room);
         // 키워드셋 설정
@@ -351,11 +358,7 @@ public class GameServerService {
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         updateLobbyUserStatus(roomMaster, true, LobbyUserDto.Status.GAME);
-//        for(String team : room.getUsers().keySet()) {
-//            for(UserDto user : room.getUsers().get(team)) {
-//                log.info("{} : {}", lobby.get(user.getUserId()), lobby.get(user.getUserId()).getStatus());
-//            }
-//        }
+
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "GAME_START",
@@ -404,8 +407,20 @@ public class GameServerService {
         // 대표지
         // 이어그리기 n-1 명
         // 나머지 1 명
-        int rep = room.getGameType() == RoomStateDto.GameType.SKETCHRELAY ?
-                teamUsers.size()-1 : 1;
+        Integer rep = null;
+
+        switch (room.getGameType().toString()) {
+            case "SAMEPOSE":
+                rep = teamUsers.size();
+                break;
+            case "SILENTSCREAM":
+                rep = 1;
+                break;
+            case "SKETCHRELAY":
+                rep = teamUsers.size()-1;
+                break;
+        }
+
         room.getGameInfo().setInit();
         List<UserDto> reqList = room.getGameInfo().getRep();
         List<UserDto> normalList = room.getGameInfo().getNormal();
@@ -424,7 +439,9 @@ public class GameServerService {
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto result) throws IOException {
         RoomStateDto room = rooms.get(result.getRoomId());
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
+        // TURN_CHANGE 이벤트는 RED 에서만 일어남
+        if(room.getTurn() != RoomStateDto.Turn.RED) return;
         // 현재 라운드 점수 기록
         writeTempTeamScore(result, room);
         // 턴 바꿔주기
@@ -439,27 +456,39 @@ public class GameServerService {
     }
 
     // 게임 라운드 증가
-    public void increaseRound(RoomStateDto room) {
+    public Boolean increaseRound(WebSocketSession session, RoomStateDto room) throws IOException {
         // 현재 대기방의 현재 라운드
         int nowRound = room.getRound();
-
         // 1. 게임 끝
         if(nowRound == 3) { // 더 이상 진행 불가
-            // TODO Client response msg
-            // 라운드 끝
+            log.info("Room {} Game Over", room.getRoomId());
+
+            String win;
+            Integer redScore = room.getTeamScores().get("RED");
+            Integer blueScore = room.getTeamScores().get("BLUE");
+            if(redScore == blueScore) win = "DRAW";
+            else if(redScore > blueScore) win = "RED";
+            else win = "BLUE";
+            room.resetAfterGameOver();
+            // Client response msg
+            broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", "GAME_OVER",
+                    "room", room,
+                    "win", win,
+                    "finalScore", Map.of("RED", redScore, "BLUE", blueScore)
+            ));
+            return false;
         }
         // 2. 게임 진행
-        else {
-            room.setRound(nowRound+1);
-            // TODO Client response msg
-        }
+        room.setRound(nowRound+1);
+        return true;
     }
 
     // 턴 체인지
     public void turnChange(RoomStateDto room) {
-        // NONE 이라면 RED 선, 아니라면 BLUE 선
-        if(room.getTurn().toString().equals("NONE")) room.setTurn(RoomStateDto.Turn.RED);
-        else room.setTurn(RoomStateDto.Turn.BLUE);
+        // NONE / BLUE 라면 RED 로, RED 라면 BLUE 로
+        if(room.getTurn() ==  RoomStateDto.Turn.RED) room.setTurn(RoomStateDto.Turn.BLUE);
+        else room.setTurn(RoomStateDto.Turn.RED);
     }
 
     public void writeTempTeamScore(TurnDto result, RoomStateDto room) {
@@ -467,8 +496,47 @@ public class GameServerService {
     }
 
     // 라운드 종료
-    public void handleRoundOver(WebSocketSession session, TurnDto gameResult) {
+    public void handleRoundOver(WebSocketSession session, TurnDto gameResult) throws IOException {
+        /*
+            1. 두 팀간 점수를 비교
+            2. 승 / 패 구분
+            3. RoomStateDto 의 teamScore 갱신 및 tempTeamScore 초기화
+            4. GameInfo Reset
+            5. Turn 교환
+         */
+        RoomStateDto room = rooms.get(gameResult.getRoomId());
+        // 라운드 끝, 팀별 점수 집계
+        writeTempTeamScore(gameResult, room);
 
+        int redScore = room.getTempTeamScores().get("RED");
+        int blueScore = room.getTempTeamScores().get("BLUE");
+
+        if(redScore > blueScore) {
+            room.getTeamScores().put("RED",room.getTeamScores().get("RED")+1);
+        } else if(redScore < blueScore) {
+            room.getTeamScores().put("BLUE",room.getTeamScores().get("BLUE")+1);
+        } else {
+            room.getTeamScores().put("RED",room.getTeamScores().get("RED")+1);
+            room.getTeamScores().put("BLUE",room.getTeamScores().get("BLUE")+1);
+        }
+        // 라운드별 점수 초기화
+        room.resetTempTeamScore();
+        // gameInfo 초기화
+        room.getGameInfo().setInit();
+        // 라운드 증가, 턴 체인지
+        turnChange(room);
+        if(!increaseRound(session ,room)) return;
+
+        log.info("Turn Change\n Room : {}", room);
+        // client response message
+        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                "type", "NEW_ROUND",
+                "msg", "새로운 라운드가 시작됩니다.",
+                "round", room.getRound(),
+                "turn", room.getTurn().toString(),
+                "room", room
+        ));
+        deliverKeywords(room);
     }
 
     // 현재 방에 있는 유저들에게 BraodCast
@@ -477,7 +545,7 @@ public class GameServerService {
     // 2. 해당 대기방 전체
     public void broadCastMessageToRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
         RoomStateDto room = rooms.get(roomId);
-        if(room == null || !room.getSessions().contains(session)) return;
+        if(isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
         if(team != null) {
@@ -526,7 +594,12 @@ public class GameServerService {
     public LobbyUserDto isExistLobby(UserDto user) {
         return lobby.get(user.getUserId());
     }
-
+    /*
+        해당 방이 존재하고, 해당 유저의 권한이 있는지
+     */
+    public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
+        return room == null || !room.isIncluded(session);
+    }
     /*
         특정 유저에게만 Message 전달
      */
