@@ -19,7 +19,7 @@
 
 const ChatInput = ({ value, onChange, onKeyDown, placeholder }) => {
     return (
-        <div className="relative w-[340px]">
+        <div className="relative flex-1">
           <input
             type="text"
             value={value}
