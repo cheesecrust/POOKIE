@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
@@ -68,9 +69,9 @@ public class GameServerHandler extends TextWebSocketHandler {
                 break;
             // Game
             case START_GAME:
-                join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
-                join.getUser().setSession(session);
-                gameService.hadleGameStart(session, join);
+                GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
+                start.getUser().setSession(session);
+                gameService.hadleGameStart(session, start);
                 break;
             case TURN_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);

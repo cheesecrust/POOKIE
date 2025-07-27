@@ -6,14 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.data.model.GameKeywords;
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
+import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
-import com.ssafy.pookie.game.user.dto.LobbyUserDto;
-import com.ssafy.pookie.game.user.dto.UserDto;
-import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
-import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
+import com.ssafy.pookie.game.user.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -314,6 +312,7 @@ public class GameServerService {
         Map<String, Object> roomInfo = new LinkedHashMap<>();
         roomInfo.put("id", room.getRoomId());
         roomInfo.put("name", room.getRoomTitle());
+        roomInfo.put("gameType", room.getGameType().toString());
         roomInfo.put("master", Map.of(
                 "id", room.getRoomMaster().getUserId(),
                 "nickname", room.getRoomMaster().getUserNickname(),
@@ -339,7 +338,7 @@ public class GameServerService {
         roomInfo.put("teamInfo", Map.of(
                 "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
                 "BLUE", (room.getUsers().getOrDefault("BLUE", List.of()).size()),
-                "tatal", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                "total", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
         ));
 
         return roomInfo;
@@ -347,11 +346,11 @@ public class GameServerService {
 
     // GAME_PROCESS
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
-    public void hadleGameStart(WebSocketSession session, JoinDto roomMaster) throws IOException {
+    public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         // 현재 방의 상태를 가져옴
-        RoomStateDto room = rooms.get(roomMaster.getRoomId());
+        RoomStateDto room = rooms.get(request.getRoomId());
         // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-        if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session ) return;
+        if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
             session.sendMessage(new TextMessage("Required over 6 users"));
@@ -390,16 +389,16 @@ public class GameServerService {
         if(!increaseRound(session, room)) return;
         // 턴 설정
         turnChange(room);
-        // 키워드셋 설정
-        room.getGameInfo().setKeywordSet(new HashSet<>());
+
         log.info("RoomState : {}", room);
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
-        updateLobbyUserStatus(roomMaster, true, LobbyUserDto.Status.GAME);
+        LobbyUserStateDto lobbyUserStateDto = new LobbyUserStateDto(request.getRoomId(), request.getUser());
+        updateLobbyUserStatus(lobbyUserStateDto, true, LobbyUserDto.Status.GAME);
 
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", "GAME_START",
+                "type", "STARTED_GAME",
                 "msg", "게임을 시작합니다."
         ));
 
@@ -433,7 +432,7 @@ public class GameServerService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             sendToMessageUser(rep.getSession(), Map.of(
                     "type", "KEYWORD",
-                    "Keywords", keywordList
+                    "Keywords", keywordList.stream().map(e -> e.getWord()).collect(Collectors.toList())
             ));
         }
     }
@@ -600,16 +599,16 @@ public class GameServerService {
     // Lobby User Management
 
     // Lobby 에 있는 User 의 Status Update
-    private void updateLobbyUserStatus(JoinDto user, Boolean group, LobbyUserDto.Status status) {
+    private void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
         // 단일 User
         if(!group) {
-            lobby.get(user.getUser().getUserId()).setStatus(status);
+            lobby.get(lobbyUserStateDto.getUser().getUserId()).setStatus(status);
             return;
         }
 
         // 단제 User -> Room
         // 동일 Session 내 모든 User 수정
-        RoomStateDto room = rooms.get(user.getRoomId());
+        RoomStateDto room = rooms.get(lobbyUserStateDto.getRoomId());
         for(String team : room.getUsers().keySet()) {
             for(UserDto roomUser : room.getUsers().get(team)) {
                 lobby.get(roomUser.getUserId()).setStatus(status);
@@ -658,7 +657,7 @@ public class GameServerService {
                 "teamInfo", Map.of(
                         "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
                         "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                        "tatal", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                        "total", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
                 )
 
         )).collect(Collectors.toList());

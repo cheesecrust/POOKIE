@@ -4,6 +4,7 @@ import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -17,6 +18,7 @@ public class GameInfoDto {
     public GameInfoDto() {
         this.rep = new ArrayList<>();
         this.normal = new ArrayList<>();
+        this.keywordSet = new HashSet<>();
     }
 
     public void setInit() {
