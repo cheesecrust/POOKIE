@@ -2,12 +2,11 @@
 import ModalButton from "../components/atoms/button/ModalButton";
 import BasicButton from "../components/atoms/button/BasicButton";
 import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
-import RoundInfo from "../components/molecules/games/RoundInfo";
-import Timer from "../components/molecules/games/Timer";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
+import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -52,6 +51,9 @@ const WaitingPage = () => {
     // 방 나간 후 메인 페이지로 이동
     navigate("/home");
   };
+
+  // 방 나가기 모달 상태 관리
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
   // ##### 방장인 경우의 프론트 예
   const isHost = true; // 예시로 방장인 경우
@@ -147,7 +149,7 @@ const WaitingPage = () => {
         <div className="basis-1/8 m-4 flex justify-end items-center">
           <ModalButton
             className="text-lg px-2 py-1 rounded-md"
-            onClick={handleLeaveRoom}
+            onClick={() => setIsExitModalOpen(true)}
           >
             방 나가기
           </ModalButton>
@@ -164,6 +166,13 @@ const WaitingPage = () => {
           </div>
         </div>
       </section>
+
+      {/* 방 나가기 모달 */}
+      <RoomExitModal
+        isOpen={isExitModalOpen}
+        onConfirm={handleLeaveRoom}
+        onCancel={() => setIsExitModalOpen(false)}
+      />
     </div>
   );
 };
