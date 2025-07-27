@@ -1,13 +1,11 @@
 package com.ssafy.pookie.global.security.config;
 
-import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.global.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -30,19 +28,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring()
-                .requestMatchers(
-                        "/ws/**",           // WebSocket 엔드포인트
-                        "/wss/**",          // WSS 엔드포인트
-                        "/socket.io/**",    // Socket.IO (필요한 경우)
-                        "/static/**",       // 정적 리소스
-                        "/public/**",       // 공개 리소스
-                        "/favicon.ico"      // 파비콘
-                );
     }
 
     @Bean
@@ -119,7 +104,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",        // OpenAPI 문서
                                 "/swagger-resources/**",   // Swagger 리소스
                                 "/webjars/**",            // Swagger 웹 자원
-                                "/error"                  // 에러 페이지
+                                "/error",                  // 에러 페이지
+                                "/game"
                         ).permitAll()
 
                         // 관리자만 접근 가능한 URL
