@@ -10,9 +10,9 @@ const TabButton = ({
   className = "",
 }) => {
   const baseStyle = `
-    font-semibold text-sm rounded-md transition
+    font-semibold text-sm rounded-t-md transition
     text-center
-    ${active ? "bg-rose-400 text-white" : "bg-rose-300 text-white hover:bg-rose-400"}
+    ${active ? "bg-[#EF8888] text-white" : "bg-[#F4C0C0] text-white hover:bg-[#EF8888]"}
   `;
 
   return (
