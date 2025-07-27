@@ -586,12 +586,6 @@ public class GameServerService {
         }
     }
 
-    private String getToken(WebSocketSession session) {
-        String auth = session.getHandshakeHeaders().getFirst("Authorization");
-        String token = Objects.requireNonNull(auth).substring(7);
-        return token;
-    }
-
     /*
         유저를 세션에서 제거
         session id를 가지고 userDto를 가져와서 이를 이용해서 offline과 user email로 제거
@@ -599,12 +593,11 @@ public class GameServerService {
     public void removeFromLobby(WebSocketSession session) throws IOException {
         String roomId = removeSessionFromRooms(session);
         if (roomId != null) rooms.remove(roomId);
-        String token = getToken(session);
-        String userEmail = jwtTokenProvider.getEmailFromToken(token);
+        String userEmail = (String) session.getAttributes().get("userEmail");
         lobby.remove(userEmail);
         
         // offline 처리
-        Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
+        Long userAccountId = (Long) session.getAttributes().get("userAccountId");
         UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
                 .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
         userAccount.updateOnline(false);

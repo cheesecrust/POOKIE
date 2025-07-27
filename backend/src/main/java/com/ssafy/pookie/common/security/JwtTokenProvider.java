@@ -38,7 +38,7 @@ public class JwtTokenProvider {
     /**
      * Access Token 생성
      */
-    public String createAccessToken(Long userAccountId, String email) {
+    public String createAccessToken(Long userAccountId, String email, String nickname) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + accessTokenExpiration);
 
@@ -46,6 +46,7 @@ public class JwtTokenProvider {
                 .setSubject(email)                          // 주체 (사용자 이메일)
                 .claim("userAccountId", userAccountId)                    // 사용자 ID
                 .claim("email", email)                      // 이메일
+                .claim("nickname", nickname)
                 .claim("type", "access")                    // 토큰 타입
                 .setIssuedAt(now)                          // 발급 시간
                 .setExpiration(expiration)                 // 만료 시간
@@ -109,6 +110,11 @@ public class JwtTokenProvider {
     public String getEmailFromToken(String token) {
         Claims claims = getClaims(token);
         return claims.get("email", String.class);
+    }
+
+    public String getNicknameFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("nickname", String.class);
     }
 
     /**
