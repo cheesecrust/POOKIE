@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TurnDto {
     private String roomId;
-    private String roomTitle;
-    private String team;
     private Integer score;
     private UserDto user;
 }

@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.game.chat.ChatDto;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
@@ -84,6 +85,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:
+                break;
+            // Chat
+            case CHAT:
+                ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
+                gameService.handleChat(session, chatDto);
                 break;
         }
     }

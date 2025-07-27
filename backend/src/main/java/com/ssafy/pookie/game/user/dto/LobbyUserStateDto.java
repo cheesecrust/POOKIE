@@ -14,4 +14,6 @@ public class LobbyUserStateDto {
     public LobbyUserStateDto(UserDto user) {
         this.user = user;
     }
+
+    public void resetRoomId() {this.roomId = null;}
 }
