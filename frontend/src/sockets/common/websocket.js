@@ -4,11 +4,25 @@ let socket = null;
 
 /**
  * WebSocket 연결
- * @param {string} url - WebSocket 서버 주소
- * @param {function} onMessage - 메시지 수신 핸들러
+ * @param {Object} config
+ * @param {string} config.url - ws:// 또는 wss:// 주소
+ * @param {string} config.token - JWT 토큰
+ * @param {function} config.onMessage
+ * @param {function} config.onOpen
+ * @param {function} config.onClose
+ * @param {function} config.onError
  */
-export const connectSocket = ({ url, onMessage, onOpen, onClose, onError }) => {
-  socket = new WebSocket(url);
+
+export const connectSocket = ({
+  url,
+  token,
+  onMessage,
+  onOpen,
+  onClose,
+  onError
+}) => {
+  const fullUrl = `${url}?Authorization=Bearer%20${token}`;
+  socket = new WebSocket(fullUrl);
 
   socket.onopen = (e) => {
     console.log("[WebSocket OPEN]", e);
@@ -44,7 +58,7 @@ export const sendMessage = (type, data) => {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type, data }));
   } else {
-    console.warn("WebSocket is not open. Message not sent:", { type, data });
+    console.warn("WebSocket is not open:", { type, data });
   }
 };
 
