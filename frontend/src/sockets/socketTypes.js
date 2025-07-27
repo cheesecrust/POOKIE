@@ -1,0 +1,29 @@
+// src/sockets/socketTypes.js
+
+export const SOCKET_TYPES = {
+    // 🟡 클라이언트 → 서버
+    JOIN_ROOM: "JOIN_ROOM",
+    LEAVE_ROOM: "LEAVE_ROOM",
+    START_GAME: "START_GAME",
+    DRAW_DATA: "DRAW_DATA",
+    SUBMIT_ANSWER: "SUBMIT_ANSWER",
+  
+    // 🔵 서버 → 클라이언트
+    ROOM_JOINED: "ROOM_JOINED",
+    PLAYER_JOINED: "PLAYER_JOINED",
+    PLAYER_LEFT: "PLAYER_LEFT",
+    GAME_STARTED: "GAME_STARTED",
+    ROUND_START: "ROUND_START",
+    DRAWING_TURN: "DRAWING_TURN",
+    DRAW_BROADCAST: "DRAW_BROADCAST",
+    ANSWER_INPUT_START: "ANSWER_INPUT_START",
+    ANSWER_RESULT: "ANSWER_RESULT",
+    SCORE_UPDATE: "SCORE_UPDATE",
+    GAME_END: "GAME_END",
+    TIMER_START: "TIMER_START",
+    TIMER_END: "TIMER_END",
+    TIME_UPDATE: "TIME_UPDATE",
+  
+    // 🔴 에러
+    ERROR: "ERROR",
+  };  
