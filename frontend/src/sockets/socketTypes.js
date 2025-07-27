@@ -7,6 +7,11 @@ export const SOCKET_TYPES = {
     START_GAME: "START_GAME",
     DRAW_DATA: "DRAW_DATA",
     SUBMIT_ANSWER: "SUBMIT_ANSWER",
+
+    USER_TEAM_CHANGE: "USER_TEAM_CHANGE",        // 팀 변경
+    USER_READY_CHANGE: "USER_READY_CHANGE",      // 레디 상태 변경
+    USER_FORCED_REMOVE: "USER_FORCED_REMOVE",    // 강제 퇴장
+    CHAT: "CHAT",                                 // 채팅 (예정)
   
     // 게임 흐름 제어
     TURN_OVER: "TURN_OVER",
@@ -15,7 +20,6 @@ export const SOCKET_TYPES = {
   
     // 서버 → 클라이언트
     ROOM_JOINED: "ROOM_JOINED",
-    PLAYER_JOINED: "PLAYER_JOINED",
     PLAYER_LEFT: "PLAYER_LEFT",
     GAME_STARTED: "GAME_STARTED",
     ROUND_START: "ROUND_START",
