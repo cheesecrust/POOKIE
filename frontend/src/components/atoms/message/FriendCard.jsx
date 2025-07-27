@@ -7,7 +7,7 @@ import RightButton from '../button/RightButton'
 
 const FriendCard = ({ characterName, nickname, isOnline, onMessage }) => {
   return (
-    <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full shadow border border-gray-300">
+    <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px]">
       <div className="flex items-center gap-4">
         <UserCharacter name={characterName} size={80} />
         <div className="flex flex-col">
