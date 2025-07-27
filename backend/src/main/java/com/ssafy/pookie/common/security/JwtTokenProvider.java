@@ -38,13 +38,13 @@ public class JwtTokenProvider {
     /**
      * Access Token 생성
      */
-    public String createAccessToken(Long userId, String email) {
+    public String createAccessToken(Long userAccountId, String email) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + accessTokenExpiration);
 
         String token = Jwts.builder()
                 .setSubject(email)                          // 주체 (사용자 이메일)
-                .claim("userId", userId)                    // 사용자 ID
+                .claim("userAccountId", userAccountId)                    // 사용자 ID
                 .claim("email", email)                      // 이메일
                 .claim("type", "access")                    // 토큰 타입
                 .setIssuedAt(now)                          // 발급 시간
@@ -52,8 +52,8 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Access Token 생성 - UserId: {}, Email: {}, Expiration: {}",
-                userId, email, expiration);
+        log.debug("Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
+                userAccountId, email, expiration);
 
         return token;
     }
@@ -61,20 +61,20 @@ public class JwtTokenProvider {
     /**
      * Refresh Token 생성
      */
-    public String createRefreshToken(Long userId) {
+    public String createRefreshToken(Long userAccountId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + refreshTokenExpiration);
 
         String token = Jwts.builder()
-                .setSubject(userId.toString())             // 주체 (사용자 ID)
-                .claim("userId", userId)                   // 사용자 ID
+                .setSubject(userAccountId.toString())             // 주체 (사용자 ID)
+                .claim("userAccountId", userAccountId)                   // 사용자 ID
                 .claim("type", "refresh")                  // 토큰 타입
                 .setIssuedAt(now)                         // 발급 시간
                 .setExpiration(expiration)                // 만료 시간
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Refresh Token 생성 - UserId: {}, Expiration: {}", userId, expiration);
+        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
@@ -100,7 +100,7 @@ public class JwtTokenProvider {
      */
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaims(token);
-        return claims.get("userId", Long.class);
+        return claims.get("userAccountId", Long.class);
     }
 
     /**

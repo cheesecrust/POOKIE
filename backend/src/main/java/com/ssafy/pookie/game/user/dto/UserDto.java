@@ -2,11 +2,13 @@ package com.ssafy.pookie.game.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.web.socket.WebSocketSession;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserDto {
@@ -23,7 +25,8 @@ public class UserDto {
      */
     @JsonIgnore
     private WebSocketSession session;
-    private String userId;
+    private Long userAccountId;
+    private String userEmail;
     private String userNickname;
     private Grant grant = Grant.NONE;
     private Status status = Status.NONE;
