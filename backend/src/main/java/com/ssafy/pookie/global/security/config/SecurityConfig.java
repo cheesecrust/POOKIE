@@ -104,11 +104,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",        // OpenAPI 문서
                                 "/swagger-resources/**",   // Swagger 리소스
                                 "/webjars/**",            // Swagger 웹 자원
-                                "/error"                  // 에러 페이지
+                                "/error",                  // 에러 페이지
+                                "/game"
                         ).permitAll()
-
-                        // WebSocket은 인증 필요
-                        .requestMatchers("/ws/**").authenticated()
 
                         // 관리자만 접근 가능한 URL
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
