@@ -30,7 +30,7 @@ public class Friends {
     private UserAccounts user1;
 
     @ManyToOne
-    @JoinColumn(name = "user_1_id")
+    @JoinColumn(name = "user_2_id")
     private UserAccounts user2;
 
     @OneToOne

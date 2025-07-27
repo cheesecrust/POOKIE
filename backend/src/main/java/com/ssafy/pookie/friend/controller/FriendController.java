@@ -1,7 +1,9 @@
 package com.ssafy.pookie.friend.controller;
 
+import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.common.response.ApiResponse;
+import com.ssafy.pookie.friend.dto.FriendDto;
 import com.ssafy.pookie.friend.dto.FriendRequestDto;
 import com.ssafy.pookie.friend.dto.FriendResponseDto;
 import com.ssafy.pookie.friend.service.FriendService;
@@ -33,14 +35,13 @@ public class FriendController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         log.info("친구 요청 전송 - 요청자: {}, 수신자: {}",
-                userDetails.getUserId(), requestDto.getAddresseeId());
+                userDetails.getUserAccountId(), requestDto.getAddresseeId());
 
         try {
-            Users currentUser = getCurrentUser(authentication);
+            Long currentUserId = userDetails.getUserAccountId();
             FriendResponseDto result = friendService.sendFriendRequest(
-                    currentUser.getId(),
-                    requestDto.getAddresseeId(),
-                    requestDto.getMessage()
+                    currentUserId,
+                    requestDto.getAddresseeId()
             );
 
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 전송했습니다.", result));
@@ -112,17 +113,13 @@ public class FriendController {
      */
     @GetMapping("/requests/received")
     public ResponseEntity<ApiResponse<List<FriendResponseDto>>> getReceivedRequests(
-            @RequestParam(defaultValue = "PENDING") String status,
             Authentication authentication) {
-
-        log.info("받은 친구 요청 목록 조회 - 사용자: {}, 상태: {}", authentication.getName(), status);
 
         try {
             Users currentUser = getCurrentUser(authentication);
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
 
             List<FriendResponseDto> requests = friendService.getReceivedRequests(
-                    currentUser.getId(), requestStatus);
+                    currentUser.getId());
 
             return ResponseEntity.ok(ApiResponse.success("받은 친구 요청 목록을 조회했습니다.", requests));
 
@@ -141,17 +138,13 @@ public class FriendController {
      */
     @GetMapping("/requests/sent")
     public ResponseEntity<ApiResponse<List<FriendResponseDto>>> getSentRequests(
-            @RequestParam(defaultValue = "PENDING") String status,
             Authentication authentication) {
-
-        log.info("보낸 친구 요청 목록 조회 - 사용자: {}, 상태: {}", authentication.getName(), status);
 
         try {
             Users currentUser = getCurrentUser(authentication);
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
 
             List<FriendResponseDto> requests = friendService.getSentRequests(
-                    currentUser.getId(), requestStatus);
+                    currentUser.getId());
 
             return ResponseEntity.ok(ApiResponse.success("보낸 친구 요청 목록을 조회했습니다.", requests));
 
@@ -170,19 +163,14 @@ public class FriendController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<FriendDto>>> getFriends(
-            @RequestParam(defaultValue = "ACTIVE") String status,
             @RequestParam(required = false) String search,
             Authentication authentication) {
 
-        log.info("친구 목록 조회 - 사용자: {}, 상태: {}, 검색어: {}",
-                authentication.getName(), status, search);
-
         try {
             Users currentUser = getCurrentUser(authentication);
-            FriendStatus friendStatus = FriendStatus.valueOf(status.toUpperCase());
 
             List<FriendDto> friends = friendService.getFriends(
-                    currentUser.getId(), friendStatus, search);
+                    currentUser.getId(), search);
 
             return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", friends));
 
