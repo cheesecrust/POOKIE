@@ -9,6 +9,5 @@ public class JoinDto {
     private String roomTitle;
     private RoomStateDto.GameType gameType;
     private UserDto user;
-    private String team;
     private String roomPw = "";
 }

@@ -14,6 +14,7 @@ public class UserDto {
     // [방장, 일반 사용자, 아무런 권한도 없음]
     public enum Grant {MASTER, PLAYER, NONE};
     public enum Status {READY, NONE}
+    public enum Team {RED, BLUE, NONE}
     /*
         게임에 접속한 유저의 정보
         - Socket Connect 시 Session Id
@@ -26,6 +27,7 @@ public class UserDto {
     private String userId;
     private String userNickname;
     private Grant grant = Grant.NONE;
+    private Team team = Team.NONE;
     private Status status = Status.NONE;
     private String reqImg;
 
@@ -36,4 +38,6 @@ public class UserDto {
     public void setStatus(Status status) {
         this.status = status;
     }
+
+    public void setTeam(Team team) { this.team = team; }
 }

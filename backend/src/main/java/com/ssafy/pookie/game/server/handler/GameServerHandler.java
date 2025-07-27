@@ -41,17 +41,17 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleOn(session, on);
                 break;
             // Room
-            case JOIN:
+            case JOIN_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
                 gameService.handleJoin(session, join);
                 break;
-            case LEAVE:
+            case LEAVE_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
                 gameService.handleLeave(session, join.getRoomId());
                 break;
-            case TEAM_CHANGE:
+            case USER_TEAM_CHANGE:
                 UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
                 userTeamChangeRequestDto.getUser().setSession(session);
                 gameService.handleUserTeamChange(session, userTeamChangeRequestDto);
@@ -61,18 +61,18 @@ public class GameServerHandler extends TextWebSocketHandler {
                 userStatusChangeDto.getUser().setSession(session);
                 gameService.handleUserStatus(session, userStatusChangeDto);
                 break;
-            case FORCED_REMOVE:
+            case USER_FORCED_REMOVE:
                 RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
                 roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
             // Game
-            case GAME_START:
+            case START_GAME:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
                 gameService.hadleGameStart(session, join);
                 break;
-            case TURN_CHANGE:
+            case TURN_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                 gameResult.getUser().setSession(session);
                 gameService.handleTurnChange(session, gameResult);

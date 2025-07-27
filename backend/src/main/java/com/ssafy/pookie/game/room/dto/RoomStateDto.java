@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -85,18 +86,18 @@ public class RoomStateDto {
         );
     }
     // 팀원을 균등하게 배분
-    public String assignTeamForNewUser() {
+    public UserDto.Team assignTeamForNewUser() {
         Map<String, Integer> teamInfo = getTeamInfo();
         int redTeam = teamInfo.get("RED");
         int blueTeam = teamInfo.get("BLUE");
         // 1. RED 팀 우선 배정
         // RED 팀에 아무도 없다면 RED 로 배정
-        if(redTeam == 0) return "RED";
+        if(redTeam == 0) return UserDto.Team.RED;
 
         // 2. 팀원 수에 따라 배정
         // 팀원 수가 같다면 RED 가 우선권
-        if(redTeam <= blueTeam) return "RED";
-        else return "BLUE";
+        if(redTeam <= blueTeam) return UserDto.Team.RED;
+        else return UserDto.Team.BLUE;
     }
 
     public void resetTempTeamScore() {

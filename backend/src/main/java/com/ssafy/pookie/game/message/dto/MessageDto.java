@@ -13,7 +13,7 @@ public class MessageDto {
         GAME_OVER : 게임 종료
         OFF : 게임 접속 해제
      */
-    public enum Type { ON, JOIN, LEAVE, GAME_START, TURN_CHANGE, TEAM_CHANGE, USER_READY_CHANGE, FORCED_REMOVE, CHAT, ROUND_OVER, GAME_OVER, OFF };
+    public enum Type { ON, JOIN_ROOM, LEAVE_ROOM, START_GAME, TURN_OVER, USER_TEAM_CHANGE, USER_READY_CHANGE, USER_FORCED_REMOVE, CHAT, ROUND_OVER, GAME_OVER, OFF };
 
     private Type type;
     private String sid;
