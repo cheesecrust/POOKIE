@@ -39,5 +39,5 @@ const LogInPage = () => {
       </div>
     );
   };
-  
-  export default LogInPage;
+
+export default LogInPage;

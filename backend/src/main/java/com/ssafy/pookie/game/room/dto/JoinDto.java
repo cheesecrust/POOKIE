@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class JoinDto {
     private String roomId;
+    private RoomStateDto.GameType gameType;
     private UserDto user;
     private String team;
+    private String roomPw = "";
 }
