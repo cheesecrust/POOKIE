@@ -6,7 +6,7 @@ import SocialButton from "../../atoms/button/SocialButton";
 import toggleLeft from "../../../assets/icon/toggle_left.png"
 import { useState } from "react";
 
-const LogInModal = ({ isOpen, onClose }) => {
+const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
     const [id, setId] = useState("");
     const [pw, setPw] = useState("");
 
@@ -72,13 +72,19 @@ const LogInModal = ({ isOpen, onClose }) => {
     
             {/* 하단 텍스트 */}
             <div className="flex flex-col items-end text-xs font-bold mr-12 gap-y-2">
-                <div className="flex items-center gap-1 hover:underline cursor-pointer">
+                <div
+                    className="flex items-center gap-1 hover:underline cursor-pointer"
+                    onClick={onOpenSignUp}
+                >
                     <img src={toggleLeft} alt="화살표" className="w-3 h-3 mr-1" />
-                    <a href="#">회원가입</a>
+                    <span>회원가입</span>
                 </div>
-                <div className="flex items-center gap-1 hover:underline cursor-pointer">
+                <div
+                    className="flex items-center gap-1 hover:underline cursor-pointer"
+                    onClick={onOpenFindPassword}
+                >
                     <img src={toggleLeft} alt="화살표" className="w-3 h-3" />
-                    <a href="#">비밀번호를 잊어버리셨나요?</a>
+                    <span>비밀번호를 잊어버리셨나요?</span>
                 </div>
             </div>
         </BasicModal>

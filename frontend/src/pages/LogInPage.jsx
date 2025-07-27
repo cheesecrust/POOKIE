@@ -1,10 +1,14 @@
 // src/pages/LogInPage.jsx
 import LogInModal from "../components/organisms/login/LogInModal";
+import SignUpModal from "../components/organisms/login/SignUpModal"
+import FindPasswordModal from "../components/organisms/login/FindPasswordModal";
 import backgroundLogIn from "../assets/background/background_login.png"
 import { useState } from "react";
 
 const LogInPage = () => {
-    const [isOpen, setIsOpen] = useState(true);
+    const [showLogin, setShowLogin] = useState(true);
+    const [showSignUp, setShowSignUp] = useState(false);
+    const [showFindPassword, setShowFindPassword] = useState(false);
 
     return (
       <div className="relative w-full h-screen overflow-hidden">
@@ -16,7 +20,22 @@ const LogInPage = () => {
         />
   
         {/* 모달 */}
-        <LogInModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+        <LogInModal
+          isOpen={showLogin}
+          onClose={() => setShowLogin(false)}
+          onOpenSignUp={() => {setShowSignUp(true); setShowLogin(false)}}
+          onOpenFindPassword={() => {setShowFindPassword(true); setShowLogin(false)}}
+        />
+        <SignUpModal
+          isOpen={showSignUp}
+          onClose={() => setShowSignUp(false)}
+          onOpenLogIn={() => {setShowLogin(true); setShowSignUp(false)}}
+        />
+        <FindPasswordModal
+          isOpen={showFindPassword}
+          onClose={() => setShowFindPassword(false)}
+          onOpenLogIn={() => {setShowLogin(true); setShowFindPassword(false)}}
+        />
       </div>
     );
   };
