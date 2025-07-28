@@ -95,7 +95,7 @@ const SketchRelayPage = () => {
   </div>
   {/* 테스트용 emit 버튼 */}
   <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-    <button onClick={() =>{console.log("emitCreateRoom"); emitCreateRoom();} } className="bg-green-300 px-4 py-2 rounded">CREATE_ROOM</button>
+    {/* <button onClick={() =>{console.log("emitCreateRoom"); emitCreateRoom();} } className="bg-green-300 px-4 py-2 rounded">CREATE_ROOM</button> */}
     <button onClick={() =>{console.log("emitGameStart"); emitGameStart();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
     <button onClick={() =>{console.log("emitTurnChange"); emitTurnChange();} } className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
     <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
