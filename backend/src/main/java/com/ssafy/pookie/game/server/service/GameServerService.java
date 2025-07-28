@@ -57,7 +57,7 @@ public class GameServerService {
                 isExist.setStatus(LobbyUserDto.Status.ON);
             } else {
                 removeFromLobby(isExist.getUser().getSession());
-                log.warn("Duplicated user : {}", isExist.getUser().getUserId());
+                log.warn("Duplicated user : {}", isExist.getUser().getUserAccountId());
             }
         }
 
@@ -72,7 +72,8 @@ public class GameServerService {
                 "type", "ON",
                 "msg", "연결되었습니다.",
                 "user", Map.of(
-                        "userId", userDto.getUserId(),
+                        "userId", userDto.getUserAccountId(),
+                        "userEmail", userDto.getUserEmail(),
                         "userNickname", userDto.getUserNickname(),
                         "repImg", userDto.getReqImg() == null ? "" : userDto.getReqImg()
                 ),
@@ -166,7 +167,7 @@ public class GameServerService {
                 .add(joinDto.getUser());
 
         room.getSessions().add(session);
-        lobby.get(joinDto.getUser().getUserId()).setStatus(LobbyUserDto.Status.WAITING);
+        lobby.get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
         log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
 
         // Client response msg
@@ -194,7 +195,7 @@ public class GameServerService {
                             "msg", "Lobby 로 돌아갑니다.",
                             "roomList", existingRoomList()
                     ));
-                    lobby.get(teamUser.getUserId()).setStatus(LobbyUserDto.Status.ON);
+                    lobby.get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
                     room.getSessions().remove(session);
                     room.getUsers().get(team).remove(teamUser);
@@ -550,7 +551,7 @@ public class GameServerService {
     private void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
         // 단일 User
         if(!group) {
-            lobby.get(lobbyUserStateDto.getUser().getUserId()).setStatus(status);
+            lobby.get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
             return;
         }
 
