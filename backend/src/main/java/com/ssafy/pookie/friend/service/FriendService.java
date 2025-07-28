@@ -122,13 +122,14 @@ public class FriendService {
      * 친구 삭제
      */
     public void deleteFriend(Long userId, Long friendId) {
+
     }
 
     /**
      * 친구 차단
      */
     public void blockFriend(Long userId, Long friendId) {
-
+        Friends friend = friendsRepository.findByUser1
     }
 
     /**
