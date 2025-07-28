@@ -130,18 +130,23 @@ public class RoomStateDto {
     private Integer redTeamScore;
     private Integer blueTeamScore;
     public void roundOver() {
-        redTeamScore = this.teamScores.get(Turn.RED.toString());
-        blueTeamScore = this.teamScores.get(Turn.BLUE.toString());
+        redTeamScore = this.tempTeamScores.get(Turn.RED.toString());
+        blueTeamScore = this.tempTeamScores.get(Turn.BLUE.toString());
+        System.out.println(redTeamScore);
+        System.out.println(blueTeamScore);
         // 승 패
         if(redTeamScore > blueTeamScore) {
+            System.out.println("RED");
             this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
             win = "RED";
         }
         else if(redTeamScore < blueTeamScore) {
+            System.out.println("BLUE");
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "BLUE";
         }
         else {
+            System.out.println("DRAW");
             this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
@@ -174,8 +179,8 @@ public class RoomStateDto {
                         "BLUE", this.blueTeamScore
                 ),
                 "gameResult", Map.of(
-                        "RED", this.getTempTeamScores().get(Turn.RED.toString()),
-                        "BLUE", this.getTempTeamScores().get(Turn.BLUE.toString())
+                        "RED", this.getTeamScores().get(Turn.RED.toString()),
+                        "BLUE", this.getTeamScores().get(Turn.BLUE.toString())
                 )
         );
 
@@ -192,7 +197,7 @@ public class RoomStateDto {
     public Map<String, Object> mappingRoomInfo() {
         Map<String, Object> roomInfo = new LinkedHashMap<>();
         roomInfo.put("id", this.getRoomId());
-        roomInfo.put("name", this.getRoomTitle());
+        roomInfo.put("title", this.getRoomTitle());
         roomInfo.put("gameType", this.getGameType().toString());
         roomInfo.put("master", Map.of(
                 "id", this.getRoomMaster().getUserAccountId(),
@@ -222,7 +227,7 @@ public class RoomStateDto {
         roomInfo.put("teamInfo", Map.of(
                 "RED", this.getUsers().getOrDefault("RED", List.of()).size(),
                 "BLUE", (this.getUsers().getOrDefault("BLUE", List.of()).size()),
-                "total", this.getUsers().getOrDefault("RED", List.of()).size()+this.getUsers().getOrDefault("BLUE", List.of()).size()
+                "TOTAL", this.getUsers().getOrDefault("RED", List.of()).size()+this.getUsers().getOrDefault("BLUE", List.of()).size()
         ));
 
         return roomInfo;
