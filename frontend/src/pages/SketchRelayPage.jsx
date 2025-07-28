@@ -2,7 +2,54 @@ import background_sketchrelay from "../assets/background/background_sketchrelay.
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 
+import { useEffect } from "react";
+import { connectSocket } from "../sockets/common/websocket";
+import {
+  emitGameStart,
+  emitTurnChange,
+  emitRoundOver,
+} from "../sockets/games/sketchRelay/emit";
+
 const SketchRelayPage = () => {
+  useEffect(() => {
+    const token = import.meta.env.VITE_WS_TOKEN;
+
+    connectSocket({
+      url: "wss://i13a604.p.ssafy.io/api/game",
+      token: token,
+      onMessage: (e) => {
+        try {
+          // 그대로 출력
+          console.log("[WebSocket MESSAGE]", e);
+      
+          // e 가 바로 객체로 전달돼서 parsing 할 필요가 없음
+          const data = e.data;
+      
+          console.log("[WebSocket DATA]", data);
+      
+          // 예시: 메시지 타입 분기
+          if (data.type === "ON") {
+            console.log("유저 연결됨:", data.user.userId);
+          }
+      
+        } catch (err) {
+          console.error("[WebSocket MESSAGE PARSE ERROR]", err);
+        }
+      },
+      
+      onOpen: (e) => {
+        console.log("[WebSocket OPEN]", e);
+      },
+      onClose: (e) => {
+        console.log("[WebSocket CLOSE]", e);
+      },
+      onError: (e) => {
+        console.log("[WebSocket ERROR]", e);
+      },
+    });
+  }, []);
+
+
   return (
 <div className="relative w-full h-screen overflow-hidden">
   {/* 배경 이미지는 absolute로 완전 뒤로 보내야 함 */}
@@ -46,7 +93,13 @@ const SketchRelayPage = () => {
       </div>
     </div>
   </div>
-
+  {/* 테스트용 emit 버튼 */}
+  <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+    {/* <button onClick={() =>{console.log("emitCreateRoom"); emitCreateRoom();} } className="bg-green-300 px-4 py-2 rounded">CREATE_ROOM</button> */}
+    <button onClick={() =>{console.log("emitGameStart"); emitGameStart();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
+    <button onClick={() =>{console.log("emitTurnChange"); emitTurnChange();} } className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
+    <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
+  </div>
   </div>
   );
 };

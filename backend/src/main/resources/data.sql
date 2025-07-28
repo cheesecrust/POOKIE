@@ -1,3 +1,41 @@
+-- 간단한 테스트용 (비밀번호를 단순 텍스트로)
+INSERT INTO roles (role, created_at, updated_at) VALUES
+    ('USER', NOW(), NOW());
+
+INSERT INTO users (username, email, password, created_at, updated_at) VALUES
+                                                                          ('testuser1', 'test1@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser2', 'test2@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser3', 'test3@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser4', 'test4@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser5', 'test5@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser6', 'test6@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser7', 'test7@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser8', 'test8@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser9', 'test9@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser10', 'test10@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser11', 'test11@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser12', 'test12@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser13', 'test13@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser14', 'test14@test.com', 'password123', NOW(), NOW()),
+                                                                          ('testuser15', 'test15@test.com', 'password123', NOW(), NOW());
+
+INSERT INTO user_accounts (user_id, role_id, nickname, coin, online, banned, is_exit, created_at, updated_at) VALUES
+                                                                                                                  (1, 1, 'Player1', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (2, 1, 'Player2', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (3, 1, 'Player3', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (4, 1, 'Player4', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (5, 1, 'Player5', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (6, 1, 'Player6', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (7, 1, 'Player7', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (8, 1, 'Player8', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (9, 1, 'Player9', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (10, 1, 'Player10', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (11, 1, 'Player11', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (12, 1, 'Player12', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (13, 1, 'Player13', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (14, 1, 'Player14', 1000, false, false, false, NOW(), NOW()),
+                                                                                                                  (15, 1, 'Player15', 1000, false, false, false, NOW(), NOW());
+
 -- 게임 타입 먼저 삽입
 INSERT INTO game_types (game_name) VALUES ("SAMEPOSE");
 INSERT INTO game_types (game_name) VALUES ("SILENTSCREAM");
