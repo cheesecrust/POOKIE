@@ -2,22 +2,22 @@
 INSERT INTO roles (role, created_at, updated_at) VALUES
     ('USER', NOW(), NOW());
 
-INSERT INTO users (username, email, password, created_at, updated_at) VALUES
-                                                                          ('testuser1', 'test1@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser2', 'test2@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser3', 'test3@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser4', 'test4@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser5', 'test5@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser6', 'test6@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser7', 'test7@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser8', 'test8@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser9', 'test9@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser10', 'test10@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser11', 'test11@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser12', 'test12@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser13', 'test13@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser14', 'test14@test.com', 'password123', NOW(), NOW()),
-                                                                          ('testuser15', 'test15@test.com', 'password123', NOW(), NOW());
+INSERT INTO users (email, password, created_at, updated_at) VALUES
+                                                                ('test1@test.com', 'password123', NOW(), NOW()),
+                                                                ('test2@test.com', 'password123', NOW(), NOW()),
+                                                                ('test3@test.com', 'password123', NOW(), NOW()),
+                                                                ('test4@test.com', 'password123', NOW(), NOW()),
+                                                                ('test5@test.com', 'password123', NOW(), NOW()),
+                                                                ('test6@test.com', 'password123', NOW(), NOW()),
+                                                                ('test7@test.com', 'password123', NOW(), NOW()),
+                                                                ('test8@test.com', 'password123', NOW(), NOW()),
+                                                                ('test9@test.com', 'password123', NOW(), NOW()),
+                                                                ('test10@test.com', 'password123', NOW(), NOW()),
+                                                                ('test11@test.com', 'password123', NOW(), NOW()),
+                                                                ('test12@test.com', 'password123', NOW(), NOW()),
+                                                                ('test13@test.com', 'password123', NOW(), NOW()),
+                                                                ('test14@test.com', 'password123', NOW(), NOW()),
+                                                                ('test15@test.com', 'password123', NOW(), NOW());
 
 INSERT INTO user_accounts (user_id, role_id, nickname, coin, online, banned, is_exit, created_at, updated_at) VALUES
                                                                                                                   (1, 1, 'Player1', 1000, false, false, false, NOW(), NOW()),
