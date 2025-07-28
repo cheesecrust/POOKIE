@@ -73,11 +73,11 @@ public class UserService {
             }
 
             // JWT 토큰 생성
-            String accessToken = jwtTokenProvider.createAccessToken(userAccount.getId(), user.getEmail());
+            String accessToken = jwtTokenProvider.createAccessToken(userAccount.getId(), user.getEmail(), userAccount.getNickname());
             String refreshToken = jwtTokenProvider.createRefreshToken(userAccount.getId());
 
             return LoginResponseDto.builder()
-                    .userId(user.getId())
+                    .userAccountId(user.getId())
                     .email(user.getEmail())
                     .nickname(user.getUsername())
                     .accessToken(accessToken)
@@ -103,18 +103,18 @@ public class UserService {
             }
 
             // 사용자 ID 추출
-            Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+            Long userAccountId = jwtTokenProvider.getUserIdFromToken(refreshToken);
 
             // 사용자 정보 조회
-            Users user = usersRepository.findById(userId)
+            Users user = usersRepository.findById(userAccountId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
             // 새로운 토큰 생성
-            String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
+            String newAccessToken = jwtTokenProvider.createAccessToken(userAccountId, user.getEmail(), user.getUserAccount().getNickname());
             String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
             return LoginResponseDto.builder()
-                    .userId(user.getId())
+                    .userAccountId(user.getId())
                     .email(user.getEmail())
                     .nickname(user.getUsername())
                     .accessToken(newAccessToken)

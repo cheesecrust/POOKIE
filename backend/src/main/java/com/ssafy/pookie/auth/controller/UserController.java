@@ -61,7 +61,7 @@ public class UserController {
         try {
             LoginResponseDto response = userService.login(loginRequest);
 
-            log.info("로그인 성공: userId={}", response.getUserId());
+            log.info("로그인 성공: userId={}", response.getUserAccountId());
 
             return ResponseEntity.ok(ApiResponse.success("로그인에 성공했습니다.", response));
 
@@ -158,7 +158,7 @@ public class UserController {
 
         String info = String.format(
                 "User Info - ID: %d, Email: %s, Nickname: %s, Role: %s",
-                userDetails.getUserId(),
+                userDetails.getUserAccountId(),
                 userDetails.getEmail(),
                 userDetails.getNickname(),
                 userDetails.getRole()

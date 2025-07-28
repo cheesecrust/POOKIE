@@ -3,12 +3,12 @@ package com.ssafy.pookie.game.server.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.chat.ChatDto;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
 import com.ssafy.pookie.game.server.service.GameServerService;
-import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
 import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,7 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     private final GameServerService gameService;
     private final ObjectMapper objectMapper;
+    private final UserAccountsRepository userAccountsRepository;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -36,12 +37,6 @@ public class GameServerHandler extends TextWebSocketHandler {
         TurnDto gameResult;
 
         switch(msg.getType()) {
-            // Lobby
-            case ON:
-                UserDto on = objectMapper.convertValue(msg.getPayload(), UserDto.class);
-                on.setSession(session);
-                gameService.handleOn(session, on);
-                break;
             // Room
             case JOIN_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
@@ -94,15 +89,16 @@ public class GameServerHandler extends TextWebSocketHandler {
         }
     }
 
-    // TODO 세션 연결 시, Lobby 에 추가할 수 있도록, Token 도입
+    // web socket 연결하는 순간 user를 만든다.
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
+        gameService.joinInLobby(session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        gameService.removeFromLobby(session);
         log.info("[WebSocket] Disconnected : "+ session.getId());
+        gameService.removeFromLobby(session);
     }
 }
