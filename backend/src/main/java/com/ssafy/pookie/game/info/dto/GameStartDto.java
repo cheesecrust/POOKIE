@@ -1,4 +1,4 @@
-package com.ssafy.pookie.game.room.dto;
+package com.ssafy.pookie.game.info.dto;
 
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.AllArgsConstructor;
@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TurnDto {
+public class GameStartDto {
     private String roomId;
-    private Integer score;
     private UserDto user;
 }

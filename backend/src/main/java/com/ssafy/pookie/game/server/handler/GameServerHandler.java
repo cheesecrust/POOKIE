@@ -1,6 +1,8 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.game.chat.ChatDto;
+import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
@@ -35,17 +37,18 @@ public class GameServerHandler extends TextWebSocketHandler {
         TurnDto gameResult;
 
         switch(msg.getType()) {
-            case JOIN:
+            // Room
+            case JOIN_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
                 gameService.handleJoin(session, join);
                 break;
-            case LEAVE:
+            case LEAVE_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                 join.getUser().setSession(session);
                 gameService.handleLeave(session, join.getRoomId());
                 break;
-            case TEAM_CHANGE:
+            case USER_TEAM_CHANGE:
                 UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
                 userTeamChangeRequestDto.getUser().setSession(session);
                 gameService.handleUserTeamChange(session, userTeamChangeRequestDto);
@@ -55,18 +58,18 @@ public class GameServerHandler extends TextWebSocketHandler {
                 userStatusChangeDto.getUser().setSession(session);
                 gameService.handleUserStatus(session, userStatusChangeDto);
                 break;
-            case FORCED_REMOVE:
+            case USER_FORCED_REMOVE:
                 RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
                 roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
             // Game
-            case GAME_START:
-                join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
-                join.getUser().setSession(session);
-                gameService.hadleGameStart(session, join);
+            case START_GAME:
+                GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
+                start.getUser().setSession(session);
+                gameService.hadleGameStart(session, start);
                 break;
-            case TURN_CHANGE:
+            case TURN_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                 gameResult.getUser().setSession(session);
                 gameService.handleTurnChange(session, gameResult);
@@ -77,6 +80,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:
+                break;
+            // Chat
+            case CHAT:
+                ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
+                gameService.handleChat(session, chatDto);
                 break;
         }
     }
