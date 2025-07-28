@@ -45,7 +45,6 @@ public class FriendController {
             );
 
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 전송했습니다.", result));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -62,16 +61,12 @@ public class FriendController {
     @PostMapping("/requests/{requestId}/accept")
     public ResponseEntity<ApiResponse<String>> acceptFriendRequest(
             @PathVariable Long requestId,
-            Authentication authentication) {
-
-        log.info("친구 요청 수락 - 요청 ID: {}, 사용자: {}", requestId, authentication.getName());
-
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            Users currentUser = getCurrentUser(authentication);
-            friendService.acceptFriendRequest(requestId, currentUser.getId());
+            Long userAccountId = userDetails.getUserAccountId();
+            friendService.acceptFriendRequest(requestId, userAccountId);
 
             return ResponseEntity.ok(ApiResponse.success(null, "친구 요청을 수락했습니다."));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -88,16 +83,12 @@ public class FriendController {
     @PostMapping("/requests/{requestId}/reject")
     public ResponseEntity<ApiResponse<String>> rejectFriendRequest(
             @PathVariable Long requestId,
-            Authentication authentication) {
-
-        log.info("친구 요청 거절 - 요청 ID: {}, 사용자: {}", requestId, authentication.getName());
-
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            Users currentUser = getCurrentUser(authentication);
-            friendService.rejectFriendRequest(requestId, currentUser.getId());
+            Long userAccountId = userDetails.getUserAccountId();
+            friendService.rejectFriendRequest(requestId, userAccountId);
 
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 거절했습니다.", null));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
@@ -113,16 +104,12 @@ public class FriendController {
      */
     @GetMapping("/requests/received")
     public ResponseEntity<ApiResponse<List<FriendResponseDto>>> getReceivedRequests(
-            Authentication authentication) {
-
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            Users currentUser = getCurrentUser(authentication);
-
+            Long userAccountId = userDetails.getUserAccountId();
             List<FriendResponseDto> requests = friendService.getReceivedRequests(
-                    currentUser.getId());
-
+                    userAccountId);
             return ResponseEntity.ok(ApiResponse.success("받은 친구 요청 목록을 조회했습니다.", requests));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("올바르지 않은 상태값입니다."));

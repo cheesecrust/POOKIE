@@ -6,6 +6,7 @@ import lombok.Builder;
 @Builder
 public class FriendResponseDto {
 
+    private Long requestId;
     private Long userId;
     private String userNickname;
     private Long addresseeId;
@@ -13,6 +14,7 @@ public class FriendResponseDto {
 
     public static FriendResponseDto from(FriendRequests friendRequest) {
         return FriendResponseDto.builder()
+                .requestId(friendRequest.getId())
                 .userId(friendRequest.getUser().getId())
                 .userNickname(friendRequest.getUser().getNickname())
                 .addresseeId(friendRequest.getFriend().getId())

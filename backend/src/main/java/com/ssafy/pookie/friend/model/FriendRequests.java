@@ -31,7 +31,7 @@ public class FriendRequests {
     @JoinColumn
     private UserAccounts friend;
 
-    private boolean acceptance;
+    private RequestStatus status;
 
     @CreatedDate
     @Column(updatable = false)
@@ -39,4 +39,8 @@ public class FriendRequests {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public void updateStatus(RequestStatus status) {
+        this.status = status;
+    }
 }
