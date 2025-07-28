@@ -1,197 +1,229 @@
 // src/pages/WaitingPage.jsx
-import ModalButton from "../components/atoms/button/ModalButton";
-import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
-import SelfCamera from "../components/molecules/waiting/SelfCamera";
-import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
-import bgImage from "../assets/background/background_waiting.png";
-import ChatBox from "../components/molecules/common/ChatBox";
-import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
+import ModalButton from '../components/atoms/button/ModalButton';
+import TeamToggleButton from '../components/molecules/games/TeamToggleButton';
+import SelfCamera from '../components/molecules/waiting/SelfCamera';
+import WaitingUserList from '../components/organisms/waiting/WaitingUserList';
+import bgImage from '../assets/background/background_waiting.png';
+import ChatBox from '../components/molecules/common/ChatBox';
+import RoomExitModal from '../components/organisms/waiting/RoomExitModal';
 
-import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { connectSocket, closeSocket } from "../sockets/common/websocket";
+import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { connectSocket, closeSocket } from '../sockets/common/websocket';
 import {
-  emitTeamChange,
-  emitReadyChange,
-  emitLeaveRoom,
-} from "../sockets/waiting/emit";
-import useAuthStore from "../store/store";
+	emitTeamChange,
+	emitReadyChange,
+	emitLeaveRoom,
+	emitStartGame,
+	emitForceRemove,
+} from '../sockets/waiting/emit';
+import useAuthStore from '../store/store';
 
 const WaitingPage = () => {
-  const navigate = useNavigate();
-  const { roomId } = useParams();
-  const { user, accessToken } = useAuthStore();
+	const navigate = useNavigate();
+	const { roomId } = useParams();
+	const { user, accessToken } = useAuthStore();
 
-  const [room, setRoom] = useState(null);
-  const [team, setTeam] = useState(null);
-  const [isReady, setIsReady] = useState(false);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+	const [room, setRoom] = useState(null);
+	const [team, setTeam] = useState(null);
+	const [isReady, setIsReady] = useState(false);
+	const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+	const [kickModalOpen, setKickModalOpen] = useState(false); // 모달 열림 여부
+	const [kickTarget, setKickTarget] = useState(null); // 강퇴 대상 유저 정보
 
-  const isHost = room?.master?.id === user?.id;
+	const isHost = room?.master?.id === user?.id;
 
-  const handleLeaveRoom = () => {
-    emitLeaveRoom({ roomId });
-    closeSocket();
-    navigate("/home");
-  };
+	const handleLeaveRoom = () => {
+		emitLeaveRoom({ roomId });
+		closeSocket();
+		navigate('/home');
+	};
 
-  const handleStartGame = () => {
-    emitStartGame({ roomId });
-  };
+	const handleStartGame = () => {
+		emitStartGame({ roomId });
+	};
 
-  const handleTeamToggle = () => {
-    const toTeam = team === "RED" ? "BLUE" : "RED";
-    console.log("emitTeamChange 실행:", toTeam);
-    emitTeamChange({ roomId, curTeam: toTeam });
-  };
+	const handleTeamToggle = () => {
+		const toTeam = team === 'RED' ? 'BLUE' : 'RED';
+		console.log('emitTeamChange 실행:', toTeam);
+		emitTeamChange({ roomId, curTeam: toTeam });
+	};
 
-  const handleReadyToggle = () => {
-    emitReadyChange({ roomId, team });
-    setIsReady(!isReady);
-  };
+	const handleReadyToggle = () => {
+		emitReadyChange({ roomId, team });
+		setIsReady(!isReady);
+	};
 
-  useEffect(() => {
-    if (!accessToken || !user) return;
+	const handleKickConfirm = () => {
+		emitForceRemove({
+			roomId,
+			removeTargetId: kickTarget.userId,
+			removeTargetNickname: kickTarget.userNickname,
+			removeTargetTeam: kickTarget.team,
+		});
+		setKickModalOpen(false);
+	};
 
-    connectSocket({
-      url: "wss://i13a604.p.ssafy.io/api/game",
-      token: accessToken,
-      // 서버에서 응답받는거
-      onMessage: (e) => {
-        const data = JSON.parse(e.data);
-        if (!data.type) return;
+	useEffect(() => {
+		if (!accessToken || !user) return;
 
-        switch (data.type) {
-          case "ROOM_JOINED":
-          case "USER_TEAM_CHANGED":
-          case "USER_READY_CHANGED":
-          case "PLAYER_LEFT": {
-            setRoom(data.room);
+		connectSocket({
+			url: 'wss://i13a604.p.ssafy.io/api/game',
+			token: accessToken,
 
-            const myTeam = Object.entries({
-              RED: data.room.RED,
-              BLUE: data.room.BLUE,
-            }).find(([_, users]) => users.some((u) => u.id === user.id))?.[0];
+			// 서버에서 응답받는거
+			onMessage: (e) => {
+				const data = JSON.parse(e.data);
+				if (!data.type) return;
 
-            setTeam(myTeam?.toLowerCase());
+				switch (data.type) {
+					case 'ROOM_JOINED':
+					case 'USER_TEAM_CHANGED':
+					case 'USER_READY_CHANGED':
+					case 'PLAYER_LEFT': {
+						setRoom(data.room);
 
-            const me = data.room[myTeam]?.find((u) => u.id === user.id);
-            setIsReady(me?.status === "READY");
-            break;
-          }
+						// 본인 팀색 찾는 로직
+						const myTeam = Object.entries({
+							RED: data.room.RED,
+							BLUE: data.room.BLUE,
+						}).find(([_, users]) => users.some((u) => u.id === user.id))?.[0];
 
-          case "LEAVE":
-            if (data.msg === "Lobby 로 돌아갑니다.") {
-              closeSocket();
-              navigate("/home");
-            }
-            break;
+						setTeam(myTeam);
 
-          case "STARTED_GAME": {
-            const gameType = room?.gameType?.toLowerCase();
-            const roomIdFromState = room?.id;
-            if (gameType && roomIdFromState) {
-              navigate(`/${gameType}/${roomIdFromState}`);
-            }
-            break;
-          }
+						const me = data.room[myTeam]?.find((u) => u.id === user.id);
+						setIsReady(me?.status === 'READY');
+						break;
+					}
 
-          case "ERROR":
-            alert(data.msg);
-            break;
-        }
-      },
-      onOpen: () => {
-        // emitJoinRoom은 이전 페이지에서 처리함
-      },
-      onClose: closeSocket,
-      onError: console.error,
-    });
+					case 'LEAVE':
+						if (data.msg === 'Lobby 로 돌아갑니다.') {
+							closeSocket();
+							navigate('/home');
+						}
+						break;
 
-    return () => closeSocket();
-  }, [accessToken, user, roomId]);
+					case 'STARTED_GAME': {
+						const gameType = room?.gameType?.toLowerCase();
+						const roomIdFromState = room?.id;
+						if (gameType && roomIdFromState) {
+							navigate(`/${gameType}/${roomIdFromState}`);
+						}
+						break;
+					}
 
-  // 유저 카드리스트 내용
-  const userSlots = room
-    ? [...room.RED, ...room.BLUE].map((u) => ({
-        userId: u.id,
-        userNickname: u.nickname,
-        team: room.RED.includes(u) ? "red" : "blue",
-        isReady: u.status === "READY",
-        isHost: room.master?.id === u.id,
-        reqImg: u.repImg,
-      }))
-    : [];
+					case 'ERROR':
+						alert(data.msg);
+						break;
+				}
+			},
+			onOpen: () => {
+				// emitJoinRoom은 이전 페이지에서 처리함
+			},
+			onClose: closeSocket,
+			onError: console.error,
+		});
 
-  const isStartEnabled =
-    isHost && room?.RED?.length > 0 && room?.RED?.length === room?.BLUE?.length;
+		return () => closeSocket();
+	}, [accessToken, user, roomId]);
 
-  return (
-    <div className="flex flex-row h-screen">
-      <section
-        className="basis-3/4 flex flex-col"
-        style={{
-          backgroundImage: `url(${bgImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">{room?.title ?? "room_list"}</h1>
-          <div className="flex flex-row gap-2 p-2">
-            <TeamToggleButton
-              currentTeam={team} // 상태로부터 현재 팀 받아오기
-              onClick={handleTeamToggle}
-            />
+	// 유저 카드리스트 내용
+	const userSlots = room
+		? [...room.RED, ...room.BLUE].map((u) => ({
+				userId: u.id,
+				userNickname: u.nickname,
+				team: room.RED.some((r) => r.id === u.id) ? 'red' : 'blue',
+				isReady: u.status === 'READY',
+				isHost: room.master?.id === u.id,
+				reqImg: u.repImg,
+			}))
+		: [];
 
-            {isHost ? (
-              <ModalButton onClick={handleStartGame} disabled={!isStartEnabled}>
-                START
-              </ModalButton>
-            ) : (
-              <ModalButton onClick={handleReadyToggle}>
-                {isReady ? "준비 해제" : "준비 완료"}
-              </ModalButton>
-            )}
-          </div>
-        </div>
+	const isStartEnabled =
+		isHost &&
+		room?.RED.length > 0 &&
+		room?.RED.length === room?.BLUE.length &&
+		[...room.RED, ...room.BLUE].every((u) => u.status === 'READY');
 
-        <div className="basis-4/5">
-          <div className="h-full bg-transparent flex flex-col items-stretch justify-center">
-            <WaitingUserList userSlots={userSlots} />
-          </div>
-        </div>
-      </section>
+	return (
+		<div className="flex flex-row h-screen">
+			<section
+				className="basis-3/4 flex flex-col"
+				style={{
+					backgroundImage: `url(${bgImage})`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					backgroundRepeat: 'no-repeat',
+				}}
+			>
+				<div className="basis-1/5 flex flex-row justify-between items-center">
+					<h1 className="p-4 text-3xl">{room?.title ?? 'room_list'}</h1>
+					<div className="flex flex-col gap-1 p-2 items-end">
+						{isHost && !isStartEnabled && (
+							<span className="text-sm text-red-700 font-bold">
+								모든 유저가 준비 완료되어야 시작할 수 있습니다.
+							</span>
+						)}
+						<div className="flex flex-row gap-2">
+							<TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
+							{isHost ? (
+								<ModalButton onClick={handleStartGame} disabled={!isStartEnabled}>
+									START
+								</ModalButton>
+							) : (
+								<ModalButton onClick={handleReadyToggle}>
+									{isReady ? '준비 해제' : '준비 완료'}
+								</ModalButton>
+							)}
+						</div>
+					</div>
+				</div>
 
-      <section className="basis-1/4 flex flex-col bg-rose-300">
-        <div className="basis-1/8 m-4 flex justify-end items-center">
-          <ModalButton
-            className="text-lg px-2 py-1 rounded-md"
-            onClick={() => setIsExitModalOpen(true)}
-          >
-            방 나가기
-          </ModalButton>
-        </div>
+				<div className="basis-4/5">
+					<div className="h-full bg-transparent flex flex-col items-stretch justify-center">
+						<WaitingUserList
+							userSlots={userSlots}
+							roomMasterId={room?.master?.id}
+							onRightClickKick={(user) => {
+								setKickTarget(user);
+								setKickModalOpen(true);
+							}}
+						/>
+					</div>
+				</div>
+			</section>
 
-        <div className="basis-3/8 flex flex-col justify-center items-center">
-          <SelfCamera />
-        </div>
+			<section className="basis-1/4 flex flex-col bg-rose-300">
+				<div className="basis-1/8 m-4 flex justify-end items-center">
+					<ModalButton className="text-lg px-2 py-1 rounded-md" onClick={() => setIsExitModalOpen(true)}>
+						방 나가기
+					</ModalButton>
+				</div>
 
-        <div className="basis-4/8 relative">
-          <div className="absolute bottom-0">
-            <ChatBox width="300px" height="250px" />
-          </div>
-        </div>
-      </section>
+				<div className="basis-3/8 flex flex-col justify-center items-center">
+					<SelfCamera />
+				</div>
 
-      <RoomExitModal
-        isOpen={isExitModalOpen}
-        onConfirm={handleLeaveRoom}
-        onCancel={() => setIsExitModalOpen(false)}
-      />
-    </div>
-  );
+				<div className="basis-4/8 relative">
+					<div className="absolute bottom-0">
+						<ChatBox width="300px" height="250px" />
+					</div>
+				</div>
+			</section>
+
+			<RoomExitModal
+				isOpen={isExitModalOpen}
+				onConfirm={handleLeaveRoom}
+				onCancel={() => setIsExitModalOpen(false)}
+			/>
+			<KickConfirmModal
+				isOpen={kickModalOpen}
+				kickTarget={kickTarget}
+				onConfirm={handleKickConfirm}
+				onCancel={() => setKickModalOpen(false)}
+			/>
+		</div>
+	);
 };
 
 export default WaitingPage;
