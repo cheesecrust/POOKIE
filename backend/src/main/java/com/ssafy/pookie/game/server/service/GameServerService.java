@@ -82,6 +82,7 @@ public class GameServerService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
+        log.info("JOIN ROOM Request : {}", joinDto);
         // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
         // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
         LobbyUserDto isExist = isExistLobby(joinDto.getUser());
