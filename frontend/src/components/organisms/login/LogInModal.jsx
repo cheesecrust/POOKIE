@@ -5,19 +5,35 @@ import ModalButton from "../../atoms/button/ModalButton";
 import SocialButton from "../../atoms/button/SocialButton";
 import toggleLeft from "../../../assets/icon/toggle_left.png"
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "../../../store/store";
 
 const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
-    const [id, setId] = useState("");
-    const [pw, setPw] = useState("");
-
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const { login } = useAuthStore();
+    
+    const navigate = useNavigate();
+    
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
             handleLogin();
         }
     }
-    const handleLogin = () => {
-        console.log("로그인!", { id, pw });
+    const handleLogin = async () => {
+        const res = await login({ email: email, password: password });
+
+        if (res.success) {
+            alert('로그인 성공!')
+            const currentUser = useAuthStore.getState().user;
+            console.log('현재 로그인 유저:', currentUser)
+            onClose();
+            navigate('/home'); // 홈으로 리디렉션
+        } else {
+            alert(`로그인 실패: ${res.message}`)
+        }
     }
+    
     return (
         <BasicModal
             isOpen={isOpen}
@@ -27,18 +43,18 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
             <h2 className="text-center text-2xl font-bold mt-4 mb-8">로그인</h2>
     
             {/* 입력 필드 */}
-            <div className="flex flex-col gap-3 w-full mt-2 mb-4 items-center">
+            <div className="flex flex-col gap-3 w-full mt-2 mb-6 items-center">
                 {/* 아이디 */}
                 <div className="flex items-center gap-4">
                     <label className="text-base font-bold text-black w-[100px] text-right">
                         아이디
                     </label>
                     <BasicInput
-                        value={id}
-                        onChange={(e) => setId(e.target.value)}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="아이디"
-                        className="w-[300px]"
+                        placeholder="pookie@example.com"
+                        className="w-[300px] h-[40px]"
                     />
                 </div>
                 {/* 비밀번호 */}
@@ -47,18 +63,18 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
                         비밀번호
                     </label>
                     <BasicInput
-                        value={pw}
+                        value={password}
                         type="password"
-                        onChange={(e) => setPw(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="비밀번호"
-                        className="w-[300px]"
+                        className="w-[300px] h-[40px]"
                     />
                 </div>
             </div>
     
             {/* 로그인 버튼 */}
-            <div className="w-full mb-4 flex justify-center">
+            <div className="w-full mb-6 flex justify-center">
               <ModalButton onClick={handleLogin} className="">
                 로그인
               </ModalButton>
