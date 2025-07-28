@@ -1,5 +1,6 @@
 package com.ssafy.pookie.game.user.dto;
 
+import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import lombok.Data;
 
 @Data
@@ -8,5 +9,19 @@ public class UserStatusChangeDto {
     private String roomId;
     private UserDto user;
     private String team;
-    private boolean ready;        // READY / NONE
+
+    // 현 상태에 반대되는 Status 로 변경
+    public boolean changeStatus(RoomStateDto room) {
+        UserDto reqUser = null;
+        for(UserDto tempUser : room.getUsers().get(team)) {
+            if(tempUser.getUserId().equals(this.user.getUserId()) &&
+            tempUser.getUserNickname().equals(this.user.getUserNickname())) {
+                reqUser = tempUser;
+            }
+        }
+        if(reqUser == null) return false;
+        reqUser.setStatus(reqUser.getStatus() ==  UserDto.Status.READY ?
+                UserDto.Status.NONE : UserDto.Status.READY);
+        return true;
+    }
 }

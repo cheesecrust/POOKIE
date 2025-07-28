@@ -5,12 +5,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
@@ -25,8 +28,9 @@ public class RoomStateDto {
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
 
     private String roomId;
+    private String roomTitle;
     private GameType gameType;
-    private String roomPw = "";
+    private String roomPw;
     //  라운드는 1~3 라운드
     //  -> 게임 시작 전에는 0 Default
     private int round = 0;
@@ -50,7 +54,7 @@ public class RoomStateDto {
     public String toJson() throws JsonProcessingException {
         return new ObjectMapper().writeValueAsString(
                 Map.of(
-                        "roomId", roomId,
+                        "roomTitle", roomTitle,
                         "gameType", gameType.toString(),
                         "round", round,
                         "turn", turn.toString(),
@@ -70,10 +74,7 @@ public class RoomStateDto {
         this.teamScores.computeIfPresent("BLUE", (k,v)-> 0);
         this.round = 0;
     }
-    // 유저 입장
-    public void addUserToTeam(String team, UserDto user) {
-        this.users.computeIfAbsent(team, (key) -> new ArrayList<>()).add(user);
-    }
+
     // 현재 각 팀의 인원 수 상태 파악
     public Map<String, Integer> getTeamInfo() {
         return Map.of(
@@ -83,18 +84,18 @@ public class RoomStateDto {
         );
     }
     // 팀원을 균등하게 배분
-    public String assignTeamForNewUser() {
+    public UserDto.Team assignTeamForNewUser() {
         Map<String, Integer> teamInfo = getTeamInfo();
         int redTeam = teamInfo.get("RED");
         int blueTeam = teamInfo.get("BLUE");
         // 1. RED 팀 우선 배정
         // RED 팀에 아무도 없다면 RED 로 배정
-        if(redTeam == 0) return "RED";
+        if(redTeam == 0) return UserDto.Team.RED;
 
         // 2. 팀원 수에 따라 배정
         // 팀원 수가 같다면 RED 가 우선권
-        if(redTeam <= blueTeam) return "RED";
-        else return "BLUE";
+        if(redTeam <= blueTeam) return UserDto.Team.RED;
+        else return UserDto.Team.BLUE;
     }
 
     public void resetTempTeamScore() {
@@ -114,5 +115,113 @@ public class RoomStateDto {
 
     public Boolean isIncluded(WebSocketSession session) {
         return this.sessions.contains(session);
+    }
+
+    public void writeTempTeamScore(TurnDto gameResult) {
+        this.getTempTeamScores().put(this.getTurn().toString(), gameResult.getScore());
+    }
+
+    public void turnChange() {
+        if(this.getTurn() == Turn.RED) this.setTurn(Turn.BLUE);
+        else this.setTurn(Turn.RED);
+    }
+
+    private String win;
+    private Integer redTeamScore;
+    private Integer blueTeamScore;
+    public void roundOver() {
+        redTeamScore = this.teamScores.get(Turn.RED.toString());
+        blueTeamScore = this.teamScores.get(Turn.BLUE.toString());
+        // 승 패
+        if(redTeamScore > blueTeamScore) {
+            this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
+            win = "RED";
+        }
+        else if(redTeamScore < blueTeamScore) {
+            this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
+            win = "BLUE";
+        }
+        else {
+            this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
+            this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
+            win = "DRAW";
+        }
+    }
+
+    public Map<String, Object> gameOver() {
+        redTeamScore = this.teamScores.get("RED");
+        blueTeamScore= this.teamScores.get("BLUE");
+        Map<String, Object> result = Map.of(
+                "win", redTeamScore > blueTeamScore ? "RED" : redTeamScore == blueTeamScore ? "DRAW" : "BLUE",
+                "finalScore", Map.of(
+                        "RED", redTeamScore,
+                        "BLUE", blueTeamScore
+                )
+        );
+
+        resetRoundResult();
+
+        return result;
+    }
+
+    public Map<String, Object> roundResult() {
+        Map<String, Object> result = Map.of(
+                "type", "ROUND_OVER",
+                "round", this.round,
+                "win", this.win,
+                "roundResult", Map.of(
+                        "RED", this.redTeamScore,
+                        "BLUE", this.blueTeamScore
+                ),
+                "gameResult", Map.of(
+                        "RED", this.getTempTeamScores().get(Turn.RED.toString()),
+                        "BLUE", this.getTempTeamScores().get(Turn.BLUE.toString())
+                )
+        );
+
+        resetRoundResult();
+        return result;
+    }
+
+    private void resetRoundResult() {
+        this.win = null;
+        this.redTeamScore = this.blueTeamScore = null;
+    }
+
+    // Room Info Mapping
+    public Map<String, Object> mappingRoomInfo() {
+        Map<String, Object> roomInfo = new LinkedHashMap<>();
+        roomInfo.put("id", this.getRoomId());
+        roomInfo.put("name", this.getRoomTitle());
+        roomInfo.put("gameType", this.getGameType().toString());
+        roomInfo.put("master", Map.of(
+                "id", this.getRoomMaster().getUserId(),
+                "nickname", this.getRoomMaster().getUserNickname(),
+                "grant", this.getRoomMaster().getGrant().toString(),
+                "repImg", this.getRoomMaster().getReqImg() == null ? "" : this.getRoomMaster().getReqImg()
+        ));
+        roomInfo.put("RED", this.getUsers().get("RED") == null ? List.of() :
+                this.getUsers().get("RED").stream().map(user -> Map.of(
+                        "id", user.getUserId(),
+                        "nickname", user.getUserNickname(),
+                        "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                        "status", user.getStatus().toString()
+                )).collect(Collectors.toList())
+        );
+        roomInfo.put("BLUE", this.getUsers().get("BLUE") == null ? List.of() :
+                this.getUsers().get("BLUE").stream().map(user -> Map.of(
+                        "id", user.getUserId(),
+                        "nickname", user.getUserNickname(),
+                        "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                        "status", user.getStatus().toString()
+                )).collect(Collectors.toList())
+        );
+        roomInfo.put("teamInfo", Map.of(
+                "RED", this.getUsers().getOrDefault("RED", List.of()).size(),
+                "BLUE", (this.getUsers().getOrDefault("BLUE", List.of()).size()),
+                "total", this.getUsers().getOrDefault("RED", List.of()).size()+this.getUsers().getOrDefault("BLUE", List.of()).size()
+        ));
+
+        return roomInfo;
     }
 }
