@@ -37,7 +37,7 @@ const SocialButton = ({ provider = "google", onClick, className = "" }) => {
     <button
       onClick={onClick}
       className={`
-        w-full flex items-center justify-center gap-2
+        flex items-center justify-center gap-2
         ${style.bgColor} ${style.textColor} ${style.border}
         font-semibold text-sm px-4 py-2 rounded-md shadow
         hover:brightness-95 transform transition

@@ -16,15 +16,24 @@
 //   className=""   
 // />
 
-const BasicInput = ({ value, onChange, onKeyDown, placeholder, className = "" }) => {
+const BasicInput = ({
+    value,
+    onChange,
+    onKeyDown,
+    placeholder,
+    className = "",
+    type = "text",
+ }) => {
     return (
         <input
-            type="text"
+            type={type}
             value={value}
             onChange={onChange}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className={`w-[350px] h-[50px] rounded border-2 border-black shadow-md outline-none px-2 text-lg text-black bg-white ${className}`}
+            className={`rounded border-2 border-black shadow-md outline-none px-2 text-lg text-black bg-white
+                ${className || "w-[350px] h-[50px]"}
+            `}
         />
     )
 }
