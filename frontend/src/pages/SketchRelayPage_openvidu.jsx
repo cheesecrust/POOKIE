@@ -9,6 +9,7 @@ import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
 
 const OPENVIDU_SERVER_URL = "https://i13a604.p.ssafy.io/api";
 const OPENVIDU_LIVEKIT_URL = "wss://i13a604.p.ssafy.io:443/";
+const FASTAPI_URL = "http://localhost:8000/upload_images"; // FastAPI endpoint
 
 const SketchRelayPage_VIDU = () => {
   const [roomName] = useState("9acd8513-8a8a-44aa-8cdd-3117d2c2fcb1");
@@ -16,30 +17,9 @@ const SketchRelayPage_VIDU = () => {
   const [redTeam, setRedTeam] = useState([]);
   const [blueTeam, setBlueTeam] = useState([]);
   const [publisherTrack, setPublisherTrack] = useState(null);
+  const [firstUser, setFirstUser] = useState(null);
 
   const roomRef = useRef(null);
-
-  // ✅ WebSocket 연결
-  useEffect(() => {
-    const token = import.meta.env.VITE_WS_TOKEN;
-    connectSocket({
-      url: "wss://i13a604.p.ssafy.io/api/game",
-      token,
-      onMessage: (data) => {
-        try {
-          console.log("[WebSocket MESSAGE]", data);
-          if (data.type === "ON") {
-            console.log("유저 연결됨:", data.user.userNickname);
-          }
-        } catch (err) {
-          console.error("[WebSocket MESSAGE PARSE ERROR]", err);
-        }
-      },
-      onOpen: (e) => console.log("[WebSocket OPEN]", e),
-      onClose: (e) => console.log("[WebSocket CLOSE]", e),
-      onError: (e) => console.log("[WebSocket ERROR]", e),
-    });
-  }, []);
 
   // ✅ LiveKit 연결
   useEffect(() => {
@@ -47,8 +27,6 @@ const SketchRelayPage_VIDU = () => {
       try {
         const token = await getToken(roomName, participantName);
         const newRoom = new Room();
-        console.log("👉 연결할 토큰:", token);
-
         await newRoom.connect(OPENVIDU_LIVEKIT_URL, token);
         console.log("✅ LiveKit 연결 성공");
 
@@ -58,60 +36,43 @@ const SketchRelayPage_VIDU = () => {
 
         roomRef.current = newRoom;
 
+        // ✅ 첫 번째 참가자 결정
+        if (!firstUser) {
+          setFirstUser(participantName);
+        }
+
         const handleTrackSubscribed = (track, publication, participant) => {
           if (!participant || track.kind !== "video" || participant.isLocal) return;
-
-          let team = getTeamFromMetadata(participant.metadata);
-          console.log("👤 트랙 등록됨:", participant.identity, "팀:", team);
-
+          const team = "red"; // 필요 시 메타데이터로 결정
           const subscriberObj = { track, identity: participant.identity };
           const updateTeam = (setter) => {
             setter((prev) => {
               if (prev.find((p) => p.identity === participant.identity)) return prev;
-              return prev.length < 3 ? [...prev, subscriberObj] : prev;
+              return [...prev, subscriberObj];
             });
           };
-
           if (team === "red") updateTeam(setRedTeam);
-          else if (team === "blue") updateTeam(setBlueTeam);
+          else updateTeam(setBlueTeam);
         };
 
-        // 기존 참가자 트랙 처리
-        Array.from(newRoom.remoteParticipants.values()).forEach((participant) => {
-            console.log("🎯 기존 참가자:", participant.identity);
-
-            // ✅ 안전하게 trackPublication 순회
-            for (const publication of participant.trackPublications.values()) {
-                if (publication.isSubscribed && publication.track?.kind === "video") {
-                console.log("⚡ 기존 참가자 트랙 수동 등록:", participant.identity);
-                handleTrackSubscribed(publication.track, publication, participant);
-                }
+        // 기존 참가자 처리
+        for (const participant of newRoom.remoteParticipants.values()) {
+          for (const publication of participant.trackPublications.values()) {
+            if (publication.isSubscribed && publication.track?.kind === "video") {
+              handleTrackSubscribed(publication.track, publication, participant);
             }
-
-            participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
-                console.log("🎥 트랙 구독됨:", track.kind, participant.identity);
-                handleTrackSubscribed(track, publication, participant);
-            });
-        });
-
-        // 새 참가자 연결 시
-        newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-          console.log("🎯 새로운 참가자 연결됨:", participant.identity);
+          }
           participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
-            console.log("🎥 트랙 구독됨:", track.kind, participant.identity);
+            handleTrackSubscribed(track, publication, participant);
+          });
+        }
+
+        // 새 참가자
+        newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
+          participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
             handleTrackSubscribed(track, publication, participant);
           });
         });
-
-        // 퇴장 및 트랙 제거
-        const removeParticipant = (participant) => {
-          setRedTeam((prev) => prev.filter((p) => p.identity !== participant.identity));
-          setBlueTeam((prev) => prev.filter((p) => p.identity !== participant.identity));
-        };
-
-        newRoom.on(RoomEvent.ParticipantDisconnected, removeParticipant);
-        newRoom.on(RoomEvent.TrackUnsubscribed, (_, __, participant) => removeParticipant(participant));
-        newRoom.on(RoomEvent.Disconnected, () => console.log("❌ LiveKit 연결 종료됨"));
 
       } catch (error) {
         console.error("LiveKit 연결 실패:", error);
@@ -121,52 +82,76 @@ const SketchRelayPage_VIDU = () => {
     connectLiveKit();
 
     return () => {
-      if (roomRef.current) {
-        roomRef.current.disconnect();
-        console.log("🔌 LiveKit 연결 해제됨");
-      }
+      if (roomRef.current) roomRef.current.disconnect();
     };
   }, [roomName, participantName]);
 
-  // 메타데이터에서 팀 추출
-  const getTeamFromMetadata = (metadata) => {
+  // ✅ 캠 캡처 후 FastAPI 전송
+  const handleCapture = async () => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const formData = new FormData();
+
+    const captureTrack = async (videoTrack, identity) => {
+      const videoEl = document.createElement("video");
+      videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+      videoEl.muted = true;
+      await videoEl.play();
+
+      // video 크기에 맞춰 canvas 설정
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          formData.append("images", blob, `${identity}.png`);
+          resolve();
+        }, "image/png");
+      });
+    };
+
+    // ✅ 본인 + 모든 참가자
+    if (publisherTrack) {
+      await captureTrack(publisherTrack.track, publisherTrack.identity);
+    }
+    for (const user of [...redTeam, ...blueTeam]) {
+      await captureTrack(user.track, user.identity);
+    }
+
+    // ✅ FastAPI로 전송
     try {
-      return JSON.parse(metadata)?.team || "unknown";
-    } catch {
-      return "unknown";
+      const res = await fetch(FASTAPI_URL, {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+      console.log("✅ FastAPI 응답:", result);
+    } catch (err) {
+      console.error("❌ FastAPI 전송 실패:", err);
     }
   };
 
   // JWT 토큰 요청
   async function getToken(roomName, participantName) {
     const token = import.meta.env.VITE_WS_TOKEN;
-    try {
-      const res = await fetch(`${OPENVIDU_SERVER_URL}/rtc/token`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ room: roomName, name: participantName, team: "red" }),
-      });
-
-      const tokenObj = await res.json();
-      return tokenObj.token;
-    } catch (err) {
-      console.error("getToken error:", err);
-      throw err;
-    }
+    const res = await fetch(`${OPENVIDU_SERVER_URL}/rtc/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ room: roomName, name: participantName, team: "red" }),
+    });
+    const tokenObj = await res.json();
+    return tokenObj.token;
   }
-
-  // 디버깅용
-  useEffect(() => console.log("🟥 redTeam:", redTeam), [redTeam]);
-  useEffect(() => console.log("🟦 blueTeam:", blueTeam), [blueTeam]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <img src={background_sketchrelay} alt="background" className="absolute top-0 left-0 w-full h-full object-cover -z-10" />
-
       <div className="relative z-10 w-full h-full flex flex-col justify-between items-center py-12 px-10">
+
         {/* 캠 출력 */}
         <div className="flex gap-4 justify-center">
           {[...(publisherTrack ? [publisherTrack] : []), ...redTeam, ...blueTeam].map((sub, i) => (
@@ -174,11 +159,18 @@ const SketchRelayPage_VIDU = () => {
           ))}
         </div>
 
+        {/* 사진 찍기 버튼 (첫 참가자만 보임) */}
+        {firstUser === participantName && (
+          <button
+            onClick={handleCapture}
+            className="bg-yellow-400 px-4 py-2 rounded shadow-lg mt-4"
+          >
+            📸 사진 찰칵
+          </button>
+        )}
+
         {/* 칠판 */}
         <div className="w-[1200px] h-[600px] bg-white rounded-lg border-4 border-gray-300 shadow-inner my-6" />
-
-        {/* 하단 캠 (미사용 시 주석) */}
-        {/* {publisherTrack && <LiveKitVideo videoTrack={publisherTrack.track} isLocal={true} />} */}
       </div>
 
       <div className="absolute top-4 right-4 z-20">
@@ -186,11 +178,7 @@ const SketchRelayPage_VIDU = () => {
       </div>
 
       <div className="absolute bottom-4 left-0 z-20">
-        <div className="relative w-[300px] h-[300px]">
-          <div className="absolute bottom-0 left-0">
-            <ChatBox width="300px" height="300px" />
-          </div>
-        </div>
+        <ChatBox width="300px" height="300px" />
       </div>
 
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
