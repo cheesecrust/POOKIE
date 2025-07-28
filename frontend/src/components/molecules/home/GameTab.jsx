@@ -18,14 +18,13 @@ const GameTab = ({ activeTab = 'all', onChange }) => {
     ];
 
     return (
-        <div className="flex justify-center gap-15 my-4">
-          {tabs.map((tab, index) => (
+        <div className="w-full flex justify-between gap-15">
+          {tabs.map((tab) => (
             <TabButton
               key={tab.key}
                 label={tab.label}
                 active={activeTab === tab.key}
                 onClick={() => onChange(tab.key)}
-                className={`bg-[${index === 0 ? '#F4C0C0' : '#EF8888'}]`}
                 />
             ))}
         </div>
