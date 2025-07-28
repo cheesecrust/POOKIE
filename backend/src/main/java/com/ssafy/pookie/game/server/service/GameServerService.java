@@ -2,8 +2,6 @@ package com.ssafy.pookie.game.server.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
-import com.fasterxml.classmate.members.RawMember;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.chat.ChatDto;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
@@ -15,6 +13,7 @@ import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
+import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,6 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,10 +32,7 @@ import java.util.stream.Collectors;
 public class GameServerService {
 
     private final GameKeywordsRepository gameKeywordsRepository;
-
-    private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
-    private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
-
+    private final OnlinePlayerManager onlinePlayerManager;
     private final UserAccountsRepository userAccountsRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -50,7 +45,7 @@ public class GameServerService {
 
         // 기존에 접속되어 있는 사용자인지 확인 ( 중복 접속 )
         // 접속해있지 않다면 null 반환
-        LobbyUserDto isExist = lobby.get(userDto.getUserAccountId());
+        LobbyUserDto isExist = onlinePlayerManager.getLobby().get(userDto.getUserAccountId());
         if(isExist != null) {   // 기존에 동일 ID 로 접속되어 있는 사용자가 있음
             // 대기실에서 나온 사용자인지 확인
             if(isExist.getStatus() != LobbyUserDto.Status.ON) {
@@ -65,7 +60,7 @@ public class GameServerService {
         // lobby 로 이동시킴
         LobbyUserDto lobbyUserDto = new LobbyUserDto(session, userDto);
         lobbyUserDto.setStatus(LobbyUserDto.Status.ON);
-        lobby.put(userDto.getUserAccountId(), lobbyUserDto);
+        onlinePlayerManager.getLobby().put(userDto.getUserAccountId(), lobbyUserDto);
         log.info("User {} entered lobby", userDto.getUserNickname());
         // ToClient
         sendToMessageUser(session, Map.of(
@@ -101,11 +96,11 @@ public class GameServerService {
         boolean create = false;
         if(joinDto.getRoomId() == null || joinDto.getRoomId().isEmpty()) {
             String tempUUID = UUID.randomUUID().toString();
-            while(rooms.contains(tempUUID)) tempUUID = UUID.randomUUID().toString();
+            while(onlinePlayerManager.getRooms().contains(tempUUID)) tempUUID = UUID.randomUUID().toString();
 
             joinDto.setRoomId(tempUUID);
             create = true;
-        } else if(!rooms.containsKey(joinDto.getRoomId())){
+        } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())){
             sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "존재하지 않는 방입니다."
@@ -113,7 +108,7 @@ public class GameServerService {
             return;
         }
         // 기존에 있던 방이라면 입장, 없던 방이라면 생성
-        RoomStateDto room = rooms.computeIfAbsent(joinDto.getRoomId(), id -> {
+        RoomStateDto room = onlinePlayerManager.getRooms().computeIfAbsent(joinDto.getRoomId(), id -> {
             RoomStateDto newRoom = new RoomStateDto();
             newRoom.setRoomId(id);
             newRoom.setRoomTitle(joinDto.getRoomTitle());
@@ -170,7 +165,7 @@ public class GameServerService {
                 .add(joinDto.getUser());
 
         room.getSessions().add(session);
-        lobby.get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
+        onlinePlayerManager.getLobby().get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
         log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
 
         // Client response msg
@@ -184,7 +179,7 @@ public class GameServerService {
 
     // User 가 Room 을 떠날 때
     public void handleLeave(WebSocketSession session, String roomId) throws IOException {
-        RoomStateDto room = rooms.get(roomId);
+        RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
         if(isAuthorized(session, room)) return;
         String leaveUserNickName = "";
         // 해당 룸에서 세션과 유저 제거
@@ -197,7 +192,7 @@ public class GameServerService {
                             "type", "LEAVE",
                             "msg", "Lobby 로 돌아갑니다."
                     ));
-                    lobby.get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
+                    onlinePlayerManager.getLobby().get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
                     room.getSessions().remove(session);
                     room.getUsers().get(team).remove(teamUser);
@@ -236,7 +231,7 @@ public class GameServerService {
         여러 방에 있을 수 있는가? => 아니라면 roomId 반환
      */
     public String removeSessionFromRooms(WebSocketSession session) {
-        for (RoomStateDto room : rooms.values()) {
+        for (RoomStateDto room : onlinePlayerManager.getRooms().values()) {
             try {
                 if (room.getSessions().contains(session)) {
                     handleLeave(session, room.getRoomId());
@@ -263,12 +258,12 @@ public class GameServerService {
     }
     // 방 삭제
     public void removeRoomFromServer(String getRoomId) {
-        rooms.remove(getRoomId);
+        onlinePlayerManager.getRooms().remove(getRoomId);
     }
 
     // User 팀 바꾸기
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
-        RoomStateDto room = rooms.get(teamChangeRequest.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(teamChangeRequest.getRoomId());
         if(isAuthorized(session, room)) return;
 
         if(!teamChangeRequest.changeTeam(room)) {
@@ -288,7 +283,7 @@ public class GameServerService {
 
     // 유저 READY 상태 변경
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
-        RoomStateDto room = rooms.get(request.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
 
         if(!request.changeStatus(room)) {
@@ -305,7 +300,7 @@ public class GameServerService {
     }
     // 유저 강퇴 ( 방장만 )
     public void handleForcedRemoval(WebSocketSession session, RoomMasterForcedRemovalDto request) throws IOException {
-        RoomStateDto room = rooms.get(request.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         if(isAuthorized(session, room)) return;
 
         // 방장인지 확인
@@ -327,7 +322,7 @@ public class GameServerService {
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         // 현재 방의 상태를 가져옴
-        RoomStateDto room = rooms.get(request.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // 1. 방 인원이 모드 채워졌는지
@@ -458,7 +453,7 @@ public class GameServerService {
 
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto result) throws IOException {
-        RoomStateDto room = rooms.get(result.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(result.getRoomId());
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // TURN_CHANGE 이벤트는 RED 에서만 일어남
         if(room.getTurn() != RoomStateDto.Turn.RED) return;
@@ -506,7 +501,7 @@ public class GameServerService {
             4. GameInfo Reset
             5. Turn 교환
          */
-        RoomStateDto room = rooms.get(gameResult.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
         // 라운드 끝, 팀별 점수 집계
         room.writeTempTeamScore(gameResult);
         room.roundOver();
@@ -537,7 +532,7 @@ public class GameServerService {
     // 1. 해당 팀원들에게만
     // 2. 해당 대기방 전체
     public void broadCastMessageToRoomUser(WebSocketSession session, String RoomId, String team, Map<String, Object> msg) throws IOException {
-        RoomStateDto room = rooms.get(RoomId);
+        RoomStateDto room = onlinePlayerManager.getRooms().get(RoomId);
         if(isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
@@ -558,16 +553,16 @@ public class GameServerService {
     private void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
         // 단일 User
         if(!group) {
-            lobby.get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
+            onlinePlayerManager.getLobby().get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
             return;
         }
 
         // 단제 User -> Room
         // 동일 Session 내 모든 User 수정
-        RoomStateDto room = rooms.get(lobbyUserStateDto.getRoomId());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(lobbyUserStateDto.getRoomId());
         for(String team : room.getUsers().keySet()) {
             for(UserDto roomUser : room.getUsers().get(team)) {
-                lobby.get(roomUser.getUserAccountId()).setStatus(status);
+                onlinePlayerManager.getLobby().get(roomUser.getUserAccountId()).setStatus(status);
             }
         }
     }
@@ -578,9 +573,9 @@ public class GameServerService {
      */
     public void removeFromLobby(WebSocketSession session) throws IOException {
         String roomId = removeSessionFromRooms(session);
-        if (roomId != null) rooms.remove(roomId);
+        if (roomId != null) onlinePlayerManager.getRooms().remove(roomId);
         Long userAccountId = (Long) session.getAttributes().get("userAccountId");
-        lobby.remove(userAccountId);
+        onlinePlayerManager.getLobby().remove(userAccountId);
 
         // offline 처리
         UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
@@ -614,7 +609,7 @@ public class GameServerService {
         현재 세션에 해당 유저가 있는지 확인
      */
     public LobbyUserDto isExistLobby(UserDto user) {
-        return lobby.get(user.getUserAccountId());
+        return onlinePlayerManager.getLobby().get(user.getUserAccountId());
     }
     /*
         해당 방이 존재하고, 해당 유저의 권한이 있는지
@@ -633,7 +628,7 @@ public class GameServerService {
         현재 생성되어 있는 방 리스트 전달
      */
     public List<?> existingRoomList() {
-        return rooms.values().stream().map((room) -> Map.of(
+        return onlinePlayerManager.getRooms().values().stream().map((room) -> Map.of(
                 "roomId", room.getRoomId(),
                 "roomTitle", room.getRoomTitle(),
                 "gameType", room.getGameType(),
@@ -652,7 +647,7 @@ public class GameServerService {
     public void broadCastCreateRoomEvent() {
         List<?> roomList = existingRoomList();
 
-        lobby.values().stream().forEach((user) -> {
+        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
                     sendToMessageUser(user.getUser().getSession(), Map.of(
@@ -668,7 +663,7 @@ public class GameServerService {
 
     private void broadcastRoomListToLobbyUsers() throws IOException{
         List<?> roomList = existingRoomList();
-        lobby.values().stream().forEach((user) -> {
+        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             try {
                 if(user.getStatus() == LobbyUserDto.Status.ON) {
                     sendToMessageUser(user.getUser().getSession(), Map.of(
@@ -684,6 +679,6 @@ public class GameServerService {
 
     // Chat
     public void handleChat(WebSocketSession session, ChatDto chatDto) throws IOException {
-        chatDto.sendChat(session, rooms.get(chatDto.getRoomId()));
+        chatDto.sendChat(session, onlinePlayerManager.getRooms().get(chatDto.getRoomId()));
     }
 }
