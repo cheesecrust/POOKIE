@@ -34,6 +34,13 @@ public class UserDto {
     private Status status = Status.NONE;
     private String reqImg;
 
+    public UserDto (WebSocketSession session, Long userAccountId, String userEmail, String userNickname) {
+        this.session = session;
+        this.userAccountId = userAccountId;
+        this.userEmail = userEmail;
+        this.userNickname = userNickname;
+    }
+
     public void setGrant(Grant grant) {
         this.grant = grant;
     }
