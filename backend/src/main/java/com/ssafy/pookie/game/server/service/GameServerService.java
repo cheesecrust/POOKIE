@@ -87,7 +87,6 @@ public class GameServerService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
-        System.out.println(joinDto);
         // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
         // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
         LobbyUserDto isExist = isExistLobby(joinDto.getUser());
@@ -99,11 +98,13 @@ public class GameServerService {
         // 현재 사용자가 다른 방에도 있다면, 기존 방에서 제거
         removeSessionFromRooms(session);
 
+        boolean create = false;
         if(joinDto.getRoomId() == null || joinDto.getRoomId().isEmpty()) {
             String tempUUID = UUID.randomUUID().toString();
             while(rooms.contains(tempUUID)) tempUUID = UUID.randomUUID().toString();
 
             joinDto.setRoomId(tempUUID);
+            create = true;
         } else if(!rooms.containsKey(joinDto.getRoomId())){
             sendToMessageUser(session, Map.of(
                     "type", "ERROR",
@@ -134,6 +135,7 @@ public class GameServerService {
 
             return newRoom;
         });
+        if(create) broadcastRoomListToLobbyUsers();
         if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) {
             log.warn("Room GameType does not match");
             sendToMessageUser(session, Map.of(
@@ -193,8 +195,7 @@ public class GameServerService {
                 if(teamUser.getSession() == session) {
                     sendToMessageUser(session, Map.of(
                             "type", "LEAVE",
-                            "msg", "Lobby 로 돌아갑니다.",
-                            "roomList", existingRoomList()
+                            "msg", "Lobby 로 돌아갑니다."
                     ));
                     lobby.get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
@@ -205,9 +206,10 @@ public class GameServerService {
                     if(room.getSessions().isEmpty()) {
                         removeRoomFromServer(roomId);
                         log.info("Room {} was disappeared", room.getRoomId());
+                        broadcastRoomListToLobbyUsers();
                         return;
                     }
-
+                    broadcastRoomListToLobbyUsers();
                     leaveUserNickName = teamUser.getUserNickname();
                     if(teamUser.getGrant() == UserDto.Grant.MASTER) {
                         regrantRoomMaster(room);
@@ -251,7 +253,7 @@ public class GameServerService {
         Map<String, List<UserDto>> user = room.getUsers();
         String[] team = {"RED", "BLUE"};
         int teamIdx = new Random().nextInt(2);
-        int playerIdx = new Random().nextInt(user.get(team[teamIdx]).size());
+        int playerIdx = new Random().nextInt(user.get(team[teamIdx]).isEmpty() ? 1 : user.get(team[teamIdx]).size());
 
         if(user.get(team[teamIdx]).size() <= playerIdx) {
             teamIdx = (teamIdx+1)%2;
@@ -271,13 +273,14 @@ public class GameServerService {
 
         if(!teamChangeRequest.changeTeam(room)) {
             sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
                 "msg", "처리 중 오류가 발생하였습니다."
             ));
             return;
         }
 
         broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
-                "type", "TEAM_CHANGE",
+                "type", "USER_TEAM_CHANGED",
                 "msg", teamChangeRequest.getUser().getUserNickname()+"이 팀을 변경하였습니다.",
                 "room", room.mappingRoomInfo()
         ));
@@ -296,7 +299,7 @@ public class GameServerService {
             return;
         }
         broadCastMessageToRoomUser(session, request.getRoomId(), null, Map.of(
-                "type", "USER_READY_CHANGE",
+                "type", "USER_READY_CHANGED",
                 "room", room.mappingRoomInfo()
         ));
     }
@@ -329,7 +332,10 @@ public class GameServerService {
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
-            session.sendMessage(new TextMessage("Required over 6 users"));
+            sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "6명 이상 모여야 시작 가능합니다."
+            ));
             return;
         }
         if(room.getSessions().size() <= 6) {
@@ -375,7 +381,8 @@ public class GameServerService {
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "STARTED_GAME",
-                "msg", "게임을 시작합니다."
+                "msg", "게임을 시작합니다.",
+                "turn", room.getTurn().toString()
         ));
 
         deliverKeywords(room);
@@ -463,8 +470,8 @@ public class GameServerService {
         log.info("{}", room.mappingRoomInfo());
         // Client response msg
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", "TURN_CHANGE",
-                "room", room.mappingRoomInfo()
+                "type", "TURN_CHANGED",
+                "turn", room.getTurn().toString()
         ));
         deliverKeywords(room);
     }
@@ -520,7 +527,7 @@ public class GameServerService {
         broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "NEW_ROUND",
                 "msg", "새로운 라운드가 시작됩니다.",
-                "room", room.mappingRoomInfo()
+                "turn", room.getTurn().toString()
         ));
         deliverKeywords(room);
     }
@@ -635,7 +642,7 @@ public class GameServerService {
                 "teamInfo", Map.of(
                         "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
                         "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                        "total", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                        "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
                 )
 
         )).collect(Collectors.toList());
@@ -655,6 +662,22 @@ public class GameServerService {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+    }
+
+    private void broadcastRoomListToLobbyUsers() throws IOException{
+        List<?> roomList = existingRoomList();
+        lobby.values().stream().forEach((user) -> {
+            try {
+                if(user.getStatus() == LobbyUserDto.Status.ON) {
+                    sendToMessageUser(user.getUser().getSession(), Map.of(
+                            "type", "UPDATE_ROOM_LIST",
+                            "roomList", roomList
+                    ));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         });
     }
