@@ -41,7 +41,6 @@ public class UserService {
         Users user = Users.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .username(signupRequest.getNickname())
                 .build();
 
         UserAccounts account = UserAccounts.builder()
@@ -79,7 +78,7 @@ public class UserService {
             return LoginResponseDto.builder()
                     .userAccountId(user.getId())
                     .email(user.getEmail())
-                    .nickname(user.getUsername())
+                    .nickname(userAccount.getNickname())
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
@@ -108,6 +107,7 @@ public class UserService {
             // 사용자 정보 조회
             Users user = usersRepository.findById(userAccountId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            UserAccounts userAccount = user.getUserAccount();
 
             // 새로운 토큰 생성
             String newAccessToken = jwtTokenProvider.createAccessToken(userAccountId, user.getEmail(), user.getUserAccount().getNickname());
@@ -116,7 +116,7 @@ public class UserService {
             return LoginResponseDto.builder()
                     .userAccountId(user.getId())
                     .email(user.getEmail())
-                    .nickname(user.getUsername())
+                    .nickname(userAccount.getNickname())
                     .accessToken(newAccessToken)
                     .refreshToken(newRefreshToken)
                     .build();

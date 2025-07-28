@@ -28,9 +28,6 @@ public class Users {
     @OneToOne(mappedBy = "user")
     private UserAccounts userAccount;
 
-    @Column(unique = true, length = 50, nullable = false)
-    private String username;
-
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
