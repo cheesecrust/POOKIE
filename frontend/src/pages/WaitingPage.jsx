@@ -1,124 +1,130 @@
 // src/pages/WaitingPage.jsx
 import ModalButton from "../components/atoms/button/ModalButton";
-import BasicButton from "../components/atoms/button/BasicButton";
+import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import {
-  connectSocket,
-  closeSocket,
-  sendMessage,
-} from "../sockets/common/websocket";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { connectSocket, closeSocket } from "../sockets/common/websocket";
 import {
   emitTeamChange,
   emitReadyChange,
   emitLeaveRoom,
-} from "../sockets/games/samePose/emit";
+} from "../sockets/waiting/emit";
+import useAuthStore from "../store/store";
 
 const WaitingPage = () => {
   const navigate = useNavigate();
+  const { roomId } = useParams();
+  const { user, accessToken } = useAuthStore();
+
   const [room, setRoom] = useState(null);
   const [team, setTeam] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
-  const user = {
-    userId: 7,
-    userNickname: "testNickname7",
-  };
-
-  const isHost = room?.roomMaster?.userId === user.userId;
-
-  const handleTeamToggle = () => {
-    const toTeam = team === "Red" ? "Blue" : "Red";
-    emitTeamChange({
-      roomId: room.roomId,
-      fromTeam: team,
-      toTeam,
-      user,
-    });
-  };
-
-  const handleReadyToggle = () => {
-    emitReadyChange({
-      roomId: room.roomId,
-      team,
-      ready: !isReady,
-      user,
-    });
-  };
+  const isHost = room?.master?.id === user?.id;
 
   const handleLeaveRoom = () => {
-    emitLeaveRoom({ roomId: room.roomId, user });
+    emitLeaveRoom({ roomId });
     closeSocket();
     navigate("/home");
   };
 
+  const handleStartGame = () => {
+    emitStartGame({ roomId });
+  };
+
+  const handleTeamToggle = () => {
+    const toTeam = team === "RED" ? "BLUE" : "RED";
+    console.log("emitTeamChange 실행:", toTeam);
+    emitTeamChange({ roomId, curTeam: toTeam });
+  };
+
+  const handleReadyToggle = () => {
+    emitReadyChange({ roomId, team });
+    setIsReady(!isReady);
+  };
+
   useEffect(() => {
-    const token =
-      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0N0B0ZXN0LmNvbSIsInVzZXJBY2NvdW50SWQiOjcsImVtYWlsIjoidGVzdDdAdGVzdC5jb20iLCJuaWNrbmFtZSI6InRlc3ROaWNrbmFtZTciLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzUzNjc2NTA3fQ.AYZbwhp6jCsAsH_OvlHZopDrlesin1N8-z9rYeSJMf8";
+    if (!accessToken || !user) return;
 
     connectSocket({
       url: "wss://i13a604.p.ssafy.io/api/game",
-      token,
-      onMessage: (data) => {
-        console.log("[WebSocket MESSAGE]", data);
+      token: accessToken,
+      // 서버에서 응답받는거
+      onMessage: (e) => {
+        const data = JSON.parse(e.data);
+        if (!data.type) return;
 
         switch (data.type) {
-          case "TEAM_CHANGE":
-          case "USER_READY_CHANGE":
+          case "ROOM_JOINED":
+          case "USER_TEAM_CHANGED":
+          case "USER_READY_CHANGED":
+          case "PLAYER_LEFT": {
             setRoom(data.room);
-            const myTeam = Object.entries(data.room.users).find(([_, users]) =>
-              users.some((u) => u.userId === user.userId)
-            )?.[0];
-            setTeam(myTeam);
-            const me = data.room.users[myTeam].find(
-              (u) => u.userId === user.userId
-            );
+
+            const myTeam = Object.entries({
+              RED: data.room.RED,
+              BLUE: data.room.BLUE,
+            }).find(([_, users]) => users.some((u) => u.id === user.id))?.[0];
+
+            setTeam(myTeam?.toLowerCase());
+
+            const me = data.room[myTeam]?.find((u) => u.id === user.id);
             setIsReady(me?.status === "READY");
             break;
+          }
 
           case "LEAVE":
             if (data.msg === "Lobby 로 돌아갑니다.") {
               closeSocket();
               navigate("/home");
-            } else {
-              setRoom(data.room);
             }
             break;
+
+          case "STARTED_GAME": {
+            const gameType = room?.gameType?.toLowerCase();
+            const roomIdFromState = room?.id;
+            if (gameType && roomIdFromState) {
+              navigate(`/${gameType}/${roomIdFromState}`);
+            }
+            break;
+          }
 
           case "ERROR":
             alert(data.msg);
             break;
-
-          case "ON":
-            console.log("[WebSocket CONNECTED]", data.user?.userNickname);
-            break;
-
-          default:
-            console.log("[Unhandled message]", data);
         }
       },
       onOpen: () => {
-        console.log("[WebSocket OPEN]");
+        // emitJoinRoom은 이전 페이지에서 처리함
       },
-      onClose: (e) => {
-        console.log("[WebSocket CLOSE]", e);
-      },
-      onError: (e) => {
-        console.log("[WebSocket ERROR]", e);
-      },
+      onClose: closeSocket,
+      onError: console.error,
     });
 
-    return () => {
-      closeSocket();
-    };
-  }, []);
+    return () => closeSocket();
+  }, [accessToken, user, roomId]);
+
+  // 유저 카드리스트 내용
+  const userSlots = room
+    ? [...room.RED, ...room.BLUE].map((u) => ({
+        userId: u.id,
+        userNickname: u.nickname,
+        team: room.RED.includes(u) ? "red" : "blue",
+        isReady: u.status === "READY",
+        isHost: room.master?.id === u.id,
+        reqImg: u.repImg,
+      }))
+    : [];
+
+  const isStartEnabled =
+    isHost && room?.RED?.length > 0 && room?.RED?.length === room?.BLUE?.length;
 
   return (
     <div className="flex flex-row h-screen">
@@ -132,20 +138,28 @@ const WaitingPage = () => {
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">{room?.roomId ?? "room_list"}</h1>
+          <h1 className="p-4 text-3xl">{room?.title ?? "room_list"}</h1>
           <div className="flex flex-row gap-2 p-2">
-            <BasicButton onClick={handleTeamToggle}>팀 변경</BasicButton>
-            <ModalButton onClick={handleReadyToggle}>
-              {isReady ? "준비 해제" : "준비 완료"}
-            </ModalButton>
+            <TeamToggleButton
+              currentTeam={team} // 상태로부터 현재 팀 받아오기
+              onClick={handleTeamToggle}
+            />
+
+            {isHost ? (
+              <ModalButton onClick={handleStartGame} disabled={!isStartEnabled}>
+                START
+              </ModalButton>
+            ) : (
+              <ModalButton onClick={handleReadyToggle}>
+                {isReady ? "준비 해제" : "준비 완료"}
+              </ModalButton>
+            )}
           </div>
         </div>
 
         <div className="basis-4/5">
           <div className="h-full bg-transparent flex flex-col items-stretch justify-center">
-            <WaitingUserList
-              userSlots={room ? [...room.users.Red, ...room.users.Blue] : []}
-            />
+            <WaitingUserList userSlots={userSlots} />
           </div>
         </div>
       </section>
@@ -225,16 +239,16 @@ export default WaitingPage;
 
 // // WaitingPage 컴포넌트
 // const WaitingPage = () => {
-// // useNavigate 훅을 사용한 페이지 이동 기능
-// const navigate = useNavigate();
+//   // useNavigate 훅을 사용한 페이지 이동 기능
+//   const navigate = useNavigate();
 
-// // 방을 나가게 되면 socket 연결을 끊고 메인 페이지로 이동하는 함수 필요
-// const handleLeaveRoom = () => {
-//   // 방 나가기 로직
-//   console.log("방을 나가기");
-//   // 방 나간 후 메인 페이지로 이동
-//   navigate("/home");
-// };
+//   // 방을 나가게 되면 socket 연결을 끊고 메인 페이지로 이동하는 함수 필요
+//   const handleLeaveRoom = () => {
+//     // 방 나가기 로직
+//     console.log("방을 나가기");
+//     // 방 나간 후 메인 페이지로 이동
+//     navigate("/home");
+//   };
 
 //   // 방 나가기 모달 상태 관리
 //   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -268,26 +282,26 @@ export default WaitingPage;
 //   // ######### 테스트용
 //   useEffect(() => {
 //     // 테스트: 첫 유저 1초 후 입장, 두 번째는 2초, 세 번째는 3초 후 입장
-//   dummyUsers.forEach((user, i) => {
-//     setTimeout(
-//       () => {
-//         setUserSlots((prev) => {
-//           const next = [...prev];
-//           const emptyIndex = next.findIndex((slot) => slot === null);
+//     dummyUsers.forEach((user, i) => {
+//       setTimeout(
+//         () => {
+//           setUserSlots((prev) => {
+//             const next = [...prev];
+//             const emptyIndex = next.findIndex((slot) => slot === null);
 
-//           // 이미 입장한 유저가 다시 들어오지 않도록 확인
-//           const alreadyExists = next.some((slot) => slot?.id === user.id);
-//           if (emptyIndex !== -1 && !alreadyExists) {
-//             next[emptyIndex] = user;
-//           }
+//             // 이미 입장한 유저가 다시 들어오지 않도록 확인
+//             const alreadyExists = next.some((slot) => slot?.id === user.id);
+//             if (emptyIndex !== -1 && !alreadyExists) {
+//               next[emptyIndex] = user;
+//             }
 
-//           return next;
-//         });
-//       },
-//       (i + 1) * 1000
-//     );
-//   });
-// }, []);
+//             return next;
+//           });
+//         },
+//         (i + 1) * 1000
+//       );
+//     });
+//   }, []);
 
 //   return (
 //     // 1. 전체 페이지를 flex로 설정하여 세로 방향으로 정렬
@@ -351,12 +365,12 @@ export default WaitingPage;
 //         </div>
 //       </section>
 
-// {/* 방 나가기 모달 */}
-// <RoomExitModal
-//   isOpen={isExitModalOpen}
-//   onConfirm={handleLeaveRoom}
-//   onCancel={() => setIsExitModalOpen(false)}
-// />
+//       {/* 방 나가기 모달 */}
+//       <RoomExitModal
+//         isOpen={isExitModalOpen}
+//         onConfirm={handleLeaveRoom}
+//         onCancel={() => setIsExitModalOpen(false)}
+//       />
 //     </div>
 //   );
 // };
