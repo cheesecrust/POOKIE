@@ -36,7 +36,7 @@ public class GameServerService {
     private final GameKeywordsRepository gameKeywordsRepository;
 
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
-    private final ConcurrentHashMap<String, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userId, LobbyUserDto>
+    private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
 
     private final UserAccountsRepository userAccountsRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -50,29 +50,30 @@ public class GameServerService {
 
         // 기존에 접속되어 있는 사용자인지 확인 ( 중복 접속 )
         // 접속해있지 않다면 null 반환
-        LobbyUserDto isExist = lobby.get(userDto.getUserEmail());
+        LobbyUserDto isExist = lobby.get(userDto.getUserAccountId());
         if(isExist != null) {   // 기존에 동일 ID 로 접속되어 있는 사용자가 있음
             // 대기실에서 나온 사용자인지 확인
             if(isExist.getStatus() != LobbyUserDto.Status.ON) {
                 isExist.setStatus(LobbyUserDto.Status.ON);
             } else {
+                // TODO 확인 해봐야함
                 removeFromLobby(isExist.getUser().getSession());
-                log.warn("Duplicated user : {}", isExist.getUser().getUserId());
+                log.warn("Duplicated user : {}", isExist.getUser().getUserAccountId());
             }
         }
 
         // lobby 로 이동시킴
         LobbyUserDto lobbyUserDto = new LobbyUserDto(session, userDto);
         lobbyUserDto.setStatus(LobbyUserDto.Status.ON);
-        lobby.put(userDto.getUserEmail(), lobbyUserDto);
+        lobby.put(userDto.getUserAccountId(), lobbyUserDto);
         log.info("User {} entered lobby", userDto.getUserNickname());
-
         // ToClient
         sendToMessageUser(session, Map.of(
                 "type", "ON",
                 "msg", "연결되었습니다.",
                 "user", Map.of(
-                        "userId", userDto.getUserId(),
+                        "userId", userDto.getUserAccountId(),
+                        "userEmail", userDto.getUserEmail(),
                         "userNickname", userDto.getUserNickname(),
                         "repImg", userDto.getReqImg() == null ? "" : userDto.getReqImg()
                 ),
@@ -86,6 +87,7 @@ public class GameServerService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
+        System.out.println(joinDto);
         // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
         // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
         LobbyUserDto isExist = isExistLobby(joinDto.getUser());
@@ -166,7 +168,7 @@ public class GameServerService {
                 .add(joinDto.getUser());
 
         room.getSessions().add(session);
-        lobby.get(joinDto.getUser().getUserId()).setStatus(LobbyUserDto.Status.WAITING);
+        lobby.get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
         log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
 
         // Client response msg
@@ -194,7 +196,7 @@ public class GameServerService {
                             "msg", "Lobby 로 돌아갑니다.",
                             "roomList", existingRoomList()
                     ));
-                    lobby.get(teamUser.getUserId()).setStatus(LobbyUserDto.Status.ON);
+                    lobby.get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
                     room.getSessions().remove(session);
                     room.getUsers().get(team).remove(teamUser);
@@ -269,7 +271,6 @@ public class GameServerService {
 
         if(!teamChangeRequest.changeTeam(room)) {
             sendToMessageUser(session, Map.of(
-                "type", "Error",
                 "msg", "처리 중 오류가 발생하였습니다."
             ));
             return;
@@ -550,7 +551,7 @@ public class GameServerService {
     private void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
         // 단일 User
         if(!group) {
-            lobby.get(lobbyUserStateDto.getUser().getUserId()).setStatus(status);
+            lobby.get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
             return;
         }
 
@@ -559,7 +560,7 @@ public class GameServerService {
         RoomStateDto room = rooms.get(lobbyUserStateDto.getRoomId());
         for(String team : room.getUsers().keySet()) {
             for(UserDto roomUser : room.getUsers().get(team)) {
-                lobby.get(roomUser.getUserEmail()).setStatus(status);
+                lobby.get(roomUser.getUserAccountId()).setStatus(status);
             }
         }
     }
@@ -571,11 +572,10 @@ public class GameServerService {
     public void removeFromLobby(WebSocketSession session) throws IOException {
         String roomId = removeSessionFromRooms(session);
         if (roomId != null) rooms.remove(roomId);
-        String userEmail = (String) session.getAttributes().get("userEmail");
-        lobby.remove(userEmail);
-        
-        // offline 처리
         Long userAccountId = (Long) session.getAttributes().get("userAccountId");
+        lobby.remove(userAccountId);
+
+        // offline 처리
         UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
                 .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
         userAccount.updateOnline(false);
@@ -607,7 +607,7 @@ public class GameServerService {
         현재 세션에 해당 유저가 있는지 확인
      */
     public LobbyUserDto isExistLobby(UserDto user) {
-        return lobby.get(user.getUserEmail());
+        return lobby.get(user.getUserAccountId());
     }
     /*
         해당 방이 존재하고, 해당 유저의 권한이 있는지

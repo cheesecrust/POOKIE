@@ -15,7 +15,7 @@ public class UserTeamChangeRequestDto {
         UserDto tempUser = null;
         // 현재 유저를 찾아온다.
         for(UserDto reqUser : room.getUsers().get(this.curTeam.toString())) {
-            if(reqUser.getUserId().equals(user.getUserId()) &&
+            if(reqUser.getUserAccountId().equals(user.getUserAccountId()) &&
                     reqUser.getUserNickname().equals(user.getUserNickname())) {
                 tempUser = reqUser;
                 break;

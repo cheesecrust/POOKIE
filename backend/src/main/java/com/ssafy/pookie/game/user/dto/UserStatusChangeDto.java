@@ -14,7 +14,7 @@ public class UserStatusChangeDto {
     public boolean changeStatus(RoomStateDto room) {
         UserDto reqUser = null;
         for(UserDto tempUser : room.getUsers().get(team)) {
-            if(tempUser.getUserId().equals(this.user.getUserId()) &&
+            if(tempUser.getUserAccountId().equals(this.user.getUserAccountId()) &&
             tempUser.getUserNickname().equals(this.user.getUserNickname())) {
                 reqUser = tempUser;
             }
