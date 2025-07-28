@@ -2,24 +2,26 @@
 
 import { sendMessage } from "../../common/websocket";
 
-// // 
-// export const emitConnect = () => {
-//   sendMessage("ON", {
-//         "userId": "testId3",
-//         "userNickname":"testNickname3"
-//   });
-// };
+// 방생성
+export const emitCreateRoom = () => {
+  sendMessage("JOIN", {
+    roomId: "testRoom",
+    gameType: "SKETCH_RELAY",
+    user: {
+      userId: "1",
+    },
+  });
+};
 
 /**
  * 게임 시작 요청 emit
  */
 export const emitGameStart = () => {
-  sendMessage("GAME_START", {
-    roomId: "testRoom",
-    user: {
-      userId: "testId2",
-      userNickname: "testNickname2",
-    },
+  sendMessage({
+    type: "GAME_START",
+    payload : {
+      roomId:  "2fc0f834-5bfc-43d3-b1ac-70f25fe097cd",
+    }
   });
 };
 
