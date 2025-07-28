@@ -49,12 +49,12 @@ public class FriendService {
                 .orElseThrow();
 
         // 1. 요청 받는 사람이 맞는지 검증
-        if (!friendRequest.getUser().getId().equals(userAccountId)) {
+        if (!friendRequest.getFriend().getId().equals(userAccountId)) {
             throw new RuntimeException("Unauthorized to accept this friend request");
         }
 
         // 2. 요청 상태가 acceptance가 true 인지
-        if (!friendRequest.getStatus().equals(RequestStatus.ACCEPTED)) {
+        if (!friendRequest.getStatus().equals(RequestStatus.PENDING)) {
             throw new RuntimeException("Friend request is not pending");
         }
 
@@ -120,16 +120,34 @@ public class FriendService {
 
     /**
      * 친구 삭제
+     * 논리적 삭제
      */
     public void deleteFriend(Long userId, Long friendId) {
+        Friends friend = friendsRepository.findFriendship(userId, friendId)
+                .orElseThrow(() -> new RuntimeException("Friendship not found"));
 
+        friend.updateStatus(Status.DELETED);
+        friendsRepository.save(friend);
     }
 
     /**
      * 친구 차단
      */
     public void blockFriend(Long userId, Long friendId) {
-        Friends friend = friendsRepository.findByUser1
+        Friends friend = friendsRepository.findFriendship(userId, friendId)
+                .orElseThrow(() -> new RuntimeException("Friendship not found"));
+
+        friend.updateStatus(Status.BLOCKED);
+        friendsRepository.save(friend);
+    }
+
+    /**
+     * 친구 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<FriendDto> getFriends(Long userId) {
+        friendsRepository.findFriendsByUserId(userId, Status.ACTIVE);
+        return null;
     }
 
     /**
@@ -137,6 +155,9 @@ public class FriendService {
      */
     @Transactional(readOnly = true)
     public List<FriendDto> getFriends(Long userId, String search) {
-        return null;
+        List<Friends> friends = friendsRepository.findFriendsByUserIdAndNickname(userId, search);
+        return friends.stream().map(
+                (friend) -> FriendDto.from(friend, Status.ACTIVE, userId)
+        ).collect(Collectors.toList());
     }
 }

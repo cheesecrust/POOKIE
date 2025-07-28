@@ -42,4 +42,8 @@ public class Friends {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public void updateStatus(Status status) {
+        this.status = status;
+    }
 }

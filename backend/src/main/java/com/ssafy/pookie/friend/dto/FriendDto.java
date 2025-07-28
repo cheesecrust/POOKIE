@@ -1,6 +1,7 @@
 package com.ssafy.pookie.friend.dto;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.friend.model.Friends;
 import com.ssafy.pookie.friend.model.Status;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +17,21 @@ public class FriendDto {
         return FriendDto.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
+                .status(status)
+                .build();
+    }
+
+    public static FriendDto from(Friends friends, Status status, Long userId) {
+        UserAccounts user1 = friends.getUser1();
+        UserAccounts user2 = friends.getUser2();
+        Long friendId =
+                user1.getId().equals(userId) ? user2.getId() : user1.getId();
+        String friendNickname =
+                user1.getId().equals(userId) ? user2.getNickname() : user1.getNickname();
+
+        return FriendDto.builder()
+                .userId(friendId)
+                .nickname(friendNickname)
                 .status(status)
                 .build();
     }

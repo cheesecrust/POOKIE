@@ -27,4 +27,22 @@ public interface FriendsRepository extends JpaRepository<Friends, Long> {
         """)
     Optional<Friends> findFriendship(@Param("userId1") Long userId1,
                                      @Param("userId2") Long userId2);
+
+    @Query("""
+        SELECT f FROM Friends f 
+        JOIN FETCH f.user1 u1 
+        JOIN FETCH f.user2 u2
+        WHERE f.status = 'ACTIVE' 
+        AND (
+            (f.user1.id = :userId 
+             AND LOWER(u2.nickname) LIKE LOWER(CONCAT('%', :nickname, '%'))) 
+            OR 
+            (f.user2.id = :userId 
+             AND LOWER(u1.nickname) LIKE LOWER(CONCAT('%', :nickname, '%')))
+        )
+        ORDER BY f.createdAt DESC
+        """)
+    List<Friends> findFriendsByUserIdAndNickname(
+            @Param("userId") Long userId,
+            @Param("nickname") String nickname);
 }

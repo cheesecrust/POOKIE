@@ -2,8 +2,10 @@ package com.ssafy.pookie.friend.dto;
 
 import com.ssafy.pookie.friend.model.FriendRequests;
 import lombok.Builder;
+import lombok.Getter;
 
 @Builder
+@Getter
 public class FriendResponseDto {
 
     private Long requestId;
