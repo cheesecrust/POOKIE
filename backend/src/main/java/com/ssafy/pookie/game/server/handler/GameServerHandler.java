@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
 import com.ssafy.pookie.game.server.service.GameServerService;
+import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
 import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         MessageDto msg = objectMapper.readValue(message.getPayload(), MessageDto.class);
         msg.setSid(session.getId());
-
+        UserDto user = mappingUser(session);
         JoinDto join;
         TurnDto gameResult;
 
@@ -40,43 +41,43 @@ public class GameServerHandler extends TextWebSocketHandler {
             // Room
             case JOIN_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
-                join.getUser().setSession(session);
+                join.setUser(user);
                 gameService.handleJoin(session, join);
                 break;
             case LEAVE_ROOM:
                 join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
-                join.getUser().setSession(session);
+                join.setUser(user);
                 gameService.handleLeave(session, join.getRoomId());
                 break;
             case USER_TEAM_CHANGE:
                 UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
-                userTeamChangeRequestDto.getUser().setSession(session);
+                userTeamChangeRequestDto.setUser(user);
                 gameService.handleUserTeamChange(session, userTeamChangeRequestDto);
                 break;
             case USER_READY_CHANGE:
                 UserStatusChangeDto userStatusChangeDto = objectMapper.convertValue(msg.getPayload(), UserStatusChangeDto.class);
-                userStatusChangeDto.getUser().setSession(session);
+                userStatusChangeDto.setUser(user);
                 gameService.handleUserStatus(session, userStatusChangeDto);
                 break;
             case USER_FORCED_REMOVE:
                 RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
-                roomMasterForcedRemovalDto.getRoomMaster().setSession(session);
+                roomMasterForcedRemovalDto.setRoomMaster(user);
                 gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                 break;
             // Game
             case START_GAME:
                 GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
-                start.getUser().setSession(session);
+                start.setUser(user);
                 gameService.hadleGameStart(session, start);
                 break;
             case TURN_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
-                gameResult.getUser().setSession(session);
+                gameResult.setUser(user);
                 gameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
-                gameResult.getUser().setSession(session);
+                gameResult.setUser(user);
                 gameService.handleRoundOver(session, gameResult);
                 break;
             case GAME_OVER:
@@ -84,9 +85,20 @@ public class GameServerHandler extends TextWebSocketHandler {
             // Chat
             case CHAT:
                 ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
+                chatDto.setUser(user);
                 gameService.handleChat(session, chatDto);
                 break;
         }
+    }
+
+    // Token 으로 user 정보 Mapping
+    private UserDto mappingUser(WebSocketSession session) {
+        return new UserDto(
+                session,
+                (Long) session.getAttributes().get("userAccountId"),
+                (String) session.getAttributes().get("userEmail"),
+                (String) session.getAttributes().get("nickname")
+        );
     }
 
     // web socket 연결하는 순간 user를 만든다.
