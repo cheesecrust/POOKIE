@@ -13,6 +13,7 @@ let socket = null;
  * @param {function} config.onError
  */
 
+
 export const connectSocket = ({
   url,
   token,
@@ -31,10 +32,17 @@ export const connectSocket = ({
 
   socket.onmessage = (e) => {
     try {
-      const data = JSON.parse(e.data);
-      onMessage?.(data);
+      // 그냥 e가 데이터임
+      if (!e.type) {
+        console.warn("[WebSocket MESSAGE] type 없음:", e);
+        return;
+      }
+  
+      console.log(`[WebSocket MESSAGE] type: ${e.type}`, e);
+      onMessage?.(e);
+  
     } catch (err) {
-      console.error("[WebSocket MESSAGE PARSE ERROR]", err);
+      console.error("[WebSocket MESSAGE ERROR]", e, err);
     }
   };
 
