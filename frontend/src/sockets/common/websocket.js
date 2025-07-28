@@ -21,7 +21,7 @@ export const connectSocket = ({
   onClose,
   onError
 }) => {
-  const fullUrl = `${url}?Authorization=Bearer%20${token}`;
+  const fullUrl = `${url}?token=${token}`;
   socket = new WebSocket(fullUrl);
 
   socket.onopen = (e) => {
@@ -56,9 +56,9 @@ export const connectSocket = ({
  */
 export const sendMessage = (type, data) => {
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type, data }));
+    socket.send(JSON.stringify({ type, payload:data }));
   } else {
-    console.warn("WebSocket is not open:", { type, data });
+    console.warn("WebSocket is not open:", { type, payload:data });
   }
 };
 
