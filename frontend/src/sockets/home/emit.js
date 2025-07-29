@@ -34,8 +34,5 @@ export const emitJoinRoom = ({ roomId, roomTitle, gameType, roomPw }) => {
   if (roomPw) payload.roomPw = roomPw;
 
   console.log("🟢 emitJoinRoom payload:", payload);
-  sendMessage({
-    type: SOCKET_TYPES.JOIN_ROOM,
-    payload
-  });
+  sendMessage(SOCKET_TYPES.JOIN_ROOM, payload);
 };

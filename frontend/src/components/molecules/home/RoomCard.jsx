@@ -12,8 +12,11 @@ import backgroundSamePose from '../../../assets/background/background_samepose.g
 import backgroundSketchRelay from '../../../assets/background/background_sketchrelay.gif'
 import backgroundSilentScream from '../../../assets/background/background_silentscream.gif'
 import { emitJoinRoom } from "../../../sockets/home/emit"
+import { useRef } from "react"
+import useAuthStore from "../../../store/store"
 
-const RoomCard = ({ room, participantCount, onClick }) => {
+const RoomCard = ({ room, participantCount }) => {
+    const userRef = useRef(useAuthStore.getState().user);
     const getBackgroundImage = (gameType) => {
       switch (gameType) {
         case 'SAMEPOSE':
@@ -27,14 +30,15 @@ const RoomCard = ({ room, participantCount, onClick }) => {
       }
     };
 
-    const handleRoomEnter = (room) => {
+    const handleEnterRoom = () => {
       emitJoinRoom({
-        roomId: room.roomId,
-        roomTitle: room.roomTitle,
-        gameType: room.gameType,
-        roomPw: room.roomPw,
-      })
-    }
+        sessionId: room.sessionId,
+        user: {
+          userId: userRef.current?.userId,
+          userNickname: userRef.current?.userNickname,
+        },
+      });
+    };
   
     return (
       <div
@@ -53,7 +57,7 @@ const RoomCard = ({ room, participantCount, onClick }) => {
   
         {/* 우측 하단 PLAY 버튼 (아이콘 제거) */}
         <ModalButton
-          onClick={() => handleRoomEnter(room)}
+          onClick={handleEnterRoom}
           className="absolute bottom-4 right-4 text-black font-bold px-4 py-1 shadow hover:brightness-95"
         >
           PLAY

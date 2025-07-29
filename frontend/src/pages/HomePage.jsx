@@ -14,14 +14,14 @@ import { getSocket } from "../sockets/common/websocket";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
   const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
 
   // 소켓 연결 값
-  const userRef = useRef(null);
+  const userRef = useRef(user);
   const roomListRef = useRef([]);
 
     // ✅ 소켓 메시지 핸들러 설정
@@ -36,10 +36,12 @@ const HomePage = () => {
           onUserReceived: (user) => {
             userRef.current = user;
             rerender((prev) => prev + 1);
+            console.log(userRef.current)
           },
           onRoomListReceived: (rooms) => {
             roomListRef.current = rooms;
             rerender((prev) => prev + 1);
+            console.log(roomListRef.current)
           },
           navigateToWaiting: (room) => {
             console.log('대기실로 이동 할거야');
@@ -78,9 +80,6 @@ const HomePage = () => {
     // 예: 검색 API 요청 or 상태 전달
   };
 
-  // 재사용 위해 다시 선언
-  const user = userRef.current;
-
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
       {/* 상단 고정 헤더 */}
@@ -93,7 +92,7 @@ const HomePage = () => {
           {/* 왼쪽: 텍스트 + 버튼 */}
           <div className="w-[55%]">
             <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
-              오늘도 좋은 하루!<br />{user?.userNickname}님, 어서오세요~!
+              오늘도 좋은 하루!<br />{userRef.current?.userNickname}님, 어서오세요~!
             </h1>
 
             <div className="flex gap-4 mt-8">
