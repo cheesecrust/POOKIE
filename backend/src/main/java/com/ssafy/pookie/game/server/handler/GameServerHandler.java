@@ -31,6 +31,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         log.info("Message: " + message.getPayload());
+        log.info(message.toString());
         MessageDto msg = objectMapper.readValue(message.getPayload(), MessageDto.class);
         msg.setSid(session.getId());
         log.info("Message: " + msg.getClass());
