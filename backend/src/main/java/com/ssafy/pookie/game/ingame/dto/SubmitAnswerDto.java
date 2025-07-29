@@ -8,7 +8,8 @@ public class SubmitAnswerDto {
     private UserDto user;
     private String roomId;
     private Integer round;
-    private Long repIdx;
+    private Long repIdx;    // 이어그리기에서 그림 그리는 순서
+    private Long norIdx;
     private Integer keywordIdx;
     private String inputAnswer;
 }

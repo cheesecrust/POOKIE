@@ -254,11 +254,13 @@ public class InGameService {
                     "type", "ERROR",
                     "msg", "잘못된 요청입니다."
             ));
+            return;
         }
-
         // 서로 동기화 정보가 다르다면 그냥 버린다.
-        if(request.getRound().equals(room.getRound()) || request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
-                || request.getRepIdx().equals(room.getGameInfo().getRepIdx())) return;
+        // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
+        if(!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
+                || room.getGameInfo().getNormal().stream().filter(
+                        (user) -> user.getUserAccountId().equals(request.getNorIdx())).findFirst().orElse(null) == null) return;
 
         // 정답이 일치하는지 확인한다.
         Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())

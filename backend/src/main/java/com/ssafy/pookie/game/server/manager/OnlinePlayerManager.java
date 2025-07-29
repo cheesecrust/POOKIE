@@ -26,7 +26,6 @@ public class OnlinePlayerManager {
         특정 유저에게만 Message 전달
      */
     public void sendToMessageUser(WebSocketSession session, Map<String, Object> msg) throws IOException {
-        log.info("sendMessage {} : {}", session, msg);
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
     }
 
