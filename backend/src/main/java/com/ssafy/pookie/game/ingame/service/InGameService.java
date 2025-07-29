@@ -168,13 +168,16 @@ public class InGameService {
     }
 
     // 턴이 종료되었을 때
-    public void handleTurnChange(WebSocketSession session, TurnDto result) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(result.getRoomId());
+    public void handleTurnChange(WebSocketSession session, TurnDto gameResult) throws IOException {
+        RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
         if(onlinePlayerManager.isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // TURN_CHANGE 이벤트는 RED 에서만 일어남
         if(room.getTurn() != RoomStateDto.Turn.RED) return;
-        // 현재 라운드 점수 기록
-        room.writeTempTeamScore(result);
+        // 클라이언트와 서버의 데이터를 교차 검증한다.
+        if(!room.validationTempScore(gameResult)) {
+            // TODO 교차 검증 데이터가 다를 경우 어떻게 할 것인가?
+            return;
+        }
         // 턴 바꿔주기
         room.turnChange();
         log.info("Room {} turn change", room.getRoomId());
@@ -219,7 +222,11 @@ public class InGameService {
          */
         RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
         // 라운드 끝, 팀별 점수 집계
-        room.writeTempTeamScore(gameResult);
+        // 클라이언트와 서버의 데이터를 교차 검증한다.
+        if(!room.validationTempScore(gameResult)) {
+            // TODO 교차 검증 데이터가 다를 경우 어떻게 할 것인가?
+            return;
+        }
         room.roundOver();
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
         // 라운드별 점수 초기화
@@ -230,7 +237,6 @@ public class InGameService {
             onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
             return;
         }
-
         log.info("Room {} round over", room.getRoomId());
         // client response message
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(

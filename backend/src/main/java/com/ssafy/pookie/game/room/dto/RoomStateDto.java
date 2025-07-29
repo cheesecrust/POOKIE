@@ -136,21 +136,16 @@ public class RoomStateDto {
     public void roundOver() {
         redTeamScore = this.tempTeamScores.get(Turn.RED.toString());
         blueTeamScore = this.tempTeamScores.get(Turn.BLUE.toString());
-        System.out.println(redTeamScore);
-        System.out.println(blueTeamScore);
         // 승 패
         if(redTeamScore > blueTeamScore) {
-            System.out.println("RED");
             this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
             win = "RED";
         }
         else if(redTeamScore < blueTeamScore) {
-            System.out.println("BLUE");
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "BLUE";
         }
         else {
-            System.out.println("DRAW");
             this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
@@ -241,5 +236,11 @@ public class RoomStateDto {
         this.tempTeamScores.merge(this.getTurn().toString(),
                 1, Integer::sum);
         this.getGameInfo().afterAnswerCorrect();
+    }
+
+    // TempScore 를 확인한다. -> 서버와 클라이언트 교차검증
+    public boolean validationTempScore(TurnDto tempResult) {
+        return this.getTempTeamScores().get(this.getTurn().toString())
+                .equals(tempResult.getScore());
     }
 }
