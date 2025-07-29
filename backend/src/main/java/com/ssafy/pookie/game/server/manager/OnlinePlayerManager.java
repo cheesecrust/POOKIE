@@ -59,7 +59,7 @@ public class OnlinePlayerManager {
     // Lobby 에 있는 User 의 Status Update
     public void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
         // 단일 User
-        if(!group) {
+        if (!group) {
             lobby.get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
             return;
         }
@@ -67,14 +67,12 @@ public class OnlinePlayerManager {
         // 단제 User -> Room
         // 동일 Session 내 모든 User 수정
         RoomStateDto room = rooms.get(lobbyUserStateDto.getRoomId());
-        for(String team : room.getUsers().keySet()) {
-            for(UserDto roomUser : room.getUsers().get(team)) {
+        for (String team : room.getUsers().keySet()) {
+            for (UserDto roomUser : room.getUsers().get(team)) {
                 lobby.get(roomUser.getUserAccountId()).setStatus(status);
             }
         }
-
-
-
+    }
 
     public boolean isMemberExistInLobby(Long userId) {
         return lobby.containsKey(userId);
