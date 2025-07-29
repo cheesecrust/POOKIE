@@ -20,86 +20,86 @@ import {
 } from "../sockets/waiting/emit";
 import useAuthStore from "../store/store";
 
-// 여기에 하드 코딩으로 join 요청의 버튼을 만들어서 특정 사람을 입장시키고 싶어
+// // 여기에 하드 코딩으로 join 요청의 버튼을 만들어서 특정 사람을 입장시키고 싶어
 
-// ✅ 테스트 유저용 소켓 연결 함수
-const connectTestSocket = () => {
-  const testtoken =
-    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0NkBuYXZlci5jb20iLCJ1c2VyQWNjb3VudElkIjo2LCJlbWFpbCI6InRlc3Q2QG5hdmVyLmNvbSIsIm5pY2tuYW1lIjoidGVzdHVzZXI2IiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc1Mzc0NzU2OSwiZXhwIjoxNzU0MzUyMzY5fQ.ABxkDuorczZdB_O7oC-p0Y171t3n2t9ZBzRQoSeSUqU";
-  const socket = new WebSocket(
-    `wss://i13a604.p.ssafy.io/api/game?token=${testtoken}`
-  );
+// // ✅ 테스트 유저용 소켓 연결 및 JOIN_ROOM emit
+// const connectTestSocket = () => {
+//   const accessToken = useAuthStore.getState().accessToken;
 
-  socket.onopen = () => {
-    socket.send(
-      JSON.stringify({
-        type: "JOIN_ROOM",
-        payload: {
-          roomId: "45965f6e-316d-4803-8fe1-5f7e81cacfe6",
-          gameType: "SILENTSCREAM",
-        },
-      })
-    );
-  };
+//   if (!accessToken) {
+//     console.error("❌ accessToken 없음. 로그인 또는 재발급 필요");
+//     return;
+//   }
 
-  socket.onmessage = (e) =>
-    console.log("[TestUser6 Message]", JSON.parse(e.data));
-  socket.onerror = (e) => console.error("[TestUser6 Error]", e);
-  socket.onclose = () => console.log("[TestUser6 Socket Closed]");
-};
+//   const socket = new WebSocket(
+//     `wss://i13a604.p.ssafy.io/api/game?token=${accessToken}`
+//   );
+
+//   socket.onopen = () => {
+//     console.log("✅ [TestUser20] 소켓 연결됨");
+
+//     // 첫 방 생성 요청
+//     socket.send(
+//       JSON.stringify({
+//         type: "JOIN_ROOM",
+//         payload: {
+//           roomTitle: "test12345",
+//           gameType: "SILENTSCREAM",
+//         },
+//       })
+//     );
+//   };
+
+//   socket.onmessage = (e) => {
+//     const data = JSON.parse(e.data);
+//     console.log("🛰️ [TestUser20 응답]", data);
+
+//     if (data.type === "ROOM_JOINED") {
+//       console.log("🎉 방 생성 및 입장 완료:", data.room);
+//     }
+//   };
+
+//   socket.onerror = (e) => {
+//     console.error("❌ [TestUser20 소켓 오류]", e);
+//   };
+
+//   socket.onclose = () => {
+//     console.log("🛑 [TestUser20 소켓 종료]");
+//   };
+// };
 
 const WaitingPage = () => {
   const navigate = useNavigate();
   const { roomId } = useParams();
-  const { user, accessToken } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const [room, setRoom] = useState(null);
   const [team, setTeam] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const [kickModalOpen, setKickModalOpen] = useState(false); // 모달 열림 여부
+  const [kickModalOpen, setKickModalOpen] = useState(false); // 모달 열림
   const [kickTarget, setKickTarget] = useState(null); // 강퇴 대상 유저 정보
-  const token = useAuthStore.getState().accessToken;
-  const isHost = room?.master?.id === user?.id;
+  const isHost = room?.master?.id === user?.id; // 방장 누구니니
 
-  const handleLeaveRoom = () => {
-    emitLeaveRoom({ roomId });
-    closeSocket();
-    navigate("/home");
-  };
+  // 진입 시 accessToken 없으면 refresh로 재발급 시도
+  useEffect(() => {
+    if (!accessToken) {
+      useAuthStore.getState().loadUserFromStorage();
+    }
+  }, [accessToken]);
 
-  const handleStartGame = () => {
-    emitStartGame({ roomId });
-  };
+  // 토큰 check하고
+  //   console.log("token", accessToken);
 
-  const handleTeamToggle = () => {
-    const toTeam = team === "RED" ? "BLUE" : "RED";
-    console.log("emitTeamChange 실행:", toTeam);
-    emitTeamChange({ roomId, curTeam: toTeam });
-  };
-
-  const handleReadyToggle = () => {
-    emitReadyChange({ roomId, team });
-    setIsReady(!isReady);
-  };
-
-  const handleKickConfirm = () => {
-    emitForceRemove({
-      roomId,
-      removeTargetId: kickTarget.userId,
-      removeTargetNickname: kickTarget.userNickname,
-      removeTargetTeam: kickTarget.team,
-    });
-    setKickModalOpen(false);
-  };
-
+  // accessToken 있으면 소켓 연결 시도
   useEffect(() => {
     if (!accessToken || !user) return;
 
     connectSocket({
       url: "wss://i13a604.p.ssafy.io/api/game",
       // 위에 getState 사용해서 accessToken 가져오기
-      token: token,
+      token: accessToken,
 
       // 서버에서 응답받는거
       onMessage: (e) => {
@@ -111,7 +111,7 @@ const WaitingPage = () => {
           case "USER_TEAM_CHANGED":
           case "USER_READY_CHANGED":
           case "PLAYER_LEFT": {
-            setRoom(data.room);
+            setRoom(data.room); // 방 정보 업데이트
 
             // 본인 팀 색 찾는 로직
             const myTeam = Object.entries({
@@ -154,9 +154,39 @@ const WaitingPage = () => {
     return () => closeSocket();
   }, [accessToken, user, roomId]);
 
+  const handleLeaveRoom = () => {
+    emitLeaveRoom({ roomId });
+    closeSocket();
+    navigate("/home");
+  };
+
+  const handleStartGame = () => {
+    emitStartGame({ roomId });
+  };
+
+  const handleTeamToggle = () => {
+    const toTeam = team === "RED" ? "BLUE" : "RED";
+    console.log("emitTeamChange 실행:", toTeam);
+    emitTeamChange({ roomId, curTeam: toTeam });
+  };
+
+  const handleReadyToggle = () => {
+    emitReadyChange({ roomId, team });
+    setIsReady(!isReady);
+  };
+
+  const handleKickConfirm = () => {
+    emitForceRemove({
+      roomId,
+      removeTargetId: kickTarget.userId,
+      removeTargetNickname: kickTarget.userNickname,
+      removeTargetTeam: kickTarget.team,
+    });
+    setKickModalOpen(false);
+  };
+
   // 유저 카드리스트 내용 빈 슬롯 미리 만들어두기
   const MAX_USERS = 6;
-
   const userSlots = room
     ? (() => {
         const combinedUsers = [...room.RED, ...room.BLUE].map((u) => ({
@@ -176,6 +206,7 @@ const WaitingPage = () => {
       })()
     : Array(MAX_USERS).fill(null); // room이 아직 없으면 빈 슬롯 6개
 
+  // START 버튼 활성화 조건
   const isStartEnabled =
     isHost &&
     room?.RED.length > 0 &&
@@ -194,7 +225,7 @@ const WaitingPage = () => {
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">{room?.title ?? "room_list"}</h1>
+          <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
           <div className="flex flex-row gap-2 p-2 items-center">
             <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
             {isHost ? (
@@ -206,9 +237,6 @@ const WaitingPage = () => {
                 {isReady ? "준비 해제" : "준비 완료"}
               </ModalButton>
             )}
-            <ModalButton onClick={connectTestSocket}>
-              TestUser6 JOIN
-            </ModalButton>
           </div>
         </div>
 
@@ -241,9 +269,9 @@ const WaitingPage = () => {
           <SelfCamera />
         </div>
 
-        <div className="basis-4/8 relative">
+        <div className="basis-4/8 relative flex justify-center items-center">
           <div className="absolute bottom-0">
-            <ChatBox width="300px" height="250px" />
+            <ChatBox className="w-full" height="300px" />
           </div>
         </div>
       </section>
