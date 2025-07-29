@@ -4,34 +4,22 @@ import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
 
-// 더미 데이터
-const dummyRooms = [
-  { id: 1, title: "room_title", type: "samepose", participants: 5 },
-  { id: 2, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 3, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 4, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 5, title: "room_title", type: "samepose", participants: 5 },
-  { id: 6, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 7, title: "room_title", type: "samepose", participants: 5 },
-  { id: 8, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 9, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 10, title: "room_title", type: "samepose", participants: 5 },
-];
-
-const itemsPerPage = 4;
-
-const RoomList = () => {
+const RoomList = ({ roomList, keyword }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
-  // 필터링
+  // 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
-    if (activeTab === "all") return dummyRooms;
-    if (activeTab === "waiting") {
-      return dummyRooms.filter((room) => room.participants < 6);
+    if (keyword) {
+      return roomList.filter((room) => room.title.toLowerCase().includes(keyword.toLowerCase()));
     }
-    return dummyRooms.filter((room) => room.type === activeTab);
-  }, [activeTab]);
+    if (activeTab === "all") return roomList;
+    if (activeTab === "waiting") {
+      return roomList.filter((room) => room.teamInfo?.total < 6);
+    }
+    return roomList.filter((room) => room.gameType?.toLowerCase() === activeTab);
+  }, [roomList, activeTab, keyword]);
 
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
   const paginatedRooms = filteredRooms.slice(
@@ -59,8 +47,8 @@ const RoomList = () => {
               <RoomCard
                 key={room.id}
                 roomTitle={room.title}
-                roomType={room.type}
-                participantCount={room.participants}
+                roomType={room.gameType}
+                participantCount={room.teamInfo?.total}
                 onClick={() => console.log(`${room.title} 입장`)}
               />
             ))}

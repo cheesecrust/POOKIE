@@ -3,13 +3,18 @@ import BasicModal from "../../atoms/modal/BasicModal";
 import BasicInput from "../../atoms/input/BasicInput";
 import ModalButton from "../../atoms/button/ModalButton";
 import Radio from "../../atoms/radio/Radio"
+import useAuthStore from "../../../store/store";
 import { useState } from "react";
+import { emitJoinRoom } from "../../../sockets/home/emit";
+import { useNavigate } from "react-router-dom";
 
 const RoomCreateModal = ({ isOpen, onClose }) => {
     const [roomTitle, setRoomTitle] = useState("");
     const [gameType, setGameType] = useState("");
     const [usePassword, setUsePassword] = useState(false);
     const [roomPassword, setRoomPassword] = useState("");
+    const user = useAuthStore.getState().user;
+    const navigate = useNavigate();
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
@@ -18,17 +23,34 @@ const RoomCreateModal = ({ isOpen, onClose }) => {
     }
 
     const handleRoomCreate = () => {
-        const payload = {
-            title: roomTitle,
-            gameType,
-            password: usePassword ? roomPassword : null,
-        };
-        console.log("방 생성 완료!", payload);
-        // 여기에 API 요청 or 상위 전달
+      if (!roomTitle || !gameType) {
+        alert("방 제목과 게임 유형을 선택하세요!")
+        return;
+      }
+
+      // 서버 호환 버전으로 타입 변환
+      const gameTypeUpper = gameType.toUpperCase();
+
+      // 비밀번호 사용 여부에 따른 payload 구성
+      const payload = {
+        roomTitle,
+        gameType: gameTypeUpper,
+        user: {
+          userId: user.userId,
+          userNickname: user.userNickname,
+        },
+      }
+
+      if (usePassword && roomPassword) {
+        payload.roomPw = roomPassword;
+      }
+      console.log(payload);
+      emitJoinRoom(payload);
     };
 
+
   return (
-    <BasicModal isOpen={isOpen} onClose={onClose} className="w-[550px] h-[480px]">
+    <BasicModal isOpen={isOpen} onClose={onClose} className="w-[550px] h-[480px] opacity-100">
 
       <h2 className="text-center text-2xl font-bold mt-4 mb-8">방 생성하기</h2>
       <div className="flex flex-col gap-5 w-full mt-2 mb-8 items-center">
