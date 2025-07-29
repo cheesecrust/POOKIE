@@ -1,9 +1,12 @@
 package com.ssafy.pookie.letter.dto;
 
+import com.ssafy.pookie.friend.model.FriendRequests;
 import com.ssafy.pookie.letter.model.LetterStatus;
 import com.ssafy.pookie.letter.model.Letters;
 import lombok.Builder;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Builder
 @Data
