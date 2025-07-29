@@ -4,16 +4,13 @@ import BasicInput from "../../atoms/input/BasicInput";
 import ModalButton from "../../atoms/button/ModalButton";
 import { useState } from "react";
 
-const RoomPasswordModal = ({ isOpen, onClose }) => {
+const RoomPasswordModal = ({ isOpen, onClose, onSubmit }) => {
     const [password, setPassword] = useState("");
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
-            handleJoin();
+            onSubmit(password);
         }
-    }
-    const handleJoin = () => {
-        console.log("방 입장 완료!", { password });
     }
     return (
         <BasicModal
@@ -31,14 +28,14 @@ const RoomPasswordModal = ({ isOpen, onClose }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="w-[300px], rounded-full"
+                        className="w-[300px] rounded-full"
                     />
                 </div>
             </div>
     
             {/* 입력 버튼 */}
             <div className="w-full mb-4 flex justify-center">
-              <ModalButton onClick={handleJoin} className="">
+              <ModalButton onClick={() => onSubmit(password)} className="">
                 입장
               </ModalButton>
             </div>

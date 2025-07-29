@@ -4,7 +4,7 @@ import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
 
-const RoomList = ({ roomList, keyword }) => {
+const RoomList = ({ roomList, keyword, onPasswordRequest }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
@@ -48,6 +48,7 @@ const RoomList = ({ roomList, keyword }) => {
                 key={room.roomId}
                 room={room}
                 participantCount={room.teamInfo?.total}
+                onPasswordRequest={onPasswordRequest}
               />
             ))}
           </div>
