@@ -10,7 +10,7 @@ const useAuthStore = create((set) => ({
     // 🔐 액세스 토큰만 상태로 관리
     setAccessToken: (token) => set({ accessToken: token }),
   
-    // ✅ 로그인 요청
+    // ✅ 로그인 요청 + user 상태 저장장
     login: async ({ email, password }) => {
       try {
         const res = await axiosInstance.post('/auth/login', { email, password });
@@ -45,8 +45,8 @@ const useAuthStore = create((set) => ({
       localStorage.removeItem('refreshToken');
       set({
         accessToken: null,
-        user: null,
         isLoggedIn: false,
+        user: null,
       });
     },
 
@@ -88,13 +88,13 @@ const useAuthStore = create((set) => ({
           const { accessToken, userAccountId, nickname } = res.data.data;
           set({
             accessToken,
-            user: { id: userAccountId, nickname },
             isLoggedIn: true,
+            user: { id: userAccountId, nickname },
           });
         })
         .catch(() => {
           localStorage.removeItem('refreshToken');
-          set({ accessToken: null, user: null, isLoggedIn: false });
+          set({ accessToken: null, isLoggedIn: false });
         });
     },
   }));

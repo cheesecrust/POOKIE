@@ -12,7 +12,7 @@ const RoomList = ({ roomList, keyword }) => {
   // 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
     if (keyword) {
-      return roomList.filter((room) => room.title.toLowerCase().includes(keyword.toLowerCase()));
+      return roomList.filter((room) => room.roomTitle.toLowerCase().includes(keyword.toLowerCase()));
     }
     if (activeTab === "all") return roomList;
     if (activeTab === "waiting") {
@@ -45,11 +45,9 @@ const RoomList = ({ roomList, keyword }) => {
           <div className="grid grid-cols-2 gap-10 place-items-center">
             {paginatedRooms.map((room) => (
               <RoomCard
-                key={room.id}
-                roomTitle={room.title}
-                roomType={room.gameType}
+                key={room.roomId}
+                room={room}
                 participantCount={room.teamInfo?.total}
-                onClick={() => console.log(`${room.title} 입장`)}
               />
             ))}
           </div>
