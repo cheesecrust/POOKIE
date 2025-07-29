@@ -98,6 +98,7 @@ const WaitingPage = () => {
 
     connectSocket({
       url: "wss://i13a604.p.ssafy.io/api/game",
+      // 위에 getState 사용해서 accessToken 가져오기
       token: token,
 
       // 서버에서 응답받는거
@@ -112,7 +113,7 @@ const WaitingPage = () => {
           case "PLAYER_LEFT": {
             setRoom(data.room);
 
-            // 본인 팀색 찾는 로직
+            // 본인 팀 색 찾는 로직
             const myTeam = Object.entries({
               RED: data.room.RED,
               BLUE: data.room.BLUE,
@@ -153,17 +154,27 @@ const WaitingPage = () => {
     return () => closeSocket();
   }, [accessToken, user, roomId]);
 
-  // 유저 카드리스트 내용
+  // 유저 카드리스트 내용 빈 슬롯 미리 만들어두기
+  const MAX_USERS = 6;
+
   const userSlots = room
-    ? [...room.RED, ...room.BLUE].map((u) => ({
-        userId: u.id,
-        userNickname: u.nickname,
-        team: room.RED.some((r) => r.id === u.id) ? "red" : "blue",
-        isReady: u.status === "READY",
-        isHost: room.master?.id === u.id,
-        reqImg: u.repImg,
-      }))
-    : [];
+    ? (() => {
+        const combinedUsers = [...room.RED, ...room.BLUE].map((u) => ({
+          userId: u.id,
+          userNickname: u.nickname,
+          team: room.RED.some((r) => r.id === u.id) ? "red" : "blue",
+          isReady: u.status === "READY",
+          isHost: room.master?.id === u.id,
+          reqImg: u.repImg,
+        }));
+
+        while (combinedUsers.length < MAX_USERS) {
+          combinedUsers.push(null);
+        }
+
+        return combinedUsers;
+      })()
+    : Array(MAX_USERS).fill(null); // room이 아직 없으면 빈 슬롯 6개
 
   const isStartEnabled =
     isHost &&
@@ -201,6 +212,7 @@ const WaitingPage = () => {
           </div>
         </div>
 
+        {/* 유저 카드리스트 */}
         <div className="basis-4/5">
           <div className="h-full bg-transparent flex flex-col items-stretch justify-center">
             <WaitingUserList
