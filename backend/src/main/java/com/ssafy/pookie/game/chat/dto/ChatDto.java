@@ -1,7 +1,5 @@
-package com.ssafy.pookie.game.chat;
+package com.ssafy.pookie.game.chat.dto;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
