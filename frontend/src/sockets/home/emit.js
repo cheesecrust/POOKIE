@@ -25,10 +25,13 @@ export const emitJoinRoom = ({ roomId, roomTitle, gameType, roomPw }) => {
   const payload = { gameType };
   
   // roomId 있으면 roomId 로 보내고, title이 있으면 title로만 보내기
-  if (roomId) {
-    payload.roomId = roomId;
-  } else if (roomTitle) {
-    payload.roomTitle = roomTitle;
+  if (roomId && !roomTitle) {
+    payload.roomId = roomId;        // 기존 방 입장
+  } else if (roomTitle && !roomId) {
+    payload.roomTitle = roomTitle;  // 새 방 생성
+  } else {
+    console.warn("❗ emitJoinRoom - roomId와 roomTitle을 동시에 보낼 수 없음");
+    return;
   }
 
   if (roomPw) payload.roomPw = roomPw;

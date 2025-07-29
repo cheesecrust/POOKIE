@@ -8,15 +8,18 @@
 //   onClick={() => console.log("방 입장")}
 // />
 import ModalButton from '../../atoms/button/ModalButton'
+import RoomPasswordModal from '../../organisms/home/RoomPasswordModal'
 import backgroundSamePose from '../../../assets/background/background_samepose.gif'
 import backgroundSketchRelay from '../../../assets/background/background_sketchrelay.gif'
 import backgroundSilentScream from '../../../assets/background/background_silentscream.gif'
 import { emitJoinRoom } from "../../../sockets/home/emit"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import useAuthStore from "../../../store/store"
 
-const RoomCard = ({ room, participantCount }) => {
+const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
     const userRef = useRef(useAuthStore.getState().user);
+    const [usePassword, setUsePassword] = useState(false);
+    const [roomPassword, setRoomPassword] = useState("");
     const getBackgroundImage = (gameType) => {
       switch (gameType) {
         case 'SAMEPOSE':
@@ -30,16 +33,28 @@ const RoomCard = ({ room, participantCount }) => {
       }
     };
 
+    
     const handleEnterRoom = () => {
+      if (!room.roomId) {
+        console.error("Room ID가 없습니다.");
+        return;
+      }
+    
+      if (room.hasPassword) {
+        onPasswordRequest?.(room);
+        return;
+      }
+    
       emitJoinRoom({
-        sessionId: room.sessionId,
+        roomId: room.roomId,
+        gameType: room.gameType,
         user: {
           userId: userRef.current?.userId,
           userNickname: userRef.current?.userNickname,
         },
       });
     };
-  
+    
     return (
       <div
         className="w-[300px] h-[200px] rounded-lg overflow-hidden shadow-md relative bg-cover bg-center"

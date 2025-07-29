@@ -6,6 +6,8 @@ import RoomList from "../components/organisms/home/RoomList";
 import Header from "../components/molecules/home/Header";
 import Footer from "../components/molecules/home/Footer";
 import SearchBar from "../components/molecules/home/SearchBar";
+import toggleLeft from "../assets/icon/toggle_left.png";
+import defaultCharacter from "../assets/character/pookiepookie.png";
 import useAuthStore from "../store/store";
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -19,6 +21,7 @@ const HomePage = () => {
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
   const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
+  const [secureRoom, setSecureRoom] = useState(null);
 
   // 소켓 연결 값
   const userRef = useRef(user);
@@ -80,6 +83,22 @@ const HomePage = () => {
     // 예: 검색 API 요청 or 상태 전달
   };
 
+  // 📝 비밀번호 요청 핸들러
+  const handlePasswordRequest = (room) => {
+    setRoomPasswordModalOpen(true);
+    setSecureRoom(room);
+  };
+
+  // 비밀번호 입력 시
+  const handlePasswordSubmit = (password) => {
+    emitJoinRoom({
+      roomId: secureRoom.roomId,
+      gameType: secureRoom.gameType,
+      roomPw: password,
+    });
+    setRoomPasswordModalOpen(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
       {/* 상단 고정 헤더 */}
@@ -112,25 +131,54 @@ const HomePage = () => {
           </div>
 
           {/* 오른쪽: 유저 프로필 */}
-          <div className="bg-white p-4 rounded-xl border shadow-sm w-[45%] text-sm text-left flex flex-col gap-2">
-            <div className="flex justify-center">
-              <img src="/your-character.png" alt="캐릭터" className="w-full mb-2" /> {/* 캐릭터 이미지 */}
+          <div className="bg-white p-4 rounded-xl border shadow-sm w-[45%] text-sm text-left flex flex-row gap-4 items-center">
+            {/* 왼쪽: 대표 캐릭터 이미지 */}
+            <div className="flex-shrink-0">
+              <img
+                src={userRef?.current?.repImg || defaultCharacter}
+                alt="대표캐릭터"
+                className="w-32 h-32 object-contain"
+              />
             </div>
-            <p className="font-semibold">닉네임 : {user?.userNickname}</p>
-            <p>LV. {user?.userLevel}</p>
-            <p>EXP : {user?.userExp}</p>
-            <div className="bg-black h-2 rounded mt-1 mb-2">
-              <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div> {/* exp bar */}
+
+            {/* 오른쪽: 유저 정보 + 마이페이지지 버튼 묶음 */}
+            <div className="flex flex-col justify-between flex-grow h-full">
+              {/* 유저 정보 */}
+              <div className="flex flex-col gap-1">
+                <p className="font-semibold">닉네임 : {userRef?.current?.userNickname}</p>
+                <p>EXP : {userRef?.current?.userExp ?? 0}</p>
+                <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
+                  <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
+                </div>
+              </div>
+
+              {/* 마이페이지 버튼 (하단 고정) */}
+              <div className="flex justify-end mt-4">
+                <ModalButton
+                  onClick={async () => {
+                    navigate('/myroom');
+                  }}
+                  className="w-fit"
+                >
+                  마이페이지
+                </ModalButton>
+              </div>
             </div>
-            <ModalButton
+
+          </div>
+        </div>
+        
+        {/* 오른쪽 하단 로그아웃 */}
+        <div className="w-full max-w-[900px] px-4 flex justify-end mt-2 mr-4">
+          <div
+              className="flex items-center gap-1 hover:underline cursor-pointer"
               onClick={async () => {
                 await logout();
                 navigate('/');
               }}
-              className="w-fit self-end"
-            >
-              로그아웃
-            </ModalButton>
+          >
+              <img src={toggleLeft} alt="화살표" className="w-3 h-3 mr-1" />
+              <span>로그아웃</span>
           </div>
         </div>
 
@@ -143,11 +191,19 @@ const HomePage = () => {
         </div>
 
         {/* 방 리스트 */}
-        <RoomList keyword={keyword} roomList={roomListRef.current} />
+        <RoomList
+          keyword={keyword}
+          roomList={roomListRef.current}
+          onPasswordRequest={handlePasswordRequest}
+        />
 
         {/* 모달 */}
         <RoomCreateModal isOpen={roomCreateModalOpen} onClose={() => setRoomCreateModalOpen(false)} />
-        <RoomPasswordModal isOpen={roomPasswordModalOpen} onClose={() => setRoomPasswordModalOpen(false)} />
+        <RoomPasswordModal
+          isOpen={roomPasswordModalOpen}
+          onClose={() => setRoomPasswordModalOpen(false)}
+          onSubmit={handlePasswordSubmit}
+        />
       </main>
       {/* 하단 고정 푸터 */}
       <Footer />

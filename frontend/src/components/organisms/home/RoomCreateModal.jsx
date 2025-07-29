@@ -50,7 +50,7 @@ const RoomCreateModal = ({ isOpen, onClose }) => {
 
 
   return (
-    <BasicModal isOpen={isOpen} onClose={onClose} className="w-[550px] h-[480px] opacity-100">
+    <BasicModal isOpen={isOpen} onClose={onClose} className="w-[550px] h-[480px]" backgroundPoacity="opacity-100">
 
       <h2 className="text-center text-2xl font-bold mt-4 mb-8">방 생성하기</h2>
       <div className="flex flex-col gap-5 w-full mt-2 mb-8 items-center">
