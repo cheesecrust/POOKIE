@@ -12,6 +12,8 @@ import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.friend.dto.FriendDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -148,8 +150,8 @@ public class UserService {
                 .build();
     }
 
-    public List<UserAccounts> getUsers(String search) {
-        return userAccountsRepository.findByNicknameContains(search);
+    public Page<UserAccounts> getUsers(String search, Pageable pageable) {
+        return userAccountsRepository.findByNicknameContains(search, pageable);
     }
 }
 

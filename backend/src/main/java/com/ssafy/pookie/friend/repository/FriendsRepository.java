@@ -2,6 +2,8 @@ package com.ssafy.pookie.friend.repository;
 
 import com.ssafy.pookie.friend.model.Friends;
 import com.ssafy.pookie.friend.model.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -42,7 +44,8 @@ public interface FriendsRepository extends JpaRepository<Friends, Long> {
         )
         ORDER BY f.createdAt DESC
         """)
-    List<Friends> findFriendsByUserIdAndNickname(
+    Page<Friends> findFriendsByUserIdAndNickname(
             @Param("userId") Long userId,
-            @Param("nickname") String nickname);
+            @Param("nickname") String nickname,
+            Pageable pageable);
 }
