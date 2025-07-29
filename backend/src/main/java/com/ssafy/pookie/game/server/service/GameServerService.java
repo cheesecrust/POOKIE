@@ -121,7 +121,7 @@ public class GameServerService {
 
             return newRoom;
         });
-        if(create) broadcastRoomListToLobbyUsers();
+        if(create) broadCastCreateRoomEvent(room);
         if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) {
             log.warn("Room GameType does not match");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -249,7 +249,30 @@ public class GameServerService {
     }
     // 방 삭제
     public void removeRoomFromServer(String getRoomId) {
-        onlinePlayerManager.getRooms().remove(getRoomId);
+        RoomStateDto room = onlinePlayerManager.getRooms().get(getRoomId);
+        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
+            if(user.getStatus() == LobbyUserDto.Status.ON) {
+                try {
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
+                            "type", "REMOVED_ROOM",
+                            "room", Map.of(
+                                    "roomId", room.getRoomId(),
+                                    "roomTitle", room.getRoomTitle(),
+                                    "gameType", room.getGameType(),
+                                    "roomMaster", room.getRoomMaster().getUserNickname(),
+                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
+                                    "teamInfo", Map.of(
+                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
+                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
+                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                                    )
+                            )));
+                    onlinePlayerManager.getRooms().remove(getRoomId);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     // User 팀 바꾸기
@@ -372,7 +395,7 @@ public class GameServerService {
                 "roomTitle", room.getRoomTitle(),
                 "gameType", room.getGameType(),
                 "roomMaster", room.getRoomMaster().getUserNickname(),
-                "roomPw", room.getRoomPw() == null || room.getRoomPw().isEmpty() ? false : true,
+                "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
                 "teamInfo", Map.of(
                         "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
                         "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
@@ -383,16 +406,24 @@ public class GameServerService {
     }
 
     // 방이 생성되었을 때, GAME 중이 아닌, Lobby 에 있는 상태의 player 들에게 정보 업데이트
-    public void broadCastCreateRoomEvent() {
-        List<?> roomList = existingRoomList();
-
+    public void broadCastCreateRoomEvent(RoomStateDto room) {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
                     onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
                             "type", "CREATED_ROOM",
-                            "roomList", roomList
-                    ));
+                            "room", Map.of(
+                                    "roomId", room.getRoomId(),
+                                    "roomTitle", room.getRoomTitle(),
+                                    "gameType", room.getGameType(),
+                                    "roomMaster", room.getRoomMaster().getUserNickname(),
+                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
+                                    "teamInfo", Map.of(
+                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
+                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
+                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                                    )
+                    )));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
