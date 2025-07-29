@@ -1,8 +1,8 @@
 package com.ssafy.pookie.friend.controller;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
-import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.auth.service.UserService;
+import com.ssafy.pookie.common.dto.PageResponseDto;
 import com.ssafy.pookie.common.response.ApiResponse;
 import com.ssafy.pookie.friend.dto.FriendDto;
 import com.ssafy.pookie.friend.dto.FriendRequestDto;
@@ -13,8 +13,11 @@ import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -152,17 +155,16 @@ public class FriendController {
      * 친구 목록 조회
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FriendDto>>> getFriends(
+    public ResponseEntity<ApiResponse<PageResponseDto<FriendDto>>> getFriends(
             @RequestParam(required = false) String search,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
         try {
             Long userAccountId = userDetails.getUserAccountId();
-            List<FriendDto> friends = friendService.getFriends(
-                    userAccountId, search);
-
-            return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", friends));
-
+            Page<FriendDto> friendsPage = friendService.getFriends(
+                    userAccountId, search, pageable);
+            PageResponseDto<FriendDto> response = PageResponseDto.of(friendsPage);
+            return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("올바르지 않은 상태값입니다."));
@@ -223,14 +225,16 @@ public class FriendController {
      * 사용자 조회
      */
     @GetMapping("/candidate")
-    public ResponseEntity<ApiResponse<List<FriendDto>>> getUsers(
+    public ResponseEntity<ApiResponse<PageResponseDto<FriendDto>>> getUsers(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) String search) {
         try {
-            List<UserAccounts> accounts = userService.getUsers(search);
-            List<FriendDto> friends = accounts.stream().map(
+            Page<UserAccounts> accounts = userService.getUsers(search, pageable);
+            Page<FriendDto> friends = accounts.map(
                     (friend) -> FriendDto.from(friend, Status.ACTIVE)
-            ).collect(Collectors.toList());
-            return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", friends));
+            );
+            PageResponseDto<FriendDto> response = PageResponseDto.of(friends);
+            return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("올바르지 않은 상태값입니다."));

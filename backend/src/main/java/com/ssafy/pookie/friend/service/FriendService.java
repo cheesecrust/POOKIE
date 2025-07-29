@@ -12,6 +12,8 @@ import com.ssafy.pookie.friend.repository.FriendRequestsRepository;
 import com.ssafy.pookie.friend.repository.FriendsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -154,10 +156,10 @@ public class FriendService {
      * 친구 목록 조회 (검색 기능 포함)
      */
     @Transactional(readOnly = true)
-    public List<FriendDto> getFriends(Long userId, String search) {
-        List<Friends> friends = friendsRepository.findFriendsByUserIdAndNickname(userId, search);
-        return friends.stream().map(
+    public Page<FriendDto> getFriends(Long userId, String search, Pageable pageable) {
+        Page<Friends> friendsPage = friendsRepository.findFriendsByUserIdAndNickname(userId, search, pageable);
+        return friendsPage.map(
                 (friend) -> FriendDto.from(friend, Status.ACTIVE, userId)
-        ).collect(Collectors.toList());
+        );
     }
 }

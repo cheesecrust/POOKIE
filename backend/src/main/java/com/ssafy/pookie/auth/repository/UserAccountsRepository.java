@@ -3,6 +3,8 @@ package com.ssafy.pookie.auth.repository;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.model.base.Users;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,5 +20,5 @@ public interface UserAccountsRepository extends JpaRepository<UserAccounts, Long
 
     UserAccounts findByUser(Users user);
 
-    List<UserAccounts> findByNicknameContains(String nickname);
+    Page<UserAccounts> findByNicknameContains(String nickname, Pageable pageable);
 }
