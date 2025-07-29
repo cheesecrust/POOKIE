@@ -7,8 +7,7 @@ import { connectSocket } from "../sockets/common/websocket";
 import { emitGameStart, emitTurnChange, emitRoundOver } from "../sockets/games/sketchRelay/emit";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
 
-const OPENVIDU_SERVER_URL = "https://i13a604.p.ssafy.io/api";
-const OPENVIDU_LIVEKIT_URL = "wss://i13a604.p.ssafy.io:443/";
+
 const FASTAPI_URL = "http://localhost:8000/upload_images"; // FastAPI endpoint
 
 const SketchRelayPage_VIDU = () => {
@@ -25,9 +24,10 @@ const SketchRelayPage_VIDU = () => {
   useEffect(() => {
     const connectLiveKit = async () => {
       try {
+        const livekitUrl = import.meta.env.VITE_OPENVIDU_LIVEKIT_URL;
         const token = await getToken(roomName, participantName);
         const newRoom = new Room();
-        await newRoom.connect(OPENVIDU_LIVEKIT_URL, token);
+        await newRoom.connect(livekitUrl, token);
         console.log("✅ LiveKit 연결 성공");
 
         const videoTrack = await createLocalVideoTrack();
@@ -36,9 +36,14 @@ const SketchRelayPage_VIDU = () => {
 
         roomRef.current = newRoom;
 
-        // ✅ 첫 번째 참가자 결정
-        if (!firstUser) {
+         // ✅ 방에 있는 참가자 수 확인 후 firstUser 지정
+        if (newRoom.remoteParticipants.size === 0) {
+          // 내가 첫 참가자
           setFirstUser(participantName);
+        } else {
+          // 이미 다른 참가자가 있음 → 그 중 한 명을 firstUser로 지정
+          const [firstParticipant] = newRoom.remoteParticipants.values();
+          setFirstUser(firstParticipant.identity);
         }
 
         const handleTrackSubscribed = (track, publication, participant) => {
@@ -140,8 +145,9 @@ const SketchRelayPage_VIDU = () => {
 
   // JWT 토큰 요청
   async function getToken(roomName, participantName) {
-    const token = import.meta.env.VITE_WS_TOKEN;
-    const res = await fetch(`${OPENVIDU_SERVER_URL}/rtc/token`, {
+    const token = import.meta.env.VITE_TOKEN;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const res = await fetch(`${apiUrl}/rtc/token`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
