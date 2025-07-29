@@ -34,13 +34,6 @@ public class UserDto {
     private Status status = Status.NONE;
     private String reqImg;
 
-    public UserDto (WebSocketSession session, Long userAccountId, String userEmail, String userNickname) {
-        this.session = session;
-        this.userAccountId = userAccountId;
-        this.userEmail = userEmail;
-        this.userNickname = userNickname;
-    }
-
     public void setGrant(Grant grant) {
         this.grant = grant;
     }
@@ -50,4 +43,12 @@ public class UserDto {
     }
 
     public void setTeam(Team team) { this.team = team; }
+
+    public UserDto mapUserDto(WebSocketSession session) {
+        this.session = session;
+        this.userAccountId = (Long) session.getAttributes().get("userAccountId");
+        this.userEmail = (String) session.getAttributes().get("userEmail");
+        this.userNickname = (String) session.getAttributes().get("nickname");
+        return this;
+    }
 }
