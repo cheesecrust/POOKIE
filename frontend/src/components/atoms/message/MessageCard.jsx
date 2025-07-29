@@ -2,6 +2,8 @@
 // 사용 예시
 //   <MessageCard messageType="received" nickname="다예" date="2023-08-05 12:00:00" message="안녕하세용" isRead={false} onDelete={() => {}} onReport={() => {}} />
 
+// 필요 기능: 쪽지 삭제, 쪽지 신고
+
 const MessageCard = ({messageType, nickname,date, messageContent,isRead,onDelete,onReport}) => {
     return (
         <div className="relative w-full p-4 rounded-2xl bg-white  h-[95px]">
