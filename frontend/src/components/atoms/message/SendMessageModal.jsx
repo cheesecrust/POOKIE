@@ -1,3 +1,8 @@
+// 친구창 쪽지보내기 모달
+// 경로: src/components/atoms/message/SendMessageModal.jsx
+// 사용 예시
+//   <SendMessageModal onClose={() => {}} senderId="1" targetId="2" />
+
 import {useState} from "react";
 import axios from "axios";
 

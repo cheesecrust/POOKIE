@@ -1,3 +1,4 @@
+// 경로: src/components/organisms/common/FriendMessageModal.jsx
 // atom-푸키푸키버튼이랑 연동헀음 organism/common/FriendMessageWrapper
 // 기능 구현
 // 1. 친구리스트
@@ -6,6 +7,11 @@
 // 4. 친구찾기
 // 5. 모달닫기 아직 구현 못함
 // 미완성
+
+// 친구 리스트 / 쪽지 리스트 API 호출 , 상태저장
+// 해당 organism에서 필요한 함수 : 쪽지, 친구 삭제 / 신고 처리 (상태 변화)
+// 페이지네이션 상태 관리 
+// 친구 찾기 모달 
 
 import { useState } from 'react'
 import { Axios } from 'axios'
@@ -48,60 +54,56 @@ const FriendMessageModal = ({onClose}) => {
   // 3. 보낸 쪽지 리스트
   //   const [sentMessages, setSentMessages] = useState([]) // nickname, date, messageContent, isRead
 
-    // 이 컴포넌트 또는 부모에서 정의해서 내려줘야 할 함수들
+  // 이 컴포넌트 또는 부모에서 정의해서 내려줘야 할 함수들
 
-    // useEffect(() => {
-    //   // 모달 열릴 때 데이터 요청
-    //   fetchFriends();
-    //   fetchReceivedMessages();
-    //   fetchSentMessages();
-    // }, []);
-    
-    // 친구 목록 api 요청    
-    // const fetchFriends = async () => {
-    //   const res = await axios.get("/api/friends/");
-    //   setFriends(res.data);
-    // };
+  // useEffect(() => {
+  //   // 모달 열릴 때 데이터 요청
+  //   fetchFriends();
+  //   fetchReceivedMessages();
+  //   fetchSentMessages();
+  // }, []);
+  
+  // 친구 목록 api 요청    
+  // const fetchFriends = async () => {
+  //   const res = await axios.get("/api/friends/");
+  //   setFriends(res.data);
+  // };
 
-    // 받은 메시지 api 요청
-    // const fetchReceivedMessages = async () => {
-    //   const res = await axios.get("/api/messages/");
-    //   setReceivedMessages(res.data);
-    // };
+  // 받은 메시지 api 요청
+  // const fetchReceivedMessages = async () => {
+  //   const res = await axios.get("/api/messages/");
+  //   setReceivedMessages(res.data);
+  // };
 
-    // 보낸 메시지 api 요청
-    // const fetchSentMessages = async () => {
-    //   const res = await axios.get("/api/messages/");
-    //   setSentMessages(res.data);
-    // };
+  // 보낸 메시지 api 요청
+  // const fetchSentMessages = async () => {
+  //   const res = await axios.get("/api/messages/");
+  //   setSentMessages(res.data);
+  // };
 
-    const handleSendMessage = () => {
-    // 쪽지 보내기 로직 (ex. 모달 열기 or API 요청)
-    }
+  const handleDeleteMessage = () => {
+  // 쪽지 삭제 API 요청
+  }
 
-    const handleDeleteMessage = () => {
-    // 쪽지 삭제 API 요청
-    }
+  const handleReportMessage = (messageId) => {
+  // 쪽지 신고 API 요청
+  }
 
-    const handleReportMessage = (messageId) => {
-    // 쪽지 신고 API 요청
-    }
+  const handleRemoveFriend = (nickname) => {
+  // 친구 삭제 API 요청
+  }
 
-    const handleRemoveFriend = (nickname) => {
-    // 친구 삭제 API 요청
-    }
+  // 친구 찾기 버튼 클릭 시 모달 OPEN
+  const handleOpenFindFriend = () => {
+    setIsFindModalOpen(true)
+  }
 
-    const handleOpenFindFriend = () => {
-    // 친구 찾기 버튼 클릭 시 모달 OPEN
-      setIsFindModalOpen(true)
-    }
+  // 친구 찾기 버튼 클릭 시 모달 CLOSE
+  const handleCloseFindFriend = () => {
+    setIsFindModalOpen(false)
+  }
 
-    const handleCloseFindFriend = () => {
-    // 친구 찾기 버튼 클릭 시 모달 CLOSE
-      setIsFindModalOpen(false)
-    }
-
-// 페이지네이션 관련해서도 다시 생각
+  // 페이지네이션 관련해서도 다시 생각
   const itemsPerPage = 5
   const totalPages = Math.ceil(dummyFriends.length / itemsPerPage)
 
@@ -136,6 +138,7 @@ const FriendMessageModal = ({onClose}) => {
               totalPages={totalPages}
             />
           </div>
+
           {/* 친구찾기 버튼: 우측 하단 absolute */}
           <div className="absolute bottom-2 right-4">
             <RightButton onClick={handleOpenFindFriend} size="sm" className="text-xs px-3 py-1 h-8">
