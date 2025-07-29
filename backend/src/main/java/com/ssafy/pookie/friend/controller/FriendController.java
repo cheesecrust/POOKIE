@@ -22,7 +22,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/friends")
@@ -234,14 +233,13 @@ public class FriendController {
                     (friend) -> FriendDto.from(friend, Status.ACTIVE)
             );
             PageResponseDto<FriendDto> response = PageResponseDto.of(friends);
-            return ResponseEntity.ok(ApiResponse.success("친구 목록을 조회했습니다.", response));
+            return ResponseEntity.ok(ApiResponse.success("사용자 목록을 조회했습니다.", response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("올바르지 않은 상태값입니다."));
         } catch (Exception e) {
-            log.error("친구 목록 조회 실패", e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("친구 목록 조회에 실패했습니다."));
+                    .body(ApiResponse.error("사용지 목록 조회에 실패했습니다."));
         }
     }
 }

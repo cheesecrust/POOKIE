@@ -1,17 +1,21 @@
 package com.ssafy.pookie.letter.controller;
 
+import com.ssafy.pookie.common.dto.PageResponseDto;
 import com.ssafy.pookie.common.response.ApiResponse;
 import com.ssafy.pookie.global.security.user.CustomUserDetails;
+import com.ssafy.pookie.letter.dto.CombinedMessageDto;
 import com.ssafy.pookie.letter.dto.LetterRequestDto;
 import com.ssafy.pookie.letter.dto.LetterResponseDto;
 import com.ssafy.pookie.letter.service.LetterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/letter")
@@ -22,17 +26,25 @@ public class LetterController {
     private final LetterService letterService;
 
     @GetMapping("/received")
-    public ResponseEntity<ApiResponse<List<LetterResponseDto>>> getReceivedLetter(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<PageResponseDto<CombinedMessageDto>>> getReceivedLetter(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
         Long userAccountId = userDetails.getUserAccountId();
-        List<LetterResponseDto> letters = letterService.getReceivedLetters(userAccountId);
-        return ResponseEntity.ok(ApiResponse.success("받은 쪽지가 조회되었습니다.", letters));
+        Page<CombinedMessageDto> letters = letterService.getReceivedLetters(userAccountId, pageable);
+        PageResponseDto<CombinedMessageDto> response = PageResponseDto.of(letters);
+        return ResponseEntity.ok(ApiResponse.success("받은 쪽지가 조회되었습니다.", response));
     }
 
     @GetMapping("/sent")
-    public ResponseEntity<ApiResponse<List<LetterResponseDto>>> getSentLetter(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<PageResponseDto<CombinedMessageDto>>> getSentLetter(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
         Long userAccountId = userDetails.getUserAccountId();
-        List<LetterResponseDto> letters = letterService.getSentLetters(userAccountId);
-        return ResponseEntity.ok(ApiResponse.success("보낸 쪽지가 조회되었습니다.", letters));
+        Page<CombinedMessageDto> letters = letterService.getSentLetters(userAccountId, pageable);
+        PageResponseDto<CombinedMessageDto> pageResponseDto = PageResponseDto.of(letters);
+        return ResponseEntity.ok(ApiResponse.success("보낸 쪽지가 조회되었습니다.", pageResponseDto));
     }
 
     @GetMapping("/{letterId}/detail")

@@ -99,7 +99,7 @@ public class FriendService {
     public List<FriendResponseDto> getReceivedRequests(Long userAccountId) {
         // 해당 사용자가 받은 친구 요청들 조회 (PENDING 상태만)
         List<FriendRequests> receivedRequests = friendRequestsRepository
-                .findByFriendUserIdAndStatus(userAccountId, RequestStatus.PENDING);
+                .findByFriendIdAndStatus(userAccountId, RequestStatus.PENDING);
 
         return receivedRequests.stream()
                 .map(FriendResponseDto::from)
@@ -110,10 +110,10 @@ public class FriendService {
      * 보낸 친구 요청 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<FriendResponseDto> getSentRequests(Long userId) {
+    public List<FriendResponseDto> getSentRequests(Long userAccountId) {
         // 해당 사용자가 보낸 친구 요청들 조회 (PENDING 상태만)
         List<FriendRequests> sentRequests = friendRequestsRepository
-                .findByUserUserIdAndStatus(userId, RequestStatus.PENDING);
+                .findByUserIdAndStatus(userAccountId, RequestStatus.PENDING);
 
         return sentRequests.stream()
                 .map(FriendResponseDto::from)
