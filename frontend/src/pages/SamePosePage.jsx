@@ -5,6 +5,7 @@ import RoundInfo from "../components/molecules/games/RoundInfo";
 import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
+import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
 
 const SamePosePage = () => {
   return (
@@ -27,7 +28,7 @@ const SamePosePage = () => {
           </div>
 
           {/* 중앙 제시어 카드 */}
-          <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-full ">
+          <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[180px] ">
             <div className=" font-bold flex flex-row">
               <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
               제시어

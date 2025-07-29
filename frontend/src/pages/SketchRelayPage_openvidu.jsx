@@ -92,23 +92,29 @@ const SketchRelayPage_VIDU = () => {
     const ctx = canvas.getContext("2d");
     const formData = new FormData();
 
-    const captureTrack = async (videoTrack, identity) => {
-      const videoEl = document.createElement("video");
-      videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
-      videoEl.muted = true;
-      await videoEl.play();
+    const captureTrack = (videoTrack, identity) => {
+        return new Promise((resolve) => {
+            const videoEl = document.createElement("video");
+            videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+            videoEl.muted = true;
+            videoEl.playsInline = true;
 
-      // video 크기에 맞춰 canvas 설정
-      canvas.width = videoEl.videoWidth;
-      canvas.height = videoEl.videoHeight;
-      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            videoEl.onloadedmetadata = () => {
+            videoEl.play().then(() => {
+                canvas.width = videoEl.videoWidth;
+                canvas.height = videoEl.videoHeight;
+                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          formData.append("images", blob, `${identity}.png`);
-          resolve();
-        }, "image/png");
-      });
+                canvas.toBlob((blob) => {
+                const safeIdentity = identity.startsWith("dummyuser_") 
+                    ? identity 
+                    : `dummyuser_${identity}`;
+                formData.append("images", blob, `${safeIdentity}.png`);
+                resolve();
+                }, "image/png");
+            });
+            };
+        });
     };
 
     // ✅ 본인 + 모든 참가자

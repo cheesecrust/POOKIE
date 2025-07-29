@@ -24,7 +24,11 @@ const SketchRelayPage = () => {
       
           // e 가 바로 객체로 전달돼서 parsing 할 필요가 없음
           const data = e.data;
+<<<<<<< HEAD
       
+=======
+  
+>>>>>>> 5f27b9af33291dd49dc5f32ee3fa15cc1ea0471e
           console.log("[WebSocket DATA]", data);
       
           // 예시: 메시지 타입 분기

@@ -1,5 +1,5 @@
-import FriendMessageModal from "../components/organisms/common/FriendMessageModal";
 import background_myroom from "../assets/background/background_myroom.png";
+import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
 
 const MyRoomPage = () => {
   return (
@@ -11,9 +11,7 @@ const MyRoomPage = () => {
         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
       />
     
-    <div className="flex justify-center items-start min-h-screen pt-20">
-      <FriendMessageModal />
-    </div>
+      <FriendMessageWrapper />
     </div>
   );
 };

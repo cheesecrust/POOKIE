@@ -16,10 +16,17 @@
 //   className=""   
 // />
 
-const BasicInput = ({ value, onChange, onKeyDown, placeholder, className = "" }) => {
+const BasicInput = ({
+    value,
+    onChange,
+    onKeyDown,
+    placeholder,
+    className = "",
+    type = "text",
+ }) => {
     return (
         <input
-            type="text"
+            type={type}
             value={value}
             onChange={onChange}
             onKeyDown={onKeyDown}

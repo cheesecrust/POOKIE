@@ -16,7 +16,6 @@ const WaitingUserCard = ({ user }) => {
           relative
           w-24 sm:w-28 md:w-32 lg:w-36 xl:w-40
           aspect-[3/4]
-        
           border-4
           ${borderColor}
           bg-white
@@ -26,12 +25,12 @@ const WaitingUserCard = ({ user }) => {
       >
         {/* 캐릭터 이미지 */}
         <img
-          src={user.character || pookiepookie}
+          src={user.reqImg || pookiepookie}
           alt="character"
           className="w-16 h-16 object-contain mb-1"
           onError={(e) => {
-            e.target.onerror = null; // 무한 루프 방지
-            e.target.src = { pookiepookie }; // 기본 이미지로 대체
+            e.target.onerror = null;
+            e.target.src = pookiepookie;
           }}
         />
 
@@ -46,8 +45,8 @@ const WaitingUserCard = ({ user }) => {
         {user.isReady && <UserReady />}
       </div>
 
-      {/* 닉네임 (카드 외부 아래에) */}
-      <p className="mt-1 text-xs font-bold">{user.username}</p>
+      {/* 닉네임 */}
+      <p className="mt-1 text-xs font-bold">{user.userNickname}</p>
     </div>
   );
 };
