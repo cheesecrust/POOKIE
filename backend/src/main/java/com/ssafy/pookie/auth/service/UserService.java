@@ -9,11 +9,14 @@ import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.auth.repository.UsersRepository;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.friend.dto.FriendDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -143,6 +146,10 @@ public class UserService {
                 .nickname(userAccount.getNickname())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    public List<UserAccounts> getUsers(String search) {
+        return userAccountsRepository.findByNicknameContains(search);
     }
 }
 
