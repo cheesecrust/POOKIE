@@ -236,4 +236,10 @@ public class RoomStateDto {
 
         return roomInfo;
     }
+
+    public void updateTempScore() {
+        this.tempTeamScores.merge(this.getTurn().toString(),
+                1, Integer::sum);
+        this.getGameInfo().afterAnswerCorrect();
+    }
 }

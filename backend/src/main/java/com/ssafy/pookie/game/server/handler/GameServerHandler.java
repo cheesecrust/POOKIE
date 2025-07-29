@@ -5,6 +5,8 @@ import com.ssafy.pookie.game.chat.dto.ChatDto;
 import com.ssafy.pookie.game.chat.service.GameChatService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
+import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
@@ -33,6 +35,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameTimerService gameTimerService;
     private final GameChatService gameChatService;
     private final GameRoomService gameRoomService;
+    private final InGameService inGameService;
 
     private final ObjectMapper objectMapper;
     private final UserAccountsRepository userAccountsRepository;
@@ -75,17 +78,22 @@ public class GameServerHandler extends TextWebSocketHandler {
             case START_GAME:
                 GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
                 start.setUser(user);
-                gameService.hadleGameStart(session, start);
+                inGameService.hadleGameStart(session, start);
                 break;
             case TURN_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                 gameResult.setUser(user);
-                gameService.handleTurnChange(session, gameResult);
+                inGameService.handleTurnChange(session, gameResult);
                 break;
             case ROUND_OVER:
                 gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                 gameResult.setUser(user);
-                gameService.handleRoundOver(session, gameResult);
+                inGameService.handleRoundOver(session, gameResult);
+                break;
+            case SUBMIT_ANSWER:
+                SubmitAnswerDto submitAnswer = objectMapper.convertValue(msg.getPayload(), SubmitAnswerDto.class);
+                submitAnswer.setUser(user);
+                inGameService.handleSubmitAnswer(submitAnswer);
                 break;
 //            case GAME_OVER:
 //                break;

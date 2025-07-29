@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.server.manager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
+import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -54,5 +55,23 @@ public class OnlinePlayerManager {
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
         return room == null || !room.isIncluded(session);
+    }
+
+    // Lobby 에 있는 User 의 Status Update
+    public void updateLobbyUserStatus(LobbyUserStateDto lobbyUserStateDto, Boolean group, LobbyUserDto.Status status) {
+        // 단일 User
+        if(!group) {
+            lobby.get(lobbyUserStateDto.getUser().getUserAccountId()).setStatus(status);
+            return;
+        }
+
+        // 단제 User -> Room
+        // 동일 Session 내 모든 User 수정
+        RoomStateDto room = rooms.get(lobbyUserStateDto.getRoomId());
+        for(String team : room.getUsers().keySet()) {
+            for(UserDto roomUser : room.getUsers().get(team)) {
+                lobby.get(roomUser.getUserAccountId()).setStatus(status);
+            }
+        }
     }
 }
