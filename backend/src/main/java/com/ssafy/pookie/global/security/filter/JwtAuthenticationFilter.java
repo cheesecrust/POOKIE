@@ -118,7 +118,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "/swagger-ui/",
                 "/v3/api-docs/",
                 "/error",
-                "/game"
+                "/game/**",
+                "/game/init"
         };
 
         return Arrays.stream(excludePaths)
