@@ -1,5 +1,8 @@
 package com.ssafy.pookie.game.timer.dto;
 
+import com.ssafy.pookie.game.room.dto.RoomStateDto;
+
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -7,6 +10,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class GameTimerDto {
+    private final Map<RoomStateDto.GameType, Integer> runTime = Map.of(
+            RoomStateDto.GameType.SILENTSCREAM, 30,
+            RoomStateDto.GameType.SAMEPOSE, 5,
+            RoomStateDto.GameType.SKETCHRELAY, 10
+    );
+
     private final ScheduledExecutorService scheduler;       // 비동기 작업 예약을 실행 가능한 스케줄러 스레드 풀
     private ScheduledFuture<?> scheduledTask;               // 실행 중인 타이머 작업을 참조
     private final AtomicInteger timeLeft;                   // 스레드 안전한 정수형 객체
@@ -20,10 +29,10 @@ public class GameTimerDto {
         this.timeLeft = new AtomicInteger();
     }
 
-    public void start(int sec) {
+    public void start(RoomStateDto.GameType gameType) {
         stop();     // 이전 타이머 정지
 
-        timeLeft.set(sec);  // 시간 설정
+        timeLeft.set(runTime.get(gameType));  // 시간 설정
 
         scheduledTask = scheduler.scheduleAtFixedRate(() -> {
             /*

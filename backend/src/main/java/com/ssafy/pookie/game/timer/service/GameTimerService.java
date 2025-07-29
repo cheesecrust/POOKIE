@@ -22,11 +22,12 @@ public class GameTimerService {
 
     public void handleStartTimer(TimerRequestDto timerRequest) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
-        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() == RoomStateDto.Status.START) {
+        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() != RoomStateDto.Status.START) {
             onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
                     "type", "ERROR",
                     "msg", "요청이 잘못되었습니다."
             ));
+            return;
         }
         // 새로운 Scheduler 생성
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -42,7 +43,7 @@ public class GameTimerService {
                                 null,
                                 Map.of(
                                         "type", "TIMER",
-                                        "time", timeLeft
+                                        "time", timeLeft+1  // 시간 보정
                                 ));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -69,15 +70,16 @@ public class GameTimerService {
         // Room 에 타이머 설정
         room.setTimer(timer);
         // 요청 시간만큼 시작
-        timer.start(timerRequest.getSec());
+        timer.start(room.getGameType());
     }
 
     public boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
         /*
+            존재하는 방인지
             현재 요청자가 방에 포함되어 있는지
             방장이 맞는지 확인
          */
-        return room.getSessions().contains(session)
+        return room != null && room.getSessions().contains(session)
                 && room.getRoomMaster().getSession() == session;
     }
 }
