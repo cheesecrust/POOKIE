@@ -27,12 +27,14 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     private final GameServerService gameService;
     private final ObjectMapper objectMapper;
-    private final UserAccountsRepository userAccountsRepository;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        log.info("Message: " + message.getPayload());
         MessageDto msg = objectMapper.readValue(message.getPayload(), MessageDto.class);
         msg.setSid(session.getId());
+        log.info("Message: " + msg.getClass());
+        log.info("{}", msg);
         UserDto user = mappingUser(session);
         JoinDto join;
         TurnDto gameResult;
