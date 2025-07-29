@@ -38,7 +38,6 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final InGameService inGameService;
 
     private final ObjectMapper objectMapper;
-    private final UserAccountsRepository userAccountsRepository;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {

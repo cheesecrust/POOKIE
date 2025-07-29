@@ -72,5 +72,11 @@ public class OnlinePlayerManager {
                 lobby.get(roomUser.getUserAccountId()).setStatus(status);
             }
         }
+
+
+
+
+    public boolean isMemberExistInLobby(Long userId) {
+        return lobby.containsKey(userId);
     }
 }

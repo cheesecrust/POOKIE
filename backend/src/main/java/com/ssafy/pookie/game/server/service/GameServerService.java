@@ -349,6 +349,7 @@ public class GameServerService {
         // offline 처리
         UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
                 .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
+        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
         userAccount.updateOnline(false);
         userAccountsRepository.save(userAccount);
         
