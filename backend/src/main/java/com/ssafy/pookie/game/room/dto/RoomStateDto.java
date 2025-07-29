@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
+import com.ssafy.pookie.game.timer.dto.GameTimerDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,9 @@ public class RoomStateDto {
     public enum Status {WAITING, START, END};
     public enum Turn {RED, BLUE, NONE};
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
+
+    // 타이머
+    private GameTimerDto timer;
 
     private String roomId;
     private String roomTitle;

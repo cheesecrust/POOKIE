@@ -1,14 +1,18 @@
 package com.ssafy.pookie.game.server.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.pookie.game.chat.ChatDto;
+import com.ssafy.pookie.game.chat.dto.ChatDto;
+import com.ssafy.pookie.game.chat.service.GameChatService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
+import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.service.GameServerService;
+import com.ssafy.pookie.game.timer.dto.TimerRequestDto;
+import com.ssafy.pookie.game.timer.service.GameTimerService;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
 import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
@@ -26,18 +30,20 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 public class GameServerHandler extends TextWebSocketHandler {
 
     private final GameServerService gameService;
+    private final GameTimerService gameTimerService;
+    private final GameChatService gameChatService;
+    private final GameRoomService gameRoomService;
+
     private final ObjectMapper objectMapper;
     private final UserAccountsRepository userAccountsRepository;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        log.info(message.toString());
         MessageDto msg = objectMapper.readValue(message.getPayload(), MessageDto.class);
         msg.setSid(session.getId());
-        UserDto user = mappingUser(session);
+        UserDto user = new UserDto().mapUserDto(session);
         JoinDto join;
         TurnDto gameResult;
-
         switch(msg.getType()) {
             // Room
             case JOIN_ROOM:
@@ -81,25 +87,21 @@ public class GameServerHandler extends TextWebSocketHandler {
                 gameResult.setUser(user);
                 gameService.handleRoundOver(session, gameResult);
                 break;
-            case GAME_OVER:
-                break;
+//            case GAME_OVER:
+//                break;
             // Chat
             case CHAT:
                 ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
                 chatDto.setUser(user);
-                gameService.handleChat(session, chatDto);
+                gameChatService.handleChat(session, chatDto);
+                break;
+            // Timer
+            case TIMER_START :
+                TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
+                timerRequest.setUser(user);
+                gameTimerService.handleStartTimer(timerRequest);
                 break;
         }
-    }
-
-    // Token 으로 user 정보 Mapping
-    private UserDto mappingUser(WebSocketSession session) {
-        return new UserDto(
-                session,
-                (Long) session.getAttributes().get("userAccountId"),
-                (String) session.getAttributes().get("userEmail"),
-                (String) session.getAttributes().get("nickname")
-        );
     }
 
     // web socket 연결하는 순간 user를 만든다.

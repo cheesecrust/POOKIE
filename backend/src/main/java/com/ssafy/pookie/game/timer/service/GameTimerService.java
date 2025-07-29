@@ -17,7 +17,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GameTimerSerivice {
+public class GameTimerService {
     private final OnlinePlayerManager onlinePlayerManager;
 
     public void handleStartTimer(TimerRequestDto timerRequest) throws IOException {

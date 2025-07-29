@@ -2,8 +2,7 @@ package com.ssafy.pookie.game.server.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.pookie.game.chat.ChatDto;
+import com.ssafy.pookie.game.chat.dto.ChatDto;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.game.data.model.GameKeywords;
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
@@ -19,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
@@ -63,7 +61,7 @@ public class GameServerService {
         onlinePlayerManager.getLobby().put(userDto.getUserAccountId(), lobbyUserDto);
         log.info("User {} entered lobby", userDto.getUserNickname());
         // ToClient
-        sendToMessageUser(session, Map.of(
+        onlinePlayerManager.sendToMessageUser(session, Map.of(
                 "type", "ON",
                 "msg", "연결되었습니다.",
                 "user", Map.of(
@@ -82,7 +80,6 @@ public class GameServerService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
-        log.info("JOIN ROOM Request : {}", joinDto);
         // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
         // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
         LobbyUserDto isExist = isExistLobby(joinDto.getUser());
@@ -102,7 +99,7 @@ public class GameServerService {
             joinDto.setRoomId(tempUUID);
             create = true;
         } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())){
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "존재하지 않는 방입니다."
             ));
@@ -134,7 +131,7 @@ public class GameServerService {
         if(create) broadcastRoomListToLobbyUsers();
         if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) {
             log.warn("Room GameType does not match");
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "GameType이 일치하지 않습니다."
             ));
@@ -145,7 +142,7 @@ public class GameServerService {
         if((room.getRoomPw() != null || !room.getRoomPw().isEmpty()) &&
         !room.getRoomPw().equals(joinDto.getRoomPw())) {
             log.warn("Room Password Mismatch");
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "비밀번호가 틀렸습니다."
             ));
@@ -170,7 +167,7 @@ public class GameServerService {
         log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
 
         // Client response msg
-        broadCastMessageToRoomUser(session, room.getRoomId(), null,
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
                 Map.of(
                         "type", "ROOM_JOINED",
                         "msg", joinDto.getUser().getUserNickname() + "가 입장하였습니다.",
@@ -189,7 +186,7 @@ public class GameServerService {
             List<UserDto> teamUsers = room.getUsers().get(team);
             for(UserDto teamUser : teamUsers) {
                 if(teamUser.getSession() == session) {
-                    sendToMessageUser(session, Map.of(
+                    onlinePlayerManager.sendToMessageUser(session, Map.of(
                             "type", "LEAVE",
                             "msg", "Lobby 로 돌아갑니다."
                     ));
@@ -219,7 +216,7 @@ public class GameServerService {
         if(!find) return;
 
         for(WebSocketSession teamSession : room.getSessions()) {
-            sendToMessageUser(teamSession, Map.of(
+            onlinePlayerManager.sendToMessageUser(teamSession, Map.of(
                     "type", "PLAYER_LEFT",
                     "msg", leaveUserNickName + "가 나갔습니다.",
                     "room", room.mappingRoomInfo()
@@ -268,14 +265,14 @@ public class GameServerService {
         if(isAuthorized(session, room)) return;
 
         if(!teamChangeRequest.changeTeam(room)) {
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                 "msg", "처리 중 오류가 발생하였습니다."
             ));
             return;
         }
 
-        broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
+        onlinePlayerManager.broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
                 "type", "USER_TEAM_CHANGED",
                 "msg", teamChangeRequest.getUser().getUserNickname()+"이 팀을 변경하였습니다.",
                 "room", room.mappingRoomInfo()
@@ -288,13 +285,13 @@ public class GameServerService {
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
 
         if(!request.changeStatus(room)) {
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "처리 중 오류가 발생하였습니다."
             ));
             return;
         }
-        broadCastMessageToRoomUser(session, request.getRoomId(), null, Map.of(
+        onlinePlayerManager.broadCastMessageToRoomUser(session, request.getRoomId(), null, Map.of(
                 "type", "USER_READY_CHANGED",
                 "room", room.mappingRoomInfo()
         ));
@@ -309,7 +306,7 @@ public class GameServerService {
 
         UserDto removeTarget = request.findRemoveTarget(room);
         if(removeTarget == null || removeTarget.getSession() == session) {
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "대상을 확인해주세요."
             ));
@@ -328,7 +325,7 @@ public class GameServerService {
         if(isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
-            sendToMessageUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "6명 이상 모여야 시작 가능합니다."
             ));
@@ -344,7 +341,7 @@ public class GameServerService {
             int blueTeamCnt = teamUsers.size();
             readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
             if(redTeamCnt != blueTeamCnt) {
-                sendToMessageUser(session, Map.of(
+                onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", "ERROR",
                         "msg", "팀원이 맞지 않습니다."
                 ));
@@ -352,7 +349,7 @@ public class GameServerService {
             }
             log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
             if(readyUserCnt != room.getSessions().size()) {
-                sendToMessageUser(session, Map.of(
+                onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", "ERROR",
                         "msg", "준비완료가 되지 않았습니다."
                 ));
@@ -375,7 +372,7 @@ public class GameServerService {
         updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
 
         // Client response msg
-        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "STARTED_GAME",
                 "msg", "게임을 시작합니다.",
                 "turn", room.getTurn().toString()
@@ -409,7 +406,7 @@ public class GameServerService {
         List<GameKeywords> keywordList = gameKeywordsRepository.findByIdIn(tempKeywordSet);
 
         for(UserDto rep : room.getGameInfo().getRep()) {
-            sendToMessageUser(rep.getSession(), Map.of(
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), Map.of(
                     "type", "KEYWORD",
                     "Keywords", keywordList.stream().map(e -> e.getWord()).collect(Collectors.toList())
             ));
@@ -465,7 +462,7 @@ public class GameServerService {
         log.info("Room {} turn change", room.getRoomId());
         log.info("{}", room.mappingRoomInfo());
         // Client response msg
-        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "TURN_CHANGED",
                 "turn", room.getTurn().toString()
         ));
@@ -481,7 +478,7 @@ public class GameServerService {
             log.info("Room {} Game Over", room.getRoomId());
             room.resetAfterGameOver();
             // Client response msg
-            broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                     "type", "GAME_OVER",
                     "room", room.mappingRoomInfo(),
                     "gameResult", room.gameOver()
@@ -506,7 +503,7 @@ public class GameServerService {
         // 라운드 끝, 팀별 점수 집계
         room.writeTempTeamScore(gameResult);
         room.roundOver();
-        broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
         // 라운드별 점수 초기화
         room.resetTempTeamScore();
         // gameInfo 초기화
@@ -520,34 +517,13 @@ public class GameServerService {
 
         log.info("Turn Change\n Room : {}", room);
         // client response message
-        broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "NEW_ROUND",
                 "msg", "새로운 라운드가 시작됩니다.",
                 "turn", room.getTurn().toString()
         ));
         deliverKeywords(room);
     }
-
-    // 현재 방에 있는 유저들에게 BraodCast
-    // 메시지 전달 유형
-    // 1. 해당 팀원들에게만
-    // 2. 해당 대기방 전체
-    public void broadCastMessageToRoomUser(WebSocketSession session, String RoomId, String team, Map<String, Object> msg) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(RoomId);
-        if(isAuthorized(session, room)) return;
-
-        // 1. 팀원들에게만 전달
-        if(team != null) {
-            for(UserDto user : room.getUsers().get(team)) {
-                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        } else {    // 2. BroadCast 전달
-            for(WebSocketSession user : room.getSessions()) {
-                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        }
-    }
-
     // Lobby User Management
 
     // Lobby 에 있는 User 의 Status Update
@@ -619,13 +595,6 @@ public class GameServerService {
         return room == null || !room.isIncluded(session);
     }
     /*
-        특정 유저에게만 Message 전달
-     */
-    public void sendToMessageUser(WebSocketSession session, Map<String, Object> msg) throws IOException {
-        log.info("sendMessage {} : {}", session, msg);
-        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-    }
-    /*
         현재 생성되어 있는 방 리스트 전달
      */
     public List<?> existingRoomList() {
@@ -651,7 +620,7 @@ public class GameServerService {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
-                    sendToMessageUser(user.getUser().getSession(), Map.of(
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
                             "type", "CREATED_ROOM",
                             "roomList", roomList
                     ));
@@ -667,7 +636,7 @@ public class GameServerService {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             try {
                 if(user.getStatus() == LobbyUserDto.Status.ON) {
-                    sendToMessageUser(user.getUser().getSession(), Map.of(
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
                             "type", "UPDATE_ROOM_LIST",
                             "roomList", roomList
                     ));
@@ -676,10 +645,5 @@ public class GameServerService {
                 e.printStackTrace();
             }
         });
-    }
-
-    // Chat
-    public void handleChat(WebSocketSession session, ChatDto chatDto) throws IOException {
-        chatDto.sendChat(session, onlinePlayerManager.getRooms().get(chatDto.getRoomId()));
     }
 }
