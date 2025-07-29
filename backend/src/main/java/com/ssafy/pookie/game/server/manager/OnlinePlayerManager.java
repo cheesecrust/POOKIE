@@ -12,4 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OnlinePlayerManager {
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
+
+    public boolean isMemberExistInLobby(Long userId) {
+        return lobby.containsKey(userId);
+    }
 }
