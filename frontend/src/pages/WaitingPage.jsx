@@ -10,7 +10,7 @@ import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { connectSocket, closeSocket } from "../sockets/common/websocket";
+import { getSocket, closeSocket } from "../sockets/common/websocket";
 import {
   emitTeamChange,
   emitReadyChange,
@@ -18,55 +18,8 @@ import {
   emitStartGame,
   emitForceRemove,
 } from "../sockets/waiting/emit";
+import { handleWaitingMessage } from "../sockets/waiting/onMessage";
 import useAuthStore from "../store/store";
-
-// // 여기에 하드 코딩으로 join 요청의 버튼을 만들어서 특정 사람을 입장시키고 싶어
-
-// // ✅ 테스트 유저용 소켓 연결 및 JOIN_ROOM emit
-// const connectTestSocket = () => {
-//   const accessToken = useAuthStore.getState().accessToken;
-
-//   if (!accessToken) {
-//     console.error("❌ accessToken 없음. 로그인 또는 재발급 필요");
-//     return;
-//   }
-
-//   const socket = new WebSocket(
-//     `wss://i13a604.p.ssafy.io/api/game?token=${accessToken}`
-//   );
-
-//   socket.onopen = () => {
-//     console.log("✅ [TestUser20] 소켓 연결됨");
-
-//     // 첫 방 생성 요청
-//     socket.send(
-//       JSON.stringify({
-//         type: "JOIN_ROOM",
-//         payload: {
-//           roomTitle: "test12345",
-//           gameType: "SILENTSCREAM",
-//         },
-//       })
-//     );
-//   };
-
-//   socket.onmessage = (e) => {
-//     const data = JSON.parse(e.data);
-//     console.log("🛰️ [TestUser20 응답]", data);
-
-//     if (data.type === "ROOM_JOINED") {
-//       console.log("🎉 방 생성 및 입장 완료:", data.room);
-//     }
-//   };
-
-//   socket.onerror = (e) => {
-//     console.error("❌ [TestUser20 소켓 오류]", e);
-//   };
-
-//   socket.onclose = () => {
-//     console.log("🛑 [TestUser20 소켓 종료]");
-//   };
-// };
 
 const WaitingPage = () => {
   const navigate = useNavigate();
@@ -96,63 +49,32 @@ const WaitingPage = () => {
   useEffect(() => {
     if (!accessToken || !user) return;
 
-    connectSocket({
-      url: "wss://i13a604.p.ssafy.io/api/game",
-      // 위에 getState 사용해서 accessToken 가져오기
-      token: accessToken,
+    const socket = getSocket();
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn("WebSocket이 열려 있지 않음");
+      return;
+    }
 
-      // 서버에서 응답받는거
-      onMessage: (e) => {
+    const handleMessage = (e) => {
+      try {
         const data = JSON.parse(e.data);
-        if (!data.type) return;
+        handleWaitingMessage(data, {
+          user,
+          setRoom,
+          setTeam,
+          setIsReady,
+          navigate,
+        });
+      } catch (err) {
+        console.error("소켓 메시지 처리 중 오류:", err);
+      }
+    };
 
-        switch (data.type) {
-          case "ROOM_JOINED":
-          case "USER_TEAM_CHANGED":
-          case "USER_READY_CHANGED":
-          case "PLAYER_LEFT": {
-            setRoom(data.room); // 방 정보 업데이트
-
-            // 본인 팀 색 찾는 로직
-            const myTeam = Object.entries({
-              RED: data.room.RED,
-              BLUE: data.room.BLUE,
-            }).find(([_, users]) => users.some((u) => u.id === user.id))?.[0];
-
-            setTeam(myTeam);
-
-            const me = data.room[myTeam]?.find((u) => u.id === user.id);
-            setIsReady(me?.status === "READY");
-            break;
-          }
-
-          case "LEAVE":
-            if (data.msg === "Lobby 로 돌아갑니다.") {
-              closeSocket();
-              navigate("/home");
-            }
-            break;
-
-          case "STARTED_GAME": {
-            const gameType = room?.gameType?.toLowerCase();
-            const roomIdFromState = room?.id;
-            if (gameType && roomIdFromState) {
-              navigate(`/${gameType}/${roomIdFromState}`);
-            }
-            break;
-          }
-
-          case "ERROR":
-            alert(data.msg);
-            break;
-        }
-      },
-      onClose: closeSocket,
-      onError: console.error,
-    });
-
-    return () => closeSocket();
-  }, [accessToken, user, roomId]);
+    // 서버로 부터 메시지를 받았을때 "message"라는 이벤트 발생 handleMessage 함수 실행
+    // 이벤트 리스너를 활용해서 여러 핸들러 등록 가능
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, [accessToken, user]);
 
   const handleLeaveRoom = () => {
     emitLeaveRoom({ roomId });
