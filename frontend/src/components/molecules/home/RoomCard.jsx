@@ -11,25 +11,35 @@ import ModalButton from '../../atoms/button/ModalButton'
 import backgroundSamePose from '../../../assets/background/background_samepose.gif'
 import backgroundSketchRelay from '../../../assets/background/background_sketchrelay.gif'
 import backgroundSilentScream from '../../../assets/background/background_silentscream.gif'
+import { emitJoinRoom } from "../../../sockets/home/emit"
 
-const RoomCard = ({ roomTitle, roomType, participantCount, onClick }) => {
-    const getBackgroundImage = (type) => {
-      switch (type) {
-        case 'samepose':
+const RoomCard = ({ room, participantCount, onClick }) => {
+    const getBackgroundImage = (gameType) => {
+      switch (gameType) {
+        case 'SAMEPOSE':
           return backgroundSamePose;
-        case 'sketchrelay':
+        case 'SKETCHRELAY':
           return backgroundSketchRelay;
-        case 'silentscream':
+        case 'SILENTSCREAM':
           return backgroundSilentScream;
         default:
           return backgroundSamePose; // fallback
       }
     };
+
+    const handleRoomEnter = (room) => {
+      emitJoinRoom({
+        roomId: room.roomId,
+        roomTitle: room.roomTitle,
+        gameType: room.gameType,
+        roomPw: room.roomPw,
+      })
+    }
   
     return (
       <div
         className="w-[300px] h-[200px] rounded-lg overflow-hidden shadow-md relative bg-cover bg-center"
-        style={{ backgroundImage: `url(${getBackgroundImage(roomType)})` }}
+        style={{ backgroundImage: `url(${getBackgroundImage(room.gameType)})` }}
       >
         {/* 우측 상단 인원 수 */}
         <div className="absolute top-3 right-4 text-black font-semibold text-sm">
@@ -38,12 +48,12 @@ const RoomCard = ({ roomTitle, roomType, participantCount, onClick }) => {
   
         {/* 좌측 하단 방 제목 */}
         <div className="absolute bottom-4 left-4 text-black font-bold text-lg">
-          {roomTitle}
+          {room.roomTitle}
         </div>
   
         {/* 우측 하단 PLAY 버튼 (아이콘 제거) */}
         <ModalButton
-          onClick={onClick}
+          onClick={() => handleRoomEnter(room)}
           className="absolute bottom-4 right-4 text-black font-bold px-4 py-1 shadow hover:brightness-95"
         >
           PLAY
