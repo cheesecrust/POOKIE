@@ -22,13 +22,13 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-36 h-48 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
+        className={`relative w-44 h-56 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
       >
         {/* 캐릭터 이미지 */}
         <img
           src={user.reqImg || pookiepookie}
           alt="character"
-          className="w-16 h-16 object-contain mb-1"
+          className="w-20 h-20 object-contain mb-1"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = pookiepookie;
