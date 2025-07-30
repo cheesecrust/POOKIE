@@ -44,6 +44,12 @@ public class UserDto {
 
     public void setTeam(Team team) { this.team = team; }
 
+    public void moveToLobby() {
+        this.grant = Grant.NONE;
+        this.status = Status.NONE;
+        this.team = Team.NONE;
+    }
+
     public UserDto mapUserDto(WebSocketSession session) {
         this.session = session;
         this.userAccountId = (Long) session.getAttributes().get("userAccountId");
