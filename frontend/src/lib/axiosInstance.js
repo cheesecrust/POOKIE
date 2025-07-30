@@ -55,7 +55,7 @@ axiosInstance.interceptors.response.use(
             } catch (refreshErr) {
                 console.log('리프레시 토큰 재발급 실패');
                 useAuthStore.getState().logout?.();
-                window.location.href = '/login';
+                window.location.href = '/';
             }
         }
 

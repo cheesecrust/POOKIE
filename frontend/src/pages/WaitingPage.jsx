@@ -1,124 +1,139 @@
 // src/pages/WaitingPage.jsx
 import ModalButton from "../components/atoms/button/ModalButton";
-import BasicButton from "../components/atoms/button/BasicButton";
+import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
+import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import {
-  connectSocket,
-  closeSocket,
-  sendMessage,
-} from "../sockets/common/websocket";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getSocket, closeSocket } from "../sockets/common/websocket";
 import {
   emitTeamChange,
   emitReadyChange,
   emitLeaveRoom,
-} from "../sockets/games/samePose/emit";
+  emitStartGame,
+  emitForceRemove,
+} from "../sockets/waiting/emit";
+import { handleWaitingMessage } from "../sockets/waiting/onMessage";
+import useAuthStore from "../store/store";
 
 const WaitingPage = () => {
   const navigate = useNavigate();
+  const { roomId } = useParams();
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   const [room, setRoom] = useState(null);
   const [team, setTeam] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [kickModalOpen, setKickModalOpen] = useState(false); // 모달 열림
+  const [kickTarget, setKickTarget] = useState(null); // 강퇴 대상 유저 정보
+  const isHost = room?.master?.id === user?.id; // 방장 누구니니
 
-  const user = {
-    userId: 7,
-    userNickname: "testNickname7",
-  };
+  // 진입 시 accessToken 없으면 refresh로 재발급 시도
+  useEffect(() => {
+    if (!accessToken) {
+      useAuthStore.getState().loadUserFromStorage();
+    }
+  }, [accessToken]);
 
-  const isHost = room?.roomMaster?.userId === user.userId;
+  // 토큰 check하고
+  //   console.log("token", accessToken);
 
-  const handleTeamToggle = () => {
-    const toTeam = team === "Red" ? "Blue" : "Red";
-    emitTeamChange({
-      roomId: room.roomId,
-      fromTeam: team,
-      toTeam,
-      user,
-    });
-  };
+  // accessToken 있으면 소켓 연결 시도
+  useEffect(() => {
+    if (!accessToken || !user) return;
 
-  const handleReadyToggle = () => {
-    emitReadyChange({
-      roomId: room.roomId,
-      team,
-      ready: !isReady,
-      user,
-    });
-  };
+    const socket = getSocket();
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn("WebSocket이 열려 있지 않음");
+      return;
+    }
+
+    const handleMessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleWaitingMessage(data, {
+          user,
+          setRoom,
+          setTeam,
+          setIsReady,
+          navigate,
+        });
+      } catch (err) {
+        console.error("소켓 메시지 처리 중 오류:", err);
+      }
+    };
+
+    // 서버로 부터 메시지를 받았을때 "message"라는 이벤트 발생 handleMessage 함수 실행
+    // 이벤트 리스너를 활용해서 여러 핸들러 등록 가능
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, [accessToken, user]);
 
   const handleLeaveRoom = () => {
-    emitLeaveRoom({ roomId: room.roomId, user });
+    emitLeaveRoom({ roomId });
     closeSocket();
     navigate("/home");
   };
 
-  useEffect(() => {
-    const token =
-      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0N0B0ZXN0LmNvbSIsInVzZXJBY2NvdW50SWQiOjcsImVtYWlsIjoidGVzdDdAdGVzdC5jb20iLCJuaWNrbmFtZSI6InRlc3ROaWNrbmFtZTciLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzUzNjc2NTA3fQ.AYZbwhp6jCsAsH_OvlHZopDrlesin1N8-z9rYeSJMf8";
+  const handleStartGame = () => {
+    emitStartGame({ roomId });
+  };
 
-    connectSocket({
-      url: "wss://i13a604.p.ssafy.io/api/game",
-      token,
-      onMessage: (data) => {
-        console.log("[WebSocket MESSAGE]", data);
+  const handleTeamToggle = () => {
+    const toTeam = team === "RED" ? "BLUE" : "RED";
+    console.log("emitTeamChange 실행:", toTeam);
+    emitTeamChange({ roomId, curTeam: toTeam });
+  };
 
-        switch (data.type) {
-          case "TEAM_CHANGE":
-          case "USER_READY_CHANGE":
-            setRoom(data.room);
-            const myTeam = Object.entries(data.room.users).find(([_, users]) =>
-              users.some((u) => u.userId === user.userId)
-            )?.[0];
-            setTeam(myTeam);
-            const me = data.room.users[myTeam].find(
-              (u) => u.userId === user.userId
-            );
-            setIsReady(me?.status === "READY");
-            break;
+  const handleReadyToggle = () => {
+    emitReadyChange({ roomId, team });
+    setIsReady(!isReady);
+  };
 
-          case "LEAVE":
-            if (data.msg === "Lobby 로 돌아갑니다.") {
-              closeSocket();
-              navigate("/home");
-            } else {
-              setRoom(data.room);
-            }
-            break;
-
-          case "ERROR":
-            alert(data.msg);
-            break;
-
-          case "ON":
-            console.log("[WebSocket CONNECTED]", data.user?.userNickname);
-            break;
-
-          default:
-            console.log("[Unhandled message]", data);
-        }
-      },
-      onOpen: () => {
-        console.log("[WebSocket OPEN]");
-      },
-      onClose: (e) => {
-        console.log("[WebSocket CLOSE]", e);
-      },
-      onError: (e) => {
-        console.log("[WebSocket ERROR]", e);
-      },
+  const handleKickConfirm = () => {
+    emitForceRemove({
+      roomId,
+      removeTargetId: kickTarget.userId,
+      removeTargetNickname: kickTarget.userNickname,
+      removeTargetTeam: kickTarget.team,
     });
+    setKickModalOpen(false);
+  };
 
-    return () => {
-      closeSocket();
-    };
-  }, []);
+  // 유저 카드리스트 내용 빈 슬롯 미리 만들어두기
+  const MAX_USERS = 6;
+  const userSlots = room
+    ? (() => {
+        const combinedUsers = [...room.RED, ...room.BLUE].map((u) => ({
+          userId: u.id,
+          userNickname: u.nickname,
+          team: room.RED.some((r) => r.id === u.id) ? "red" : "blue",
+          isReady: u.status === "READY",
+          isHost: room.master?.id === u.id,
+          reqImg: u.repImg,
+        }));
+
+        while (combinedUsers.length < MAX_USERS) {
+          combinedUsers.push(null);
+        }
+
+        return combinedUsers;
+      })()
+    : Array(MAX_USERS).fill(null); // room이 아직 없으면 빈 슬롯 6개
+
+  // START 버튼 활성화 조건
+  const isStartEnabled =
+    isHost &&
+    room?.RED.length > 0 &&
+    room?.RED.length === room?.BLUE.length &&
+    [...room.RED, ...room.BLUE].every((u) => u.status === "READY");
 
   return (
     <div className="flex flex-row h-screen">
@@ -132,19 +147,31 @@ const WaitingPage = () => {
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">{room?.roomId ?? "room_list"}</h1>
-          <div className="flex flex-row gap-2 p-2">
-            <BasicButton onClick={handleTeamToggle}>팀 변경</BasicButton>
-            <ModalButton onClick={handleReadyToggle}>
-              {isReady ? "준비 해제" : "준비 완료"}
-            </ModalButton>
+          <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
+          <div className="flex flex-row gap-2 p-2 items-center">
+            <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
+            {isHost ? (
+              <ModalButton onClick={handleStartGame} disabled={!isStartEnabled}>
+                START
+              </ModalButton>
+            ) : (
+              <ModalButton onClick={handleReadyToggle}>
+                {isReady ? "준비 해제" : "준비 완료"}
+              </ModalButton>
+            )}
           </div>
         </div>
 
+        {/* 유저 카드리스트 */}
         <div className="basis-4/5">
           <div className="h-full bg-transparent flex flex-col items-stretch justify-center">
             <WaitingUserList
-              userSlots={room ? [...room.users.Red, ...room.users.Blue] : []}
+              userSlots={userSlots}
+              roomMasterId={room?.master?.id}
+              onRightClickKick={(user) => {
+                setKickTarget(user);
+                setKickModalOpen(true);
+              }}
             />
           </div>
         </div>
@@ -164,9 +191,9 @@ const WaitingPage = () => {
           <SelfCamera />
         </div>
 
-        <div className="basis-4/8 relative">
+        <div className="basis-4/8 relative flex justify-center items-center">
           <div className="absolute bottom-0">
-            <ChatBox width="300px" height="250px" />
+            <ChatBox className="w-full" height="300px" />
           </div>
         </div>
       </section>
@@ -175,6 +202,12 @@ const WaitingPage = () => {
         isOpen={isExitModalOpen}
         onConfirm={handleLeaveRoom}
         onCancel={() => setIsExitModalOpen(false)}
+      />
+      <KickConfirmModal
+        isOpen={kickModalOpen}
+        kickTarget={kickTarget}
+        onConfirm={handleKickConfirm}
+        onCancel={() => setKickModalOpen(false)}
       />
     </div>
   );
@@ -225,16 +258,16 @@ export default WaitingPage;
 
 // // WaitingPage 컴포넌트
 // const WaitingPage = () => {
-// // useNavigate 훅을 사용한 페이지 이동 기능
-// const navigate = useNavigate();
+//   // useNavigate 훅을 사용한 페이지 이동 기능
+//   const navigate = useNavigate();
 
-// // 방을 나가게 되면 socket 연결을 끊고 메인 페이지로 이동하는 함수 필요
-// const handleLeaveRoom = () => {
-//   // 방 나가기 로직
-//   console.log("방을 나가기");
-//   // 방 나간 후 메인 페이지로 이동
-//   navigate("/home");
-// };
+//   // 방을 나가게 되면 socket 연결을 끊고 메인 페이지로 이동하는 함수 필요
+//   const handleLeaveRoom = () => {
+//     // 방 나가기 로직
+//     console.log("방을 나가기");
+//     // 방 나간 후 메인 페이지로 이동
+//     navigate("/home");
+//   };
 
 //   // 방 나가기 모달 상태 관리
 //   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -268,26 +301,26 @@ export default WaitingPage;
 //   // ######### 테스트용
 //   useEffect(() => {
 //     // 테스트: 첫 유저 1초 후 입장, 두 번째는 2초, 세 번째는 3초 후 입장
-//   dummyUsers.forEach((user, i) => {
-//     setTimeout(
-//       () => {
-//         setUserSlots((prev) => {
-//           const next = [...prev];
-//           const emptyIndex = next.findIndex((slot) => slot === null);
+//     dummyUsers.forEach((user, i) => {
+//       setTimeout(
+//         () => {
+//           setUserSlots((prev) => {
+//             const next = [...prev];
+//             const emptyIndex = next.findIndex((slot) => slot === null);
 
-//           // 이미 입장한 유저가 다시 들어오지 않도록 확인
-//           const alreadyExists = next.some((slot) => slot?.id === user.id);
-//           if (emptyIndex !== -1 && !alreadyExists) {
-//             next[emptyIndex] = user;
-//           }
+//             // 이미 입장한 유저가 다시 들어오지 않도록 확인
+//             const alreadyExists = next.some((slot) => slot?.id === user.id);
+//             if (emptyIndex !== -1 && !alreadyExists) {
+//               next[emptyIndex] = user;
+//             }
 
-//           return next;
-//         });
-//       },
-//       (i + 1) * 1000
-//     );
-//   });
-// }, []);
+//             return next;
+//           });
+//         },
+//         (i + 1) * 1000
+//       );
+//     });
+//   }, []);
 
 //   return (
 //     // 1. 전체 페이지를 flex로 설정하여 세로 방향으로 정렬
@@ -351,12 +384,12 @@ export default WaitingPage;
 //         </div>
 //       </section>
 
-// {/* 방 나가기 모달 */}
-// <RoomExitModal
-//   isOpen={isExitModalOpen}
-//   onConfirm={handleLeaveRoom}
-//   onCancel={() => setIsExitModalOpen(false)}
-// />
+//       {/* 방 나가기 모달 */}
+//       <RoomExitModal
+//         isOpen={isExitModalOpen}
+//         onConfirm={handleLeaveRoom}
+//         onCancel={() => setIsExitModalOpen(false)}
+//       />
 //     </div>
 //   );
 // };
