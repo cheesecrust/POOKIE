@@ -122,6 +122,8 @@ public class RoomStateDto {
     public void turnChange() {
         if(this.getTurn() == Turn.RED) this.setTurn(Turn.BLUE);
         else this.setTurn(Turn.RED);
+
+        if(timer != null) this.timer.stop();
     }
 
     private String win;
@@ -144,6 +146,7 @@ public class RoomStateDto {
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
         }
+        if(timer != null) this.timer.stop();
     }
 
     public Map<String, Object> gameOver() {
