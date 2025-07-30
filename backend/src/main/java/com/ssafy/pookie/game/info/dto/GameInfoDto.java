@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -51,5 +52,17 @@ public class GameInfoDto {
     public void afterAnswerCorrect() {
         this.keywordIdx++;
         this.repIdx++;
+    }
+
+    // 주체자에 대한 정보를 리스트로 반환한다
+    public List<?> repAccountIdxList() {
+        return this.rep.stream().map((user) -> user.getUserAccountId())
+                .collect(Collectors.toList());
+    }
+
+    // 일반 유저에 대한 정보를 리스트로 반환한다.
+    public List<?> norAccountIdxList() {
+        return this.normal.stream().map((user) -> user.getUserAccountId())
+                .collect(Collectors.toList());
     }
 }

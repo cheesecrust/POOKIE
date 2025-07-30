@@ -100,7 +100,6 @@ public class FriendController {
         try {
             Long userAccountId = userDetails.getUserAccountId();
             friendService.rejectFriendRequest(requestId, userAccountId);
-
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 거절했습니다.", null));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -249,4 +248,17 @@ public class FriendController {
                     .body(ApiResponse.error("사용지 목록 조회에 실패했습니다."));
         }
     }
+
+    @DeleteMapping("/request/{friendRequestId}")
+    public ResponseEntity<ApiResponse<?>> deleteFriendRequest(
+            @PathVariable Long friendRequestId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userAccountId = userDetails.getUserAccountId();
+        boolean result = friendService.deleteFriendRequest(userAccountId, friendRequestId);
+        if (result) {
+            return ResponseEntity.ok(ApiResponse.success("삭제되었습니다.", result));
+        }
+        return ResponseEntity.ok(ApiResponse.error("삭제 실패하였습니다."));
+    }
+
 }

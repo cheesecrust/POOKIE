@@ -3,6 +3,8 @@ package com.ssafy.pookie.game.server.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.chat.dto.ChatDto;
 import com.ssafy.pookie.game.chat.service.GameChatService;
+import com.ssafy.pookie.game.draw.dto.DrawEvent;
+import com.ssafy.pookie.game.draw.service.DrawService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
@@ -41,6 +43,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final InGameService inGameService;
 
     private final ObjectMapper objectMapper;
+    private final DrawService drawService;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -114,6 +117,12 @@ public class GameServerHandler extends TextWebSocketHandler {
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
                     gameTimerService.preTimer(timerRequest);
+                    break;
+                // Draw
+                case DRAW:
+                    DrawEvent drawEvent = objectMapper.convertValue(msg.getPayload(), DrawEvent.class);
+                    drawEvent.setUser(user);
+                    drawService.drawEvent(drawEvent);
                     break;
             }
         } catch(Exception e) {

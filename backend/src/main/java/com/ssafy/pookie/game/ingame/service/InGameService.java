@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import com.ssafy.pookie.webrtc.service.RtcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class InGameService {
     // TODO 모든 이벤트는 방장으로부터 오는지
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameKeywordsRepository gameKeywordsRepository;
+    private final RtcService rtcService;
 
     // TODO GameServerService 에서 분리해오기
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
@@ -61,6 +63,7 @@ public class InGameService {
                 return;
             }
             log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
+
             if(readyUserCnt != room.getSessions().size()) {
                 onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", "ERROR",
@@ -86,11 +89,13 @@ public class InGameService {
         // 게임중으로 업데이트
         onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
 
+        String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "STARTED_GAME",
                 "msg", "게임을 시작합니다.",
-                "turn", room.getTurn().toString()
+                "turn", room.getTurn().toString(),
+                "rtc_token", rtcToken
         ));
 
         deliverKeywords(room);
@@ -125,8 +130,11 @@ public class InGameService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             onlinePlayerManager.sendToMessageUser(rep.getSession(), Map.of(
                     "type", "KEYWORD",
-                    "Keywords", keywordList,
-                    "keywordIdx", room.getGameInfo().getKeywordIdx()
+                    "KeywordList", keywordList,
+                    "keywordIdx", room.getGameInfo().getKeywordIdx(),
+                    "repIdxList", room.getGameInfo().repAccountIdxList(),
+                    "repIdx", room.getGameInfo().getRep(),
+                    "norIdxList", room.getGameInfo().norAccountIdxList()
             ));
         }
     }
@@ -153,18 +161,23 @@ public class InGameService {
         }
 
         room.getGameInfo().setInit();
-        List<UserDto> reqList = room.getGameInfo().getRep();
+        List<UserDto> repList = room.getGameInfo().getRep();
         List<UserDto> normalList = room.getGameInfo().getNormal();
         while(room.getGameInfo().getRep().size() < rep) {
             int repIdx = new Random().nextInt(teamUsers.size());
-            if(reqList.contains(teamUsers.get(repIdx))) continue;
-            reqList.add(teamUsers.get(repIdx));
+            if(repList.contains(teamUsers.get(repIdx))) continue;
+            repList.add(teamUsers.get(repIdx));
         }
 
         for(UserDto user : teamUsers) {
-            if(reqList.contains(user)) continue;
+            if(repList.contains(user)) continue;
             normalList.add(user);
         }
+
+        System.out.println("대표");
+        System.out.println(repList);
+        System.out.println("일반");
+        System.out.println(normalList);
     }
 
     // 턴이 종료되었을 때
@@ -175,8 +188,7 @@ public class InGameService {
         if(room.getTurn() != RoomStateDto.Turn.RED) return;
         // 클라이언트와 서버의 데이터를 교차 검증한다.
         if(!room.validationTempScore(gameResult)) {
-            // TODO 교차 검증 데이터가 다를 경우 어떻게 할 것인가?
-            return;
+            gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
         }
         // 턴 바꿔주기
         room.turnChange();
@@ -224,8 +236,7 @@ public class InGameService {
         // 라운드 끝, 팀별 점수 집계
         // 클라이언트와 서버의 데이터를 교차 검증한다.
         if(!room.validationTempScore(gameResult)) {
-            // TODO 교차 검증 데이터가 다를 경우 어떻게 할 것인가?
-            return;
+            gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
         }
         room.roundOver();
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
