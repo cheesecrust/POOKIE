@@ -7,6 +7,7 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
         case "ROOM_JOINED":
         case "USER_TEAM_CHANGED":
         case "USER_READY_CHANGED":
+        case "CHANGED_GAMETYPE":
         case "PLAYER_LEFT": {
 
 

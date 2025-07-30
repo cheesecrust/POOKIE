@@ -42,6 +42,15 @@ export const emitForceRemove = ({ roomId, removeTargetId, removeTargetNickname, 
 		removeTargetTeam,
 	});
 };
+/**
+ * 게임 타입 변경
+ **/
+export const emitGameTypeChange = ({ roomId, requestGameType }) => {
+	sendMessage('CHANGE_GAMETYPE', {
+		roomId,
+		requestGameType,
+	});
+};
 
 /**
  * 게임 시작 요청 emit (방장만 가능)

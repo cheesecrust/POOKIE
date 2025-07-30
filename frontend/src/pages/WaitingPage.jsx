@@ -14,7 +14,7 @@ import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
-
+import GameTypeToggleButton from "../components/organisms/waiting/GameTypeButton";
 import useAuthStore from "../store/store";
 import {
   emitTeamChange,
@@ -22,6 +22,7 @@ import {
   emitLeaveRoom,
   emitStartGame,
   emitForceRemove,
+  emitGameTypeChange,
 } from "../sockets/waiting/emit";
 
 const WaitingPage = () => {
@@ -111,6 +112,16 @@ const WaitingPage = () => {
     setKickModalOpen(false);
   };
 
+  // 게임 타입 변경
+  const handleGameTypeChange = (selectedType) => {
+    if (selectedType !== room?.gameType) {
+      emitGameTypeChange({
+        roomId: room.id,
+        requestGameType: selectedType,
+      });
+    }
+  };
+
   // 유저 카드 리스트
   const MAX_USERS = 6;
   const userSlots = room
@@ -157,10 +168,16 @@ const WaitingPage = () => {
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
-          <h1 className="p-4 text-xl">
-            {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
-          </h1>
+          <div className="flex flex-row gap-6 p-2 justify-around items-center">
+            <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
+            <h1 className="p-4 text-xl">
+              {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
+            </h1>
+            <GameTypeToggleButton
+              gameType={room?.gameType}
+              onToggle={handleGameTypeChange}
+            />
+          </div>
 
           <div className="flex flex-row gap-4 p-2 items-center">
             <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
