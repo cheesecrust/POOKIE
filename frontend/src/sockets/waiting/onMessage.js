@@ -8,12 +8,12 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
         case "USER_TEAM_CHANGED":
         case "USER_READY_CHANGED":
         case "PLAYER_LEFT": {
+
+
             const room = data.room;
             setRoom(room);
 
-            console.log("수신된 ROOM_JOINED 메시지:", data);
-
-            console.log("setRoom 직후 room 상태 확인", room);
+            console.log("onMessage:", data);
 
             // 본인이 속한 팀 추출
             const myTeam = room.RED.some((u) => u.id === user.id)
@@ -34,6 +34,7 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
             if (data.msg === "Lobby 로 돌아갑니다.") {
                 navigate("/home");
             }
+            console.log("수신된 LEAVE 메시지:", data);
             break;
 
         case "STARTED_GAME": {
@@ -44,12 +45,17 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
             }
             break;
         }
+        case "UPDATE_ROOM_LIST":
+            return;
+
+        case "REMOVED_ROOM":
+            return;
 
         case "ERROR":
             alert(data.msg);
             break;
 
         default:
-            console.warn("📭 처리되지 않은 메시지:", data);
+            console.warn("처리되지 않은 메시지:", data);
     }
 };

@@ -45,7 +45,7 @@ const WaitingPage = () => {
 
     const handleRawMessage = (e) => {
       try {
-        const data = JSON.parse(e.data); // 🔑 여기가 핵심!
+        const data = JSON.parse(e.data);
         handleWaitingMessage(data, {
           user,
           setRoom,
@@ -81,7 +81,6 @@ const WaitingPage = () => {
   // 방 나가기
   const handleLeaveRoom = () => {
     emitLeaveRoom({ roomId: room.id });
-    navigate("/home");
   };
 
   // 게임 시작
@@ -118,8 +117,6 @@ const WaitingPage = () => {
     ? (() => {
         // 1. RED와 BLUE를 그대로 합침 (순서 보존)
         const allUsers = [...room.RED, ...room.BLUE];
-        // 2. 유저가 들어온 순서대로 정렬
-        const sortedUsers = allUsers.sort((a, b) => a.id - b.id);
 
         //  그대로 순서대로 카드 정보 생성
         const combinedUsers = allUsers.map((u) => ({
@@ -160,20 +157,26 @@ const WaitingPage = () => {
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <h1 className="p-4 text-3xl">
-            {room?.title ?? "room_title"} -{" "}
-            {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6
+          <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
+          <h1 className="p-4 text-xl">
+            {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
           </h1>
 
-          <div className="flex flex-row gap-2 p-2 items-center">
-            {console.log("currentTeam in JSX:", team)}
+          <div className="flex flex-row gap-4 p-2 items-center">
             <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
             {isHost ? (
-              <ModalButton onClick={handleStartGame} disabled={!isStartEnabled}>
+              <ModalButton
+                onClick={handleStartGame}
+                disabled={!isStartEnabled}
+                className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
+              >
                 START
               </ModalButton>
             ) : (
-              <ModalButton onClick={handleReadyToggle}>
+              <ModalButton
+                onClick={handleReadyToggle}
+                className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
+              >
                 {isReady ? "준비 해제" : "준비 완료"}
               </ModalButton>
             )}
@@ -197,7 +200,7 @@ const WaitingPage = () => {
       <section className="basis-1/4 flex flex-col bg-rose-300">
         <div className="basis-1/8 m-4 flex justify-end items-center">
           <ModalButton
-            className="text-lg px-2 py-1 rounded-md"
+            className="text-lg px-2 py-1 rounded-md w-37 h-15"
             onClick={() => setIsExitModalOpen(true)}
           >
             방 나가기
