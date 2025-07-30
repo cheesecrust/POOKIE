@@ -7,7 +7,7 @@ import { handleWaitingMessage } from "../sockets/waiting/onMessage";
 import { getSocket } from "../sockets/common/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
-import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
+import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
@@ -103,11 +103,12 @@ const WaitingPage = () => {
 
   // 강퇴
   const handleKickConfirm = () => {
+    console.log("[🔴 강퇴 요청] 대상:", kickTarget);
     emitForceRemove({
       roomId: room.id,
       removeTargetId: kickTarget.userId,
       removeTargetNickname: kickTarget.userNickname,
-      removeTargetTeam: kickTarget.team,
+      removeTargetTeam: kickTarget.team.toUpperCase(),
     });
     setKickModalOpen(false);
   };

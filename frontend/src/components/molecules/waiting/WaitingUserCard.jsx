@@ -3,14 +3,20 @@
 
 import UserReady from "../../atoms/user/UserReady";
 import pookiepookie from "../../../assets/character/pookiepookie.png";
+import KickButton from "../../atoms/button/KickButton";
 
 const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
   const borderColor =
     user.team === "red" ? "border-red-500" : "border-blue-500";
 
-  // 우클릭시 kickoutmodal
   const handleContextMenu = (e) => {
     e.preventDefault();
+    if (isMyRoomMaster && !isMe) {
+      onRightClickKick?.(user);
+    }
+  };
+
+  const handleKickClick = () => {
     if (isMyRoomMaster && !isMe) {
       onRightClickKick?.(user);
     }
@@ -24,6 +30,9 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       <div
         className={`relative w-44 h-56 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
       >
+        {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
+        {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
+
         {/* 캐릭터 이미지 */}
         <img
           src={user.reqImg || pookiepookie}

@@ -9,14 +9,20 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
         case "USER_READY_CHANGED":
         case "CHANGED_GAMETYPE":
         case "PLAYER_LEFT": {
-
-
             const room = data.room;
+            console.log("onMessage: PLAYER_LEFT", data);
+
+            // 강퇴된 본인인지 확인
+            const stillInRoom = [...room.RED, ...room.BLUE].some((u) => u.id === user.id);
+
+            if (!stillInRoom) {
+                console.warn("🟠 강퇴됨: 홈으로 이동");
+                navigate("/home");
+                return;
+            }
+
             setRoom(room);
 
-            console.log("onMessage:", data);
-
-            // 본인이 속한 팀 추출
             const myTeam = room.RED.some((u) => u.id === user.id)
                 ? "RED"
                 : room.BLUE.some((u) => u.id === user.id)
@@ -25,7 +31,6 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
 
             setTeam(myTeam);
 
-            // 준비 여부 판단
             const me = room[myTeam]?.find((u) => u.id === user.id);
             setIsReady(me?.status === "READY");
             break;
