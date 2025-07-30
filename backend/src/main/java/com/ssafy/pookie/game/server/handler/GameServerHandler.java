@@ -55,27 +55,27 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case JOIN_ROOM:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
-                    gameService.handleJoin(session, join);
+                    gameRoomService.handleJoin(session, join);
                     break;
                 case LEAVE_ROOM:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
-                    gameService.handleLeave(session, join.getRoomId());
+                    gameRoomService.handleLeave(session, join.getRoomId());
                     break;
                 case USER_TEAM_CHANGE:
                     UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
                     userTeamChangeRequestDto.setUser(user);
-                    gameService.handleUserTeamChange(session, userTeamChangeRequestDto);
+                    gameRoomService.handleUserTeamChange(session, userTeamChangeRequestDto);
                     break;
                 case USER_READY_CHANGE:
                     UserStatusChangeDto userStatusChangeDto = objectMapper.convertValue(msg.getPayload(), UserStatusChangeDto.class);
                     userStatusChangeDto.setUser(user);
-                    gameService.handleUserStatus(session, userStatusChangeDto);
+                    gameRoomService.handleUserStatus(session, userStatusChangeDto);
                     break;
                 case USER_FORCED_REMOVE:
                     RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
                     roomMasterForcedRemovalDto.setRoomMaster(user);
-                    gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
+                    gameRoomService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                     break;
                 case CHANGE_GAMETYPE:
                     RoomGameTypeChangeRequestDto roomGameTypeChangeRequestDto = objectMapper.convertValue(msg.getPayload(), RoomGameTypeChangeRequestDto.class);
@@ -120,7 +120,8 @@ public class GameServerHandler extends TextWebSocketHandler {
             e.printStackTrace();
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "Type", "Error",
-                    "msg", "요청처리 중 문제가 발생하였습니다."
+                    "msg", "요청처리 중 문제가 발생하였습니다.",
+                    "log", e.getMessage()       // 서비스 시 제거
             ));
         }
     }
@@ -129,6 +130,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
+        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
         gameService.joinInLobby(session);
     }
 
@@ -136,5 +138,6 @@ public class GameServerHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("[WebSocket] Disconnected : "+ session.getId());
         gameService.removeFromLobby(session);
+        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }
 }

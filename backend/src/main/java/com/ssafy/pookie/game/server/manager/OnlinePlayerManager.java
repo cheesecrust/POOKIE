@@ -88,4 +88,11 @@ public class OnlinePlayerManager {
     public boolean isMemberExistInLobby(Long userId) {
         return lobby.containsKey(userId);
     }
+
+    /*
+        현재 세션에 해당 유저가 있는지 확인
+     */
+    public LobbyUserDto isExistLobby(UserDto user) {
+        return lobby.get(user.getUserAccountId());
+    }
 }
