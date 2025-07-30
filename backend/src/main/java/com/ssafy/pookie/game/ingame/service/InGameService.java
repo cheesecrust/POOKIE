@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import com.ssafy.pookie.webrtc.service.RtcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class InGameService {
     // TODO 모든 이벤트는 방장으로부터 오는지
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameKeywordsRepository gameKeywordsRepository;
+    private final RtcService rtcService;
 
     // TODO GameServerService 에서 분리해오기
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
@@ -61,6 +63,7 @@ public class InGameService {
                 return;
             }
             log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
+
             if(readyUserCnt != room.getSessions().size()) {
                 onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", "ERROR",
@@ -86,11 +89,13 @@ public class InGameService {
         // 게임중으로 업데이트
         onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
 
+        String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "STARTED_GAME",
                 "msg", "게임을 시작합니다.",
-                "turn", room.getTurn().toString()
+                "turn", room.getTurn().toString(),
+                "rtc_token", rtcToken
         ));
 
         deliverKeywords(room);
