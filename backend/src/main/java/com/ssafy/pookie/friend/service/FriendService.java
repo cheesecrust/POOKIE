@@ -10,6 +10,9 @@ import com.ssafy.pookie.friend.model.RequestStatus;
 import com.ssafy.pookie.friend.model.Status;
 import com.ssafy.pookie.friend.repository.FriendRequestsRepository;
 import com.ssafy.pookie.friend.repository.FriendsRepository;
+import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
+import com.ssafy.pookie.game.user.dto.UserDto;
+import com.ssafy.pookie.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +32,8 @@ public class FriendService {
     private final FriendRequestsRepository friendRequestsRepository;
     private final FriendsRepository friendsRepository;
     private final UserAccountsRepository userAccountsRepository;
+    private final OnlinePlayerManager onlinePlayerManager;
+    private final NotificationService notificationService;
 
     public FriendResponseDto sendFriendRequest(Long id, Long addresseeId) throws Exception {
         UserAccounts userAccount = userAccountsRepository.findById(id)
@@ -46,7 +52,7 @@ public class FriendService {
         return FriendResponseDto.from(friendRequest);
     }
 
-    public void acceptFriendRequest(Long requestId, Long userAccountId) {
+    public void acceptFriendRequest(Long requestId, Long userAccountId) throws IOException {
         FriendRequests friendRequest = friendRequestsRepository.findById(requestId)
                 .orElseThrow();
 
@@ -72,6 +78,9 @@ public class FriendService {
                 .build();
 
         friendsRepository.save(friendship);
+
+        UserDto user = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
+        notificationService.readEvent(user);
     }
 
     // 거절은 요청을 받은 사람이 거절

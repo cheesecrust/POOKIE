@@ -7,10 +7,7 @@ import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.timer.dto.GameTimerDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import lombok.*;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -19,10 +16,7 @@ import java.util.stream.Collectors;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-/*
-    7.25
-    roomTitle 과 roomId 구분
- */
+@Builder
 public class RoomStateDto {
     public enum Status {WAITING, START, END};
     public enum Turn {RED, BLUE, NONE};
@@ -242,5 +236,13 @@ public class RoomStateDto {
     public boolean validationTempScore(TurnDto tempResult) {
         return this.getTempTeamScores().get(this.getTurn().toString())
                 .equals(tempResult.getScore());
+    }
+
+    // 현재 방에 Session 을 제거한다. -> 팀에서도 제거해야함
+    public void removeUser(WebSocketSession session) {
+        this.sessions.remove(session);
+        for (String team : this.getUsers().keySet()) {
+            this.users.get(team).removeIf(user -> user.getSession() == session);
+        }
     }
 }
