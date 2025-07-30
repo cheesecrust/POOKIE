@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
+import com.ssafy.pookie.game.timer.dto.GameTimerDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,9 @@ public class RoomStateDto {
     public enum Status {WAITING, START, END};
     public enum Turn {RED, BLUE, NONE};
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
+
+    // 타이머
+    private GameTimerDto timer;
 
     private String roomId;
     private String roomTitle;
@@ -130,8 +134,8 @@ public class RoomStateDto {
     private Integer redTeamScore;
     private Integer blueTeamScore;
     public void roundOver() {
-        redTeamScore = this.teamScores.get(Turn.RED.toString());
-        blueTeamScore = this.teamScores.get(Turn.BLUE.toString());
+        redTeamScore = this.tempTeamScores.get(Turn.RED.toString());
+        blueTeamScore = this.tempTeamScores.get(Turn.BLUE.toString());
         // 승 패
         if(redTeamScore > blueTeamScore) {
             this.teamScores.merge(Turn.RED.toString(), 1, Integer::sum);
@@ -174,8 +178,8 @@ public class RoomStateDto {
                         "BLUE", this.blueTeamScore
                 ),
                 "gameResult", Map.of(
-                        "RED", this.getTempTeamScores().get(Turn.RED.toString()),
-                        "BLUE", this.getTempTeamScores().get(Turn.BLUE.toString())
+                        "RED", this.getTeamScores().get(Turn.RED.toString()),
+                        "BLUE", this.getTeamScores().get(Turn.BLUE.toString())
                 )
         );
 
@@ -192,7 +196,7 @@ public class RoomStateDto {
     public Map<String, Object> mappingRoomInfo() {
         Map<String, Object> roomInfo = new LinkedHashMap<>();
         roomInfo.put("id", this.getRoomId());
-        roomInfo.put("name", this.getRoomTitle());
+        roomInfo.put("title", this.getRoomTitle());
         roomInfo.put("gameType", this.getGameType().toString());
         roomInfo.put("master", Map.of(
                 "id", this.getRoomMaster().getUserAccountId(),
@@ -222,9 +226,21 @@ public class RoomStateDto {
         roomInfo.put("teamInfo", Map.of(
                 "RED", this.getUsers().getOrDefault("RED", List.of()).size(),
                 "BLUE", (this.getUsers().getOrDefault("BLUE", List.of()).size()),
-                "total", this.getUsers().getOrDefault("RED", List.of()).size()+this.getUsers().getOrDefault("BLUE", List.of()).size()
+                "TOTAL", this.getUsers().getOrDefault("RED", List.of()).size()+this.getUsers().getOrDefault("BLUE", List.of()).size()
         ));
 
         return roomInfo;
+    }
+
+    public void updateTempScore() {
+        this.tempTeamScores.merge(this.getTurn().toString(),
+                1, Integer::sum);
+        this.getGameInfo().afterAnswerCorrect();
+    }
+
+    // TempScore 를 확인한다. -> 서버와 클라이언트 교차검증
+    public boolean validationTempScore(TurnDto tempResult) {
+        return this.getTempTeamScores().get(this.getTurn().toString())
+                .equals(tempResult.getScore());
     }
 }

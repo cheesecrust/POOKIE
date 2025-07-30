@@ -6,6 +6,7 @@ import ModalButton from "../../atoms/button/ModalButton";
 import SocialButton from "../../atoms/button/SocialButton";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { connectSocket, closeSocket } from "../../../sockets/common/websocket"
 
 const SignUpModal = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
@@ -46,7 +47,43 @@ const SignUpModal = ({ isOpen, onClose }) => {
         if (res?.success) {
             setSuccess(true)
             const currentUser = useAuthStore.getState().user;
+            const accessToken = useAuthStore.getState().accessToken;
+            
             console.log('현재 로그인 유저:', currentUser?.nickname)
+            
+            // 중복 방지 위해 연결 종료
+            closeSocket();
+            // websocket 연결 시작
+            connectSocket({
+                url: import.meta.env.VITE_SOCKET_URL,
+                token: accessToken,
+                onOpen: (e) => {
+                    // 연결 완료 시, 접속 메시지 전송
+                },
+                // Type: ON 파싱 메시지
+                onMessage: (e) => {
+                    try {
+                      const data = JSON.parse(e.data);
+                      console.log("[WebSocket MESSAGE]", data);
+                  
+                      if (data.type === "ON") {
+                        console.log("🟢 유저 연결 성공:", data.user?.userId);
+                      } else if (data.type === "ERROR") {
+                        console.error("❌ 서버 에러:", data.message);
+                      } else {
+                        console.log("📦 기타 메시지:", data);
+                      }
+                    } catch (err) {
+                      console.error("[WebSocket MESSAGE ERROR]", err);
+                    }
+                },                  
+                onClose: (e) => {
+                    console.log("[WebSocket CLOSE]", e);
+                },
+                onError: (e) => {
+                    console.log("[WebSocket ERROR]", e);
+                },
+            });
             onClose();
             navigate('/home'); // 홈으로 리디렉션
         } else {
@@ -59,6 +96,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
             isOpen={isOpen}
             onClose={onClose}
             className="w-[550px] min-h-[500px]"
+            closeBackdropClick={false}
         >
             <h2 className="text-center text-2xl font-bold mt-4 mb-8">회원가입</h2>
     

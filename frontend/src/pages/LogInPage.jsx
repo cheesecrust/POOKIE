@@ -3,6 +3,7 @@ import LogInModal from "../components/organisms/login/LogInModal";
 import SignUpModal from "../components/organisms/login/SignUpModal"
 import FindPasswordModal from "../components/organisms/login/FindPasswordModal";
 import backgroundLogIn from "../assets/background/background_login.png"
+import TitleLogo from "../assets/icon/title_logo.png"
 import { useState } from "react";
 
 const LogInPage = () => {
@@ -17,6 +18,13 @@ const LogInPage = () => {
           src={backgroundLogIn}
           alt="login background"
           className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+        />
+
+        {/* 로고 */}
+        <img
+          src={TitleLogo}
+          alt="titlelogo"
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-250 animate-bounce"
         />
   
         {/* 모달 */}

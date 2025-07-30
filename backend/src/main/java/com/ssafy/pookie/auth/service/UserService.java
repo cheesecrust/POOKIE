@@ -9,11 +9,16 @@ import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.auth.repository.UsersRepository;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.friend.dto.FriendDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +46,6 @@ public class UserService {
         Users user = Users.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .username(signupRequest.getNickname())
                 .build();
 
         UserAccounts account = UserAccounts.builder()
@@ -79,7 +83,7 @@ public class UserService {
             return LoginResponseDto.builder()
                     .userAccountId(user.getId())
                     .email(user.getEmail())
-                    .nickname(user.getUsername())
+                    .nickname(userAccount.getNickname())
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
@@ -108,6 +112,7 @@ public class UserService {
             // 사용자 정보 조회
             Users user = usersRepository.findById(userAccountId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            UserAccounts userAccount = user.getUserAccount();
 
             // 새로운 토큰 생성
             String newAccessToken = jwtTokenProvider.createAccessToken(userAccountId, user.getEmail(), user.getUserAccount().getNickname());
@@ -116,7 +121,7 @@ public class UserService {
             return LoginResponseDto.builder()
                     .userAccountId(user.getId())
                     .email(user.getEmail())
-                    .nickname(user.getUsername())
+                    .nickname(userAccount.getNickname())
                     .accessToken(newAccessToken)
                     .refreshToken(newRefreshToken)
                     .build();
@@ -143,6 +148,10 @@ public class UserService {
                 .nickname(userAccount.getNickname())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    public Page<UserAccounts> getUsers(String search, Pageable pageable) {
+        return userAccountsRepository.findByNicknameContains(search, pageable);
     }
 }
 
