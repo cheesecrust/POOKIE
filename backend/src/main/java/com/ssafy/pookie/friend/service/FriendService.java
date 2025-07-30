@@ -171,4 +171,9 @@ public class FriendService {
                 (friend) -> FriendDto.from(friend, Status.ACTIVE, userId)
         );
     }
+
+    public boolean deleteFriendRequest(Long userAccountId, Long friendRequestId) {
+        int deleteRows = friendRequestsRepository.deleteByLetterIdAndUserInvolved(friendRequestId, userAccountId);
+        return deleteRows > 0;
+    }
 }
