@@ -125,7 +125,7 @@ public class InGameService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             onlinePlayerManager.sendToMessageUser(rep.getSession(), Map.of(
                     "type", "KEYWORD",
-                    "Keywords", keywordList,
+                    "KeywordList", keywordList,
                     "keywordIdx", room.getGameInfo().getKeywordIdx(),
                     "repIdxList", room.getGameInfo().repAccountIdxList(),
                     "norIdxList", room.getGameInfo().norAccountIdxList()
