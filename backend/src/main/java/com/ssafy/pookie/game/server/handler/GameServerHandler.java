@@ -113,7 +113,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case TIMER_START:
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
-                    gameTimerService.handleStartTimer(timerRequest);
+                    gameTimerService.preTimer(timerRequest);
                     break;
             }
         } catch(Exception e) {
