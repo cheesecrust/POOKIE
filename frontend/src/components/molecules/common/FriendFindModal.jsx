@@ -17,7 +17,7 @@ const FriendFindModal = ({ onClose }) => {
   // 전체 페이지 수 
   const [totalPages, setTotalPages] = useState(2);
   // 현재 페이지
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   // 검색 실패 여부 
   const [notFound, setNotFound] = useState(false);
 
@@ -83,7 +83,7 @@ return (
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="유저 ID를 입력하세요"
+            placeholder="유저 닉네임을을 입력하세요"
             className="w-full h-[42px] pl-4 pr-10 rounded-full text-base outline-none bg-white shadow-md"
           />
           <button
