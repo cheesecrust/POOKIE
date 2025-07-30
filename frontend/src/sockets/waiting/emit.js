@@ -6,6 +6,8 @@ import { sendMessage } from '../common/websocket';
  * 팀 변경 요청 emit
  */
 export const emitTeamChange = ({ roomId, curTeam }) => {
+	console.log("[EMIT] USER_TEAM_CHANGE payload:", { roomId, curTeam });
+
 	sendMessage('USER_TEAM_CHANGE', {
 		roomId,
 		curTeam,

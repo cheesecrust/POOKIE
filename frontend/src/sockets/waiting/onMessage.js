@@ -11,6 +11,10 @@ export const handleWaitingMessage = (data, { user, setRoom, setTeam, setIsReady,
             const room = data.room;
             setRoom(room);
 
+            console.log("수신된 ROOM_JOINED 메시지:", data);
+
+            console.log("setRoom 직후 room 상태 확인", room);
+
             // 본인이 속한 팀 추출
             const myTeam = room.RED.some((u) => u.id === user.id)
                 ? "RED"
