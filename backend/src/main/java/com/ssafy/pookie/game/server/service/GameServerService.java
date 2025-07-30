@@ -171,7 +171,7 @@ public class GameServerService {
     // User 가 Room 을 떠날 때
     public void handleLeave(WebSocketSession session, String roomId) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
-        if(isAuthorized(session, room)) return;
+        if(!onlinePlayerManager.isAuthorized(session, room)) return;
         String leaveUserNickName = "";
         // 해당 룸에서 세션과 유저 제거
         boolean find = false;
@@ -278,7 +278,7 @@ public class GameServerService {
     // User 팀 바꾸기
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(teamChangeRequest.getRoomId());
-        if(isAuthorized(session, room)) return;
+        if(!onlinePlayerManager.isAuthorized(session, room)) return;
 
         if(!teamChangeRequest.changeTeam(room)) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -298,7 +298,7 @@ public class GameServerService {
     // 유저 READY 상태 변경
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
+        if(!onlinePlayerManager.isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
 
         if(!request.changeStatus(room)) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -315,7 +315,7 @@ public class GameServerService {
     // 유저 강퇴 ( 방장만 )
     public void handleForcedRemoval(WebSocketSession session, RoomMasterForcedRemovalDto request) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(isAuthorized(session, room)) return;
+        if(!onlinePlayerManager.isAuthorized(session, room)) return;
 
         // 방장인지 확인
         if(room.getRoomMaster().getSession() != session) return;
@@ -380,12 +380,6 @@ public class GameServerService {
      */
     public LobbyUserDto isExistLobby(UserDto user) {
         return onlinePlayerManager.getLobby().get(user.getUserAccountId());
-    }
-    /*
-        해당 방이 존재하고, 해당 유저의 권한이 있는지
-     */
-    public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
-        return room == null || !room.isIncluded(session);
     }
     /*
         현재 생성되어 있는 방 리스트 전달

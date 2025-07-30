@@ -35,7 +35,7 @@ public class OnlinePlayerManager {
     // 2. 해당 대기방 전체
     public void broadCastMessageToRoomUser(WebSocketSession session, String RoomId, String team, Map<String, Object> msg) throws IOException {
         RoomStateDto room = this.rooms.get(RoomId);
-        if(isAuthorized(session, room)) return;
+        if(!isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
         if(team != null) {
@@ -51,9 +51,20 @@ public class OnlinePlayerManager {
 
     /*
         해당 방이 존재하고, 해당 유저의 권한이 있는지
+        권한 있음 : true
+        권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
-        return room == null || !room.isIncluded(session);
+        return room != null && room.isIncluded(session);
+    }
+
+    /*
+        해당 요청이 방장이 보낸 요청이 맞는지
+        방장 O : true
+        방장 X : false
+     */
+    public Boolean isMaster(WebSocketSession session, RoomStateDto room) {
+        return room.getRoomMaster().getSession() == session;
     }
 
     // Lobby 에 있는 User 의 Status Update
