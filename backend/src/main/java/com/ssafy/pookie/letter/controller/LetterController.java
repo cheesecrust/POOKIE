@@ -89,4 +89,14 @@ public class LetterController {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @PostMapping("/report/{letterId}")
+    public ResponseEntity<ApiResponse<?>> reportLetter(
+            @PathVariable Long letterId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) throws Exception {
+        Long userAccountId = userDetails.getUserAccountId();
+        boolean result = letterService.reportLetters(userAccountId, letterId);
+        return ResponseEntity.ok(ApiResponse.success("신고되었습니다.", result));
+    }
 }

@@ -103,4 +103,12 @@ public class LetterService {
         int deletedRows = lettersRepository.deleteByLetterIdAndUserInvolved(letterId, userAccountId);
         return deletedRows > 0;
     }
+
+    public boolean reportLetters(Long userAccountId, Long letterId) throws Exception {
+        Letters letters = lettersRepository.findByLetterIdAndUserInvolved(userAccountId, letterId)
+                .orElseThrow(() -> new Exception("letter not found"));
+        letters.updateStatus(LetterStatus.REPORT);
+        lettersRepository.save(letters);
+        return true;
+    }
 }
