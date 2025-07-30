@@ -5,7 +5,7 @@
 // </BasicModal>
 import { useEffect } from 'react'
 
-const BasicModal = ({ isOpen, onClose, children, className=" " }) => {
+const BasicModal = ({ isOpen, onClose, children, className=" ", backgroundPoacity = "opacity-70", }) => {
 
     useEffect(() => {
         if (!isOpen) return;
@@ -38,7 +38,7 @@ const BasicModal = ({ isOpen, onClose, children, className=" " }) => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* 배경 박스만 따로 */}
-            <div className="absolute inset-0 bg-[#FDE1F0] opacity-70 backdrop-blur-sm rounded-xl z-0" />
+            <div className={`absolute inset-0 bg-[#FDE1F0] ${backgroundPoacity} backdrop-blur-sm rounded-xl z-0`} />
       
             {/* 모달 내부 콘텐츠는 선명하게 유지 */}
             <div className="relative z-10">

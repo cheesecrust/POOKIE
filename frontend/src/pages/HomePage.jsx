@@ -1,14 +1,77 @@
 // src/pages/HomePage.jsx
-import RoomPasswordModal from "../components/organisms/home/RoomPasswordModal";
-import RoomCreateModal from  "../components/organisms/home/RoomCreateModal";
+import RoomCreateModal from "../components/organisms/home/RoomCreateModal";
+import ModalButton from "../components/atoms/button/ModalButton";
 import RoomList from "../components/organisms/home/RoomList";
 import Header from "../components/molecules/home/Header";
 import Footer from "../components/molecules/home/Footer";
 import SearchBar from "../components/molecules/home/SearchBar";
-import { useState } from 'react'
+import toggleLeft from "../assets/icon/toggle_left.png";
+import defaultCharacter from "../assets/character/pookiepookie.png";
+import useAuthStore from "../store/store";
+import { useRef, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { handleHomeSocketMessage } from "../sockets/home/onmessage";
+import { getSocket } from "../sockets/common/websocket";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const { logout, user } = useAuthStore();
+  const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
+  const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
+
+  // 소켓 연결 값
+  const userRef = useRef(user);
+  const roomListRef = useRef([]);
+
+    // ✅ 소켓 메시지 핸들러 설정
+    useEffect(() => {
+      const socket = getSocket();
+      if (!socket) return;
+  
+      socket.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        console.log("🟢 수신된 소켓 메시지:", msg);
+        handleHomeSocketMessage(msg, {
+          onUserReceived: (user) => {
+            userRef.current = user;
+            rerender((prev) => prev + 1);
+            console.log(userRef.current)
+          },
+          onRoomListReceived: (rooms) => {
+            roomListRef.current = rooms;
+            rerender((prev) => prev + 1);
+            console.log(roomListRef.current)
+          },
+          navigateToWaiting: (room) => {
+            console.log('대기실로 이동 할거야');
+            navigate("/waiting", { state: { room } });
+            console.log('대기실로 이동함!')
+          },
+          showErrorModal: (msg) => alert(msg),
+          closeRoomModal: () => setRoomCreateModalOpen(false),
+        });
+      };
+  
+      socket.onopen = () => console.log("🟢 WebSocket 연결 완료 (Home)");
+      socket.onclose = (e) => {
+        console.log("🔴 WebSocket 연결 종료 (Home)", {
+          code: e.code,
+          reason: e.reason,
+          wasClean: e.wasClean,
+          location: window.location.pathname,
+        });
+      };      
+      socket.onerror = (e) =>
+        console.error("❌ WebSocket 에러 (Home):", e.message);
+  
+      return () => {
+        socket.onmessage = null;
+        socket.onopen = null;
+        socket.onclose = null;
+        socket.onerror = null;
+      };
+    }, []);
 
   // 🔍 검색 함수 (백엔드 연동 시 수정 예정)
   const handleSearch = (keyword) => {
@@ -23,39 +86,100 @@ const HomePage = () => {
       <Header />
 
       {/* 본문 콘텐츠 */}
-      <main className="flex-grow flex flex-col items-center">
-        {/* 상단 텍스트 + 버튼 + 유저 정보 → 추후 컴포넌트로 분리 가능 */}
-        <div className="w-full max-w-[900px] mt-8 px-4 text-center space-y-4">
-          <h1 className="text-2xl font-bold">오늘도 좋은 하루!<br/>다예님, 어서오세요~</h1>
+      <main className="flex-grow flex flex-col items-center mt-10">
+        {/* 좌우 배치: 텍스트+버튼(왼쪽) + 유저 프로필(오른쪽) */}
+        <div className="w-full max-w-[900px] mt-8 px-4 flex gap-2 items-start">
+          {/* 왼쪽: 텍스트 + 버튼 */}
+          <div className="w-[55%]">
+            <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
+              오늘도 좋은 하루!<br />{userRef.current?.userNickname}님, 어서오세요~!
+            </h1>
 
-          {/* 버튼 영역 */}
-          <div className="flex justify-center gap-4">
-            <button className="bg-[#F4C0C0] px-6 py-2 rounded-full shadow-md hover:brightness-95">
-              ▶ 방 생성하기
-            </button>
-            <button className="bg-white px-6 py-2 rounded-full shadow-md hover:brightness-95">
-              ▶ 혼자 하기
-            </button>
+            <div className="flex gap-4 mt-8">
+              <ModalButton
+                onClick={() => setRoomCreateModalOpen(true)}
+                className="px-6 py-2 rounded-full shadow-md hover:brightness-95"
+              >
+                방 생성하기
+              </ModalButton>
+              <ModalButton
+                onClick={() => setRoomCreateModalOpen(true)}
+                className="px-6 py-2 rounded-full shadow-md hover:brightness-95"
+              >
+                혼자 하기
+              </ModalButton>
+            </div>
           </div>
 
-          {/* (예시) 유저 프로필 */}
-          <div className="flex justify-center mt-2">
-            <div className="bg-white p-4 rounded-xl border shadow-sm">
-              <p className="font-semibold">닉네임: 다예</p>
-              <p>LV. 3</p>
-              <p>EXP: 100</p>
-              <button className="text-sm underline mt-1">로그아웃</button>
+          {/* 오른쪽: 유저 프로필 */}
+          <div className="bg-white p-4 rounded-xl border shadow-sm w-[45%] text-sm text-left flex flex-row gap-4 items-center">
+            {/* 왼쪽: 대표 캐릭터 이미지 */}
+            <div className="flex-shrink-0">
+              <img
+                src={userRef?.current?.repImg || defaultCharacter}
+                alt="대표캐릭터"
+                className="w-32 h-32 object-contain"
+              />
             </div>
+
+            {/* 오른쪽: 유저 정보 + 마이페이지지 버튼 묶음 */}
+            <div className="flex flex-col justify-between flex-grow h-full">
+              {/* 유저 정보 */}
+              <div className="flex flex-col gap-1">
+                <p className="font-semibold">닉네임 : {userRef?.current?.userNickname}</p>
+                <p>EXP : {userRef?.current?.userExp ?? 0}</p>
+                <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
+                  <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
+                </div>
+              </div>
+
+              {/* 마이페이지 버튼 (하단 고정) */}
+              <div className="flex justify-end mt-4">
+                <ModalButton
+                  onClick={async () => {
+                    navigate('/myroom');
+                  }}
+                  className="w-fit"
+                >
+                  마이페이지
+                </ModalButton>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+        {/* 오른쪽 하단 로그아웃 */}
+        <div className="w-full max-w-[900px] px-4 flex justify-end mt-2 mr-4">
+          <div
+              className="flex items-center gap-1 hover:underline cursor-pointer"
+              onClick={async () => {
+                await logout();
+                navigate('/');
+              }}
+          >
+              <img src={toggleLeft} alt="화살표" className="w-3 h-3 mr-1" />
+              <span>로그아웃</span>
           </div>
         </div>
 
         {/* 검색창 */}
-        <SearchBar onSearch={handleSearch} />
+        <div className="w-full max-w-[900px] mt-10 mb-6">
+          <SearchBar
+            onSearch={handleSearch}
+            placeholder="방 이름으로 검색"
+          />
+        </div>
 
         {/* 방 리스트 */}
-        <RoomList keyword={keyword} />
-      </main>
+        <RoomList
+          keyword={keyword}
+          roomList={roomListRef.current}
+        />
 
+        {/* 모달 */}
+        <RoomCreateModal isOpen={roomCreateModalOpen} onClose={() => setRoomCreateModalOpen(false)} />
+      </main>
       {/* 하단 고정 푸터 */}
       <Footer />
     </div>

@@ -35,7 +35,7 @@ public class InGameService {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-        if(onlinePlayerManager.isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
+        if(!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) return;
         // 1. 방 인원이 모드 채워졌는지
         if(room.getSessions().size() < 6) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -170,7 +170,7 @@ public class InGameService {
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto gameResult) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
-        if(onlinePlayerManager.isAuthorized(session, room) || room.getRoomMaster().getSession() != session) return;
+        if(!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) return;
         // TURN_CHANGE 이벤트는 RED 에서만 일어남
         if(room.getTurn() != RoomStateDto.Turn.RED) return;
         // 클라이언트와 서버의 데이터를 교차 검증한다.

@@ -7,6 +7,7 @@ import toggleLeft from "../../../assets/icon/toggle_left.png"
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../../store/store";
+import { connectSocket, closeSocket } from "../../../sockets/common/websocket";
 
 const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
     const [email, setEmail] = useState("");
@@ -25,8 +26,47 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
 
         if (res.success) {
             alert('로그인 성공!')
+
             const currentUser = useAuthStore.getState().user;
+            const accessToken = useAuthStore.getState().accessToken;
+
             console.log('현재 로그인 유저:', currentUser)
+
+            // 중복 방지 위해 연결 종료
+            closeSocket();
+            // websocket 연결 시작
+            connectSocket({
+                url: import.meta.env.VITE_SOCKET_URL,
+                token: accessToken,
+                onOpen: (e) => {
+                                // 연결 완료 시, 접속 메시지 전송
+                },
+                // Type: ON 파싱 메시지
+                onMessage: (e) => {
+                    try {
+                      const data = JSON.parse(e.data);
+                      console.log("[WebSocket MESSAGE]", data);
+                  
+                      if (data.type === "ON") {
+                        console.log("🟢 유저 연결 성공:", data.user?.userId);
+                      } else if (data.type === "ERROR") {
+                        console.error("❌ 서버 에러:", data.message);
+                      } else {
+                        console.log("📦 기타 메시지:", data);
+                      }
+                    } catch (err) {
+                      console.error("[WebSocket MESSAGE ERROR]", err);
+                    }
+                },                  
+                onClose: (e) => {
+                    console.log("[WebSocket CLOSE]", e);
+                },
+                onError: (e) => {
+                    console.log("[WebSocket ERROR]", e);
+                },
+            });
+            
+            // 모달 닫은 후, 페이지 이동
             onClose();
             navigate('/home'); // 홈으로 리디렉션
         } else {

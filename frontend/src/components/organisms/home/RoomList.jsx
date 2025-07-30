@@ -1,37 +1,46 @@
 // src/components/organisms/home/RoomList.jsx
 import RoomCard from "../../molecules/home/RoomCard";
+import RoomPasswordModal from "../../organisms/home/RoomPasswordModal";
 import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
+import { emitJoinRoom } from "../../../sockets/home/emit";
 
-// 더미 데이터
-const dummyRooms = [
-  { id: 1, title: "room_title", type: "samepose", participants: 5 },
-  { id: 2, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 3, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 4, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 5, title: "room_title", type: "samepose", participants: 5 },
-  { id: 6, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 7, title: "room_title", type: "samepose", participants: 5 },
-  { id: 8, title: "room_title", type: "sketchrelay", participants: 5 },
-  { id: 9, title: "room_title", type: "silentscream", participants: 5 },
-  { id: 10, title: "room_title", type: "samepose", participants: 5 },
-];
-
-const itemsPerPage = 4;
-
-const RoomList = () => {
+const RoomList = ({ roomList, keyword }) => {
+  const [secureRoom, setSecureRoom] = useState(null);
+  const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
-  // 필터링
+  // 비밀번호 모달
+  const handlePasswordRequest = (room) => {
+    setSecureRoom(room);
+    setRoomPasswordModalOpen(true);
+  }
+
+  const handlePasswordSubmit = (roomPw) => {
+    emitJoinRoom({
+      roomId: secureRoom.roomId,
+      gameType: secureRoom.gameType,
+      roomPw: roomPw,
+    });
+    setRoomPasswordModalOpen(false);
+    setSecureRoom(null);
+  }
+
+
+  // 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
-    if (activeTab === "all") return dummyRooms;
-    if (activeTab === "waiting") {
-      return dummyRooms.filter((room) => room.participants < 6);
+    if (keyword) {
+      return roomList.filter((room) => room.roomTitle.toLowerCase().includes(keyword.toLowerCase()));
     }
-    return dummyRooms.filter((room) => room.type === activeTab);
-  }, [activeTab]);
+    if (activeTab === "all") return roomList;
+    if (activeTab === "waiting") {
+      return roomList.filter((room) => room.teamInfo?.total < 6);
+    }
+    return roomList.filter((room) => room.gameType?.toLowerCase() === activeTab);
+  }, [roomList, activeTab, keyword]);
 
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
   const paginatedRooms = filteredRooms.slice(
@@ -57,11 +66,10 @@ const RoomList = () => {
           <div className="grid grid-cols-2 gap-10 place-items-center">
             {paginatedRooms.map((room) => (
               <RoomCard
-                key={room.id}
-                roomTitle={room.title}
-                roomType={room.type}
-                participantCount={room.participants}
-                onClick={() => console.log(`${room.title} 입장`)}
+                key={room.roomId}
+                room={room}
+                participantCount={room.teamInfo?.total}
+                onPasswordRequest={handlePasswordRequest}
               />
             ))}
           </div>
@@ -75,6 +83,14 @@ const RoomList = () => {
           />
         </div>
       </div>
+
+      {/* 비밀번호 모달 */}
+      <RoomPasswordModal
+        isOpen={roomPasswordModalOpen}
+        onClose={() => setRoomPasswordModalOpen(false)}
+        room={secureRoom}
+        onSubmit={handlePasswordSubmit}
+      />
     </div>
   );
 };
