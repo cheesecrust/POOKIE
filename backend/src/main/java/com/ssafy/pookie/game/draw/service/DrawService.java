@@ -4,6 +4,7 @@ import com.ssafy.pookie.game.draw.dto.DrawEvent;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class DrawService {
 
     private final Map<String, List<DrawEvent>> canvasHistory = new ConcurrentHashMap<>();
@@ -29,11 +31,12 @@ public class DrawService {
         Map<String, Object> msg = convertDrawEventToMsg(drawEvent);
         // 같은 방의 다른 사용자들에게 브로드캐스트
         onlinePlayerManager.broadCastMessageToRoomUser(
-                userDto.getSession(), drawEvent.getRoomId(), userDto.getTeam().toString(), msg
+                userDto.getSession(), drawEvent.getRoomId(), null, msg
         );
     }
 
     private Map<String, Object> convertDrawEventToMsg(DrawEvent drawEvent) {
+        log.info(String.valueOf(drawEvent));
         return Map.of(
                 "roomId", drawEvent.getRoomId(),
                 "userAccountId", drawEvent.getUser().getUserAccountId(),
