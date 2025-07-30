@@ -19,6 +19,7 @@ const SketchRelayPage_VIDU = () => {
   const [firstUser, setFirstUser] = useState(null);
 
   const roomRef = useRef(null);
+  const myUserId = localStorage.getItem("userId");
 
   // ✅ LiveKit 연결
   useEffect(() => {
@@ -39,11 +40,13 @@ const SketchRelayPage_VIDU = () => {
          // ✅ 방에 있는 참가자 수 확인 후 firstUser 지정
         if (newRoom.remoteParticipants.size === 0) {
           // 내가 첫 참가자
-          setFirstUser(participantName);
+          setFirstUser(myUserId);
         } else {
           // 이미 다른 참가자가 있음 → 그 중 한 명을 firstUser로 지정
           const [firstParticipant] = newRoom.remoteParticipants.values();
-          setFirstUser(firstParticipant.identity);
+          const participantUserId = firstParticipant.metadata?.userId 
+            || localStorage.getItem(`userId_${firstParticipant.identity}`);
+          setFirstUser(participantUserId);
         }
 
         const handleTrackSubscribed = (track, publication, participant) => {
@@ -92,55 +95,83 @@ const SketchRelayPage_VIDU = () => {
   }, [roomName, participantName]);
 
   // ✅ 캠 캡처 후 FastAPI 전송
-  const handleCapture = async () => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const formData = new FormData();
+    const handleCapture = async () => {
+    console.log("📸 사진 촬영 준비 중... 5초 뒤에 촬영됩니다!");
 
-    const captureTrack = (videoTrack, identity) => {
+    setTimeout(async () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const formData = new FormData();
+
+      const captureTrack = (videoTrack, identity) => {
         return new Promise((resolve) => {
-            const videoEl = document.createElement("video");
-            videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
-            videoEl.muted = true;
-            videoEl.playsInline = true;
+          const videoEl = document.createElement("video");
+          videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+          videoEl.muted = true;
+          videoEl.playsInline = true;
 
-            videoEl.onloadedmetadata = () => {
+          videoEl.addEventListener("loadeddata", () => {
             videoEl.play().then(() => {
-                canvas.width = videoEl.videoWidth;
-                canvas.height = videoEl.videoHeight;
-                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+              if (videoEl.requestVideoFrameCallback) {
+                videoEl.requestVideoFrameCallback(() => {
+                  const width = videoEl.videoWidth;
+                  const height = videoEl.videoHeight;
 
-                canvas.toBlob((blob) => {
-                const safeIdentity = identity.startsWith("dummyuser_") 
-                    ? identity 
-                    : `dummyuser_${identity}`;
-                formData.append("images", blob, `${safeIdentity}.png`);
-                resolve();
-                }, "image/png");
+                  canvas.width = width;
+                  canvas.height = height;
+                  ctx.drawImage(videoEl, 0, 0, width, height);
+
+                  canvas.toBlob((blob) => {
+                    const safeIdentity = identity.startsWith("dummyuser_")
+                      ? identity
+                      : `dummyuser_${identity}`;
+                    formData.append("images", blob, `${safeIdentity}.png`);
+                    resolve();
+                  }, "image/png");
+                });
+              } else {
+                setTimeout(() => {
+                  const width = videoEl.videoWidth;
+                  const height = videoEl.videoHeight;
+
+                  canvas.width = width;
+                  canvas.height = height;
+                  ctx.drawImage(videoEl, 0, 0, width, height);
+
+                  canvas.toBlob((blob) => {
+                    const safeIdentity = identity.startsWith("dummyuser_")
+                      ? identity
+                      : `dummyuser_${identity}`;
+                    formData.append("images", blob, `${safeIdentity}.png`);
+                    resolve();
+                  }, "image/png");
+                }, 200);
+              }
             });
-            };
+          });
         });
-    };
+      };
 
-    // ✅ 본인 + 모든 참가자
-    if (publisherTrack) {
-      await captureTrack(publisherTrack.track, publisherTrack.identity);
-    }
-    for (const user of [...redTeam, ...blueTeam]) {
-      await captureTrack(user.track, user.identity);
-    }
+      // ✅ 본인 + 모든 참가자 캡처
+      if (publisherTrack) {
+        await captureTrack(publisherTrack.track, publisherTrack.identity);
+      }
+      for (const user of [...redTeam, ...blueTeam]) {
+        await captureTrack(user.track, user.identity);
+      }
 
-    // ✅ FastAPI로 전송
-    try {
-      const res = await fetch(FASTAPI_URL, {
-        method: "POST",
-        body: formData,
-      });
-      const result = await res.json();
-      console.log("✅ FastAPI 응답:", result);
-    } catch (err) {
-      console.error("❌ FastAPI 전송 실패:", err);
-    }
+      // ✅ FastAPI로 전송
+      try {
+        const res = await fetch(FASTAPI_URL, {
+          method: "POST",
+          body: formData,
+        });
+        const result = await res.json();
+        console.log("✅ FastAPI 응답:", result);
+      } catch (err) {
+        console.error("❌ FastAPI 전송 실패:", err);
+      }
+    }, 5000); // 5초 후 실행
   };
 
   // JWT 토큰 요청
@@ -172,7 +203,7 @@ const SketchRelayPage_VIDU = () => {
         </div>
 
         {/* 사진 찍기 버튼 (첫 참가자만 보임) */}
-        {firstUser === participantName && (
+        {firstUser === myUserId && (
           <button
             onClick={handleCapture}
             className="bg-yellow-400 px-4 py-2 rounded shadow-lg mt-4"
