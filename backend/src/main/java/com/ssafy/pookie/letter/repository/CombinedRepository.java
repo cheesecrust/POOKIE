@@ -13,7 +13,7 @@ import java.util.List;
 public interface CombinedRepository extends JpaRepository<Letters, Long> {
     @Query(value = """
         (SELECT 
-            l.id, 
+            l.id as requestId, 
             l.receiver_id as receiverId,
             u_receiver.nickname as receiverNickname,
             l.sender_id as senderId, 
@@ -30,7 +30,7 @@ public interface CombinedRepository extends JpaRepository<Letters, Long> {
         UNION ALL
         
         (SELECT 
-            fr.id,
+            fr.id as requestId,
             fr.friend_id as receiverId,
             u_receiver.nickname as receiverNickname,
             fr.user_id as senderId,
@@ -67,7 +67,7 @@ public interface CombinedRepository extends JpaRepository<Letters, Long> {
 
     @Query(value = """
     (SELECT 
-        l.id, 
+        l.id as requestId, 
         l.receiver_id as receiverId,
         u_receiver.nickname as receiverNickname,
         l.sender_id as senderId, 
@@ -84,7 +84,7 @@ public interface CombinedRepository extends JpaRepository<Letters, Long> {
     UNION ALL
     
     (SELECT 
-        fr.id,
+        fr.id as requestId,
         fr.friend_id as receiverId,
         u_receiver.nickname as receiverNickname,
         fr.user_id as senderId,
