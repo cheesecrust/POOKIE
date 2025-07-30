@@ -2,17 +2,12 @@ package com.ssafy.pookie.game.server.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
-import com.ssafy.pookie.game.info.dto.GameInfoDto;
-import com.ssafy.pookie.game.room.dto.JoinDto;
-import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
-import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
@@ -25,7 +20,6 @@ import java.util.stream.Collectors;
 public class GameServerService {
 
     private final OnlinePlayerManager onlinePlayerManager;
-    private final GameRoomService gameRoomService;
     private final UserAccountsRepository userAccountsRepository;
     // Lobby User Management
     /*
@@ -33,7 +27,7 @@ public class GameServerService {
      */
     public void handleOn(WebSocketSession session, UserDto userDto) throws IOException {
         // 현재 사용자가 다른 방에 있다면, 기존 방에서 제서
-        gameRoomService.removeSessionFromRooms(session);
+        onlinePlayerManager.removeSessionFromRooms(session);
 
         // 기존에 접속되어 있는 사용자인지 확인 ( 중복 접속 )
         // 접속해있지 않다면 null 반환
@@ -43,7 +37,7 @@ public class GameServerService {
             if(isExist.getStatus() != LobbyUserDto.Status.ON) {
                 isExist.setStatus(LobbyUserDto.Status.ON);
             } else {
-                removeFromLobby(isExist.getUser().getSession());
+                onlinePlayerManager.removeFromLobby(isExist.getUser().getSession());
                 log.warn("Duplicated user : {}", isExist.getUser().getUserAccountId());
             }
         }
@@ -104,24 +98,5 @@ public class GameServerService {
                 )
 
         )).collect(Collectors.toList());
-    }
-
-    /*
-        유저를 세션에서 제거
-        session id를 가지고 userDto를 가져와서 이를 이용해서 offline과 user email로 제거
-     */
-    public void removeFromLobby(WebSocketSession session) throws IOException {
-        gameRoomService.removeSessionFromRooms(session);
-
-        Long userAccountId = (Long) session.getAttributes().get("userAccountId");
-        onlinePlayerManager.getLobby().remove(userAccountId);
-
-        // offline 처리
-        UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
-                .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
-        userAccount.updateOnline(false);
-        userAccountsRepository.save(userAccount);
-
-        session.close(CloseStatus.POLICY_VIOLATION);
     }
 }

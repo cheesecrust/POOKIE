@@ -120,8 +120,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             e.printStackTrace();
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "Type", "Error",
-                    "msg", "요청처리 중 문제가 발생하였습니다.",
-                    "log", e.getMessage()       // 서비스 시 제거
+                    "msg", "요청처리 중 문제가 발생하였습니다."
             ));
         }
     }
@@ -137,7 +136,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("[WebSocket] Disconnected : "+ session.getId());
-        gameService.removeFromLobby(session);
+        onlinePlayerManager.removeFromLobby(session);
         log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }
 }

@@ -26,17 +26,17 @@ public class GameRoomService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
-        log.info("JOIN REQUEST : ROOM {} FROM {}", joinDto.getRoomId(), joinDto.getUser().getUserEmail());
+        log.info("JOIN REQUEST : ROOM {} FROM {}", joinDto.getRoomTitle(), joinDto.getUser().getUserEmail());
         // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
         // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
         LobbyUserDto isExist = onlinePlayerManager.isExistLobby(joinDto.getUser());
         if(isExist == null || isExist.getStatus() == null ||!isExist.getStatus().equals(LobbyUserDto.Status.ON)) {
-            gameServerService.removeFromLobby(session);
+            onlinePlayerManager.removeFromLobby(session);
             log.error("POLICY_VIOLATION : {}", joinDto.getUser().getUserEmail() == null ? session.getId() : joinDto.getUser().getUserEmail());
             return;
         }
         // 현재 사용자가 다른 방에도 있다면, 기존 방에서 제거
-        removeSessionFromRooms(session);
+        onlinePlayerManager.removeSessionFromRooms(session);
 
         boolean create = false;
         if(joinDto.getRoomId() == null || joinDto.getRoomId().isEmpty()) {
@@ -59,9 +59,9 @@ public class GameRoomService {
                     .roomTitle(joinDto.getRoomTitle())
                     .gameType(joinDto.getGameType())
                     .roomPw(joinDto.getRoomPw() == null ? "" : joinDto.getRoomPw())
-                    .users(Map.of("RED", new ArrayList<>(), "BLUE", new ArrayList<>()))
-                    .teamScores(Map.of("RED", 0, "BLUE", 0))
-                    .tempTeamScores(Map.of("RED", 0, "BLUE", 0))
+                    .users(new HashMap<>(Map.of("RED", new ArrayList<>(), "BLUE", new ArrayList<>())))
+                    .teamScores(new HashMap<>(Map.of("RED", 0, "BLUE", 0)))
+                    .tempTeamScores(new HashMap<>(Map.of("RED", 0, "BLUE", 0)))
                     .roomMaster(joinDto.getUser())
                     .gameInfo(new GameInfoDto())
                     .sessions(new HashSet<>())
@@ -140,9 +140,7 @@ public class GameRoomService {
                     onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
                     // 방에 아무도 남지 않은 경우 -> 방 삭제
                     if(room.getSessions().isEmpty()) {
-                        removeRoomFromServer(roomId);
-                        log.info("Room {} was disappeared", room.getRoomId());
-                        broadcastRoomListToLobbyUsers();
+                        onlinePlayerManager.removeRoomFromServer(roomId);
                         return;
                     }
                     broadcastRoomListToLobbyUsers();
@@ -167,16 +165,6 @@ public class GameRoomService {
         }
     }
 
-    /*
-        현재 유저 ( Session ) 이 속해있는 방에서 유저를 제거한다.
-     */
-    public void removeSessionFromRooms(WebSocketSession session) {
-        onlinePlayerManager.getRooms().values().stream().forEach((room) -> {
-            if(room.getSessions().contains(session)) {
-                room.removeUser(session);
-            }
-        });
-    }
     // 방장 재배정
     public void regrantRoomMaster(RoomStateDto room) {
         Map<String, List<UserDto>> user = room.getUsers();
@@ -189,33 +177,6 @@ public class GameRoomService {
         }
         user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
-    }
-    // 방 삭제
-    public void removeRoomFromServer(String getRoomId) {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(getRoomId);
-        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
-            if(user.getStatus() == LobbyUserDto.Status.ON) {
-                try {
-                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
-                            "type", "REMOVED_ROOM",
-                            "room", Map.of(
-                                    "roomId", room.getRoomId(),
-                                    "roomTitle", room.getRoomTitle(),
-                                    "gameType", room.getGameType(),
-                                    "roomMaster", room.getRoomMaster().getUserNickname(),
-                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
-                                    "teamInfo", Map.of(
-                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
-                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
-                                    )
-                            )));
-                    onlinePlayerManager.getRooms().remove(getRoomId);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     // User 팀 바꾸기

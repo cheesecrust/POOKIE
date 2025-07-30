@@ -1,24 +1,31 @@
 package com.ssafy.pookie.game.server.manager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@RequiredArgsConstructor
 @Component
 @Getter
 @Slf4j
 public class OnlinePlayerManager {
+    private final UserAccountsRepository userAccountsRepository;
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
 
@@ -94,5 +101,68 @@ public class OnlinePlayerManager {
      */
     public LobbyUserDto isExistLobby(UserDto user) {
         return lobby.get(user.getUserAccountId());
+    }
+
+    // 유저를 세션 및 대기방에서 제거
+    /*
+        유저를 세션에서 제거
+        session id를 가지고 userDto를 가져와서 이를 이용해서 offline과 user email로 제거
+     */
+    public void removeFromLobby(WebSocketSession session) throws IOException {
+        removeSessionFromRooms(session);
+
+        Long userAccountId = (Long) session.getAttributes().get("userAccountId");
+        getLobby().remove(userAccountId);
+
+        // offline 처리
+        UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
+                .orElseThrow(() -> new IOException("getLobbyUser: user account not found"));
+        userAccount.updateOnline(false);
+        userAccountsRepository.save(userAccount);
+
+        session.close(CloseStatus.POLICY_VIOLATION);
+    }
+
+    /*
+        현재 유저 ( Session ) 이 속해있는 방에서 유저를 제거한다.
+     */
+    public void removeSessionFromRooms(WebSocketSession session) {
+        this.rooms.values().stream().forEach((room) -> {
+            if(room.getSessions().contains(session)) {
+                room.removeUser(session);
+                if(room.getSessions().size() == 0) {
+                    removeRoomFromServer(room.getRoomId());
+                }
+            }
+        });
+    }
+
+    // 방 삭제
+    public void removeRoomFromServer(String getRoomId) {
+        RoomStateDto room = this.rooms.get(getRoomId);
+        this.lobby.values().stream().forEach((user) -> {
+            if(user.getStatus() == LobbyUserDto.Status.ON) {
+                try {
+                    sendToMessageUser(user.getUser().getSession(), Map.of(
+                            "type", "REMOVED_ROOM",
+                            "room", Map.of(
+                                    "roomId", room.getRoomId(),
+                                    "roomTitle", room.getRoomTitle(),
+                                    "gameType", room.getGameType(),
+                                    "roomMaster", room.getRoomMaster().getUserNickname(),
+                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
+                                    "teamInfo", Map.of(
+                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
+                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
+                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
+                                    )
+                            )));
+                    this.rooms.remove(getRoomId);
+                    log.info("Room {} was disappeared", room.getRoomId());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }

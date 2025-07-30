@@ -241,13 +241,8 @@ public class RoomStateDto {
     // 현재 방에 Session 을 제거한다. -> 팀에서도 제거해야함
     public void removeUser(WebSocketSession session) {
         this.sessions.remove(session);
-        for(String team : this.getUsers().keySet()) {
-            this.getUsers().get(team).stream().forEach((user) -> {
-                if(user.getSession() == session) {
-                    this.getUsers().get(team).remove(user);
-                    return;
-                }
-            });
+        for (String team : this.getUsers().keySet()) {
+            this.users.get(team).removeIf(user -> user.getSession() == session);
         }
     }
 }
