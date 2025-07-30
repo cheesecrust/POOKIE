@@ -1,27 +1,22 @@
-import BasicButton from "../../atoms/button/BasicButton";
+// src/components/molecules/games/TeamToggleButton.jsx
+const TeamToggleButton = ({ currentTeam, onClick, disabled = false }) => {
+  if (!currentTeam) return null;
 
-const TeamToggleButton = ({
-  currentTeam, // "red" 또는 "blue" 문자열
-  onClick,
-  disabled = false,
-}) => {
-  if (!["red", "blue"].includes(currentTeam)) return null;
-
-  const isRedTeam = currentTeam === "red";
-  const oppositeTeam = isRedTeam ? "BLUE" : "RED";
-  const buttonStyle = isRedTeam
-    ? "bg-blue-500 hover:bg-blue-400 border-blue-700 hover:border-blue-500"
-    : "bg-red-500 hover:bg-red-400 border-red-700 hover:border-red-500";
+  const team = currentTeam.toUpperCase(); // "RED" or "BLUE"
 
   return (
-    <BasicButton
+    <button
       onClick={onClick}
       disabled={disabled}
-      size="md"
-      className={`w-20 h-20 text-lg font-bold ${buttonStyle}`}
+      className={`relative w-20 h-10 rounded-full transition-colors duration-300 ease-in-out
+        ${team === "BLUE" ? "bg-blue-500" : "bg-red-500"}
+        ${disabled ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"}`}
     >
-      {oppositeTeam}
-    </BasicButton>
+      <span
+        className={`absolute left-1 top-1 w-8 h-8 bg-white rounded-full shadow-md transform transition-transform duration-300 
+        ${team === "BLUE" ? "translate-x-10" : "translate-x-0"}`}
+      ></span>
+    </button>
   );
 };
 

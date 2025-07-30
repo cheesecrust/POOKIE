@@ -22,14 +22,14 @@ const SketchRelayPage = () => {
           // 그대로 출력
           console.log("[WebSocket MESSAGE]", e);
       
-          // e 가 바로 객체로 전달돼서 parsing 할 필요가 없음음
-          const data = e;
-      
+          // e 가 바로 객체로 전달돼서 parsing 할 필요가 없음
+          const data = e.data;
+  
           console.log("[WebSocket DATA]", data);
       
           // 예시: 메시지 타입 분기
-          if (e.type === "ON") {
-            console.log("유저 연결됨:", data.user.userNickname);
+          if (data.type === "ON") {
+            console.log("유저 연결됨:", data.user.userId);
           }
       
         } catch (err) {
@@ -95,10 +95,10 @@ const SketchRelayPage = () => {
   </div>
   {/* 테스트용 emit 버튼 */}
   <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-    {/* <button onClick={emitConnect} className="bg-gray-300 px-4 py-2 rounded">CONNECT</button> */}
-    <button onClick={emitGameStart} className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
-    <button onClick={emitTurnChange} className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
-    <button onClick={emitRoundOver} className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
+    {/* <button onClick={() =>{console.log("emitCreateRoom"); emitCreateRoom();} } className="bg-green-300 px-4 py-2 rounded">CREATE_ROOM</button> */}
+    <button onClick={() =>{console.log("emitGameStart"); emitGameStart();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
+    <button onClick={() =>{console.log("emitTurnChange"); emitTurnChange();} } className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
+    <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
   </div>
   </div>
   );

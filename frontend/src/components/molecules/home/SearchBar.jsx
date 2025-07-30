@@ -12,24 +12,26 @@ import BasicInput from '../../atoms/input/BasicInput'
 import ModalButton from '../../atoms/button/ModalButton'
 import { useState } from 'react'
 
-const SearchBar = ({ onSearch }) => {
+const SearchBar = ({ onSearch, className="" }) => {
     const [searchText, setSearchText] = useState("");
+
     const handleKeyDown = (e) => {
       if (e.key === "Enter") {
         onSearch(searchText);
       }
     }
     return (
-      <div className="flex items-center justify-center gap-4 my-4">
+      <div className={`flex items-center gap-4 my-4 ${className}`}>
         <BasicInput
           placeholder="방의 제목을 입력하세요"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="rounded-full text-center placeholder:text-center"
+          className="w-100 h-12 rounded-full text-center placeholder:text-center"
         />
         <ModalButton
             onClick={() => onSearch(searchText)}
+            className="h-12"
         >
             검색
         </ModalButton>

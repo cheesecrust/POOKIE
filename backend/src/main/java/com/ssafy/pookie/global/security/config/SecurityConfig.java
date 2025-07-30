@@ -105,7 +105,9 @@ public class SecurityConfig {
                                 "/swagger-resources/**",   // Swagger 리소스
                                 "/webjars/**",            // Swagger 웹 자원
                                 "/error",                  // 에러 페이지
-                                "/game"
+                                "/game",
+                                "/game/init",
+                                "/game/**"
                         ).permitAll()
 
                         // 관리자만 접근 가능한 URL

@@ -43,4 +43,12 @@ public class UserDto {
     }
 
     public void setTeam(Team team) { this.team = team; }
+
+    public UserDto mapUserDto(WebSocketSession session) {
+        this.session = session;
+        this.userAccountId = (Long) session.getAttributes().get("userAccountId");
+        this.userEmail = (String) session.getAttributes().get("userEmail");
+        this.userNickname = (String) session.getAttributes().get("nickname");
+        return this;
+    }
 }

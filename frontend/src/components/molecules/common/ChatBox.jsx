@@ -18,17 +18,33 @@
 //   // socket.emit("chat", text);
 //   // setMessages((prev) => [...prev, { sender: "me", content: text }]);
 // };
-
 import { useState } from "react";
-
 import ChatInput from "../../atoms/input/ChatInput";
+import RightButton from "../../atoms/button/RightButton";
 
 const ChatBox = ({ width, height }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [chatTarget, setChatTarget] = useState("전체 채팅");
+  const [chatText, setChatText] = useState("");
 
-  // Tailwind에서 사용할 커스텀 width와 height
   const ChatboxWidth = `w-[${width}]`;
   const ChatboxHeight = isOpen ? `h-[${height}]` : "h-[50px]";
+
+  const handleSelect = (target) => {
+    setChatTarget(target);
+    setShowDropdown(false);
+  };
+
+  const handleSendMessage = () => {
+    if (!chatText.trim()) return;
+
+    // ✅ 실제 메시지 전송 로직은 여기에서 처리
+    console.log(`[${chatTarget}] 메시지 전송:`, chatText);
+
+    // 전송 후 input 초기화
+    setChatText("");
+  };
 
   return (
     <div
@@ -41,13 +57,60 @@ const ChatBox = ({ width, height }) => {
       {isOpen && (
         <>
           <div className="font-bold text-sm mb-1">CHAT</div>
-          <div className="flex-1 overflow-y-auto text-xs mb-2 rounded bg-white p-1"></div>
+          <div className="flex-1 overflow-y-auto text-xs mb-2 rounded bg-white p-1">
+            {/* 채팅 메시지 로그 영역 (추후 연결) */}
+          </div>
         </>
       )}
 
-      <div className="flex items-center gap-2">
-        {/* ChatInput 컴포넌트에 넘겨줄 함수들을 props로 전달 */}
-        <ChatInput />
+      <div className="flex items-center gap-1 relative">
+        {/* 채팅 대상 선택 버튼 */}
+        <div className="relative min-w-[60px]">
+          <RightButton
+            onClick={() => setShowDropdown((prev) => !prev)}
+            size="sm"
+            className="w-[60px] h-[28px] px-1 py-0 text-xs whitespace-nowrap flex items-center justify-center"
+          >
+            [{chatTarget === "팀 채팅" ? "팀" : "전체"}]
+          </RightButton>
+
+          {showDropdown && (
+            <div className="absolute bottom-full left-0 mb-1 z-10 flex flex-col bg-white border border-black shadow min-w-[60px]">
+              {chatTarget !== "팀 채팅" && (
+                <RightButton
+                  onClick={() => handleSelect("팀 채팅")}
+                  size="sm"
+                  className="rounded-none text-xs h-[28px] whitespace-nowrap flex items-center justify-center"
+                >
+                  [팀]
+                </RightButton>
+              )}
+              {chatTarget !== "전체 채팅" && (
+                <RightButton
+                  onClick={() => handleSelect("전체 채팅")}
+                  size="sm"
+                  className="rounded-none text-xs h-[28px] whitespace-nowrap flex items-center justify-center"
+                >
+                  [전체]
+                </RightButton>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 입력창 (chatText 상태 관리 & Enter 처리) */}
+        <ChatInput
+          value={chatText}
+          onChange={(e) => setChatText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSendMessage();
+            }
+          }}
+          placeholder={`${chatTarget}`}
+        />
+
+        {/* 열고 닫기 버튼 */}
         <button
           className="w-6 h-6 rounded-full bg-sky-300 text-white text-xs flex items-center justify-center hover:bg-sky-400"
           onClick={() => setIsOpen((prev) => !prev)}

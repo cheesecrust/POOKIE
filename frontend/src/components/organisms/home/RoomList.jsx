@@ -1,83 +1,98 @@
 // src/components/organisms/home/RoomList.jsx
 import RoomCard from "../../molecules/home/RoomCard";
+import RoomPasswordModal from "../../organisms/home/RoomPasswordModal";
 import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
+import { emitJoinRoom } from "../../../sockets/home/emit";
 
-// 더미 데이터
-const dummyRooms = [
-    { id: 1, title: "room_title", type: "samepose", participants: 5 },
-    { id: 2, title: "room_title", type: "sketchrelay", participants: 5 },
-    { id: 3, title: "room_title", type: "sketchrelay", participants: 5 },
-    { id: 4, title: "room_title", type: "silentscream", participants: 5 },
-    { id: 5, title: "room_title", type: "samepose", participants: 5 },
-    { id: 6, title: "room_title", type: "silentscream", participants: 5 },
-    { id: 7, title: "room_title", type: "samepose", participants: 5 },
-    { id: 8, title: "room_title", type: "sketchrelay", participants: 5 },
-    { id: 9, title: "room_title", type: "silentscream", participants: 5 },
-    { id: 10, title: "room_title", type: "samepose", participants: 5 },
-  ];
-  
+const RoomList = ({ roomList, keyword }) => {
+  const [secureRoom, setSecureRoom] = useState(null);
+  const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
-  
-  const RoomList = () => {
-    const [activeTab, setActiveTab] = useState("all");
-    const [currentPage, setCurrentPage] = useState(1);
-  
-    // 필터링
-    const filteredRooms = useMemo(() => {
-      if (activeTab === "all") return dummyRooms;
-      if (activeTab === "waiting") {
-        return dummyRooms.filter((room) => room.participants < 6);
-      }
-      return dummyRooms.filter((room) => room.type === activeTab);
-    }, [activeTab]);
-  
-    const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
-    const paginatedRooms = filteredRooms.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  
-    const handleTabChange = (tab) => {
-      setActiveTab(tab);
-      setCurrentPage(1);
-    };
-  
-    return (
-      <div className="min-h-screen flex flex-col items-center">
-        {/* 게임 탭 */}
-        <div className="w-[900px] flex justify-center">
-            <GameTab activeTab={activeTab} onChange={handleTabChange} />
-        </div>
-  
-        {/* 방 리스트 */}
-        <div className="w-[900px] flex justify-center">
-            <div className="w-full bg-[#F4C0C0] px-16 py-10">
-                <div className="grid grid-cols-2 gap-10 place-items-center">
-                {paginatedRooms.map((room) => (
-                    <RoomCard
-                        key={room.id}
-                        roomTitle={room.title}
-                        roomType={room.type}
-                        participantCount={room.participants}
-                        onClick={() => console.log(`${room.title} 입장`)}
-                    />
-                ))}
-                </div>
 
-                {/* 페이지네이션 */}
-                <Pagination
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                totalPages={totalPages}
-                className="mt-14"
-                />
-            </div>
-        </div>
-  
-      </div>
-    );
+  // 비밀번호 모달
+  const handlePasswordRequest = (room) => {
+    setSecureRoom(room);
+    setRoomPasswordModalOpen(true);
+  }
+
+  const handlePasswordSubmit = (roomPw) => {
+    emitJoinRoom({
+      roomId: secureRoom.roomId,
+      gameType: secureRoom.gameType,
+      roomPw: roomPw,
+    });
+    setRoomPasswordModalOpen(false);
+    setSecureRoom(null);
+  }
+
+
+  // 필터링된 방 리스트
+  const filteredRooms = useMemo(() => {
+    if (keyword) {
+      return roomList.filter((room) => room.roomTitle.toLowerCase().includes(keyword.toLowerCase()));
+    }
+    if (activeTab === "all") return roomList;
+    if (activeTab === "waiting") {
+      return roomList.filter((room) => room.teamInfo?.total < 6);
+    }
+    return roomList.filter((room) => room.gameType?.toLowerCase() === activeTab);
+  }, [roomList, activeTab, keyword]);
+
+  const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+  const paginatedRooms = filteredRooms.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
   };
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* 게임 탭 */}
+      <div className="w-[1000px] flex justify-center">
+        <GameTab activeTab={activeTab} onChange={handleTabChange} />
+      </div>
+
+      {/* 방 리스트 */}
+      <div className="w-[1000px] flex justify-center">
+        <div className="w-full bg-[#F4C0C0] px-18 py-16 h-[750px] flex flex-col justify-between">
+          <div className="grid grid-cols-2 gap-10 place-items-center">
+            {paginatedRooms.map((room) => (
+              <RoomCard
+                key={room.roomId}
+                room={room}
+                participantCount={room.teamInfo?.total}
+                onPasswordRequest={handlePasswordRequest}
+              />
+            ))}
+          </div>
+
+          {/* 페이지네이션 */}
+          <Pagination
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            className="mt-16"
+          />
+        </div>
+      </div>
+
+      {/* 비밀번호 모달 */}
+      <RoomPasswordModal
+        isOpen={roomPasswordModalOpen}
+        onClose={() => setRoomPasswordModalOpen(false)}
+        room={secureRoom}
+        onSubmit={handlePasswordSubmit}
+      />
+    </div>
+  );
+};
 
 export default RoomList;

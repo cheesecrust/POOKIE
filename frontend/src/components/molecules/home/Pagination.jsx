@@ -23,7 +23,7 @@ const Pagination = ({ currentPage, setCurrentPage, totalPages = 1, className="" 
   const [currentGroup, setCurrentGroup] = useState(1)
 
   useEffect(() => {
-    const group = Math.ceil(currentPage / pagesPerGroup)
+    const group = Math.ceil((currentPage+1) / pagesPerGroup)
     setCurrentGroup(group)
   }, [currentPage])
 

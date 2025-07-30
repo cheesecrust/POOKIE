@@ -5,7 +5,14 @@
 // </BasicModal>
 import { useEffect } from 'react'
 
-const BasicModal = ({ isOpen, onClose, children, className=" " }) => {
+const BasicModal = ({
+  isOpen,
+  onClose,
+  children,
+  className=" ",
+  backgroundPoacity = "opacity-70",
+  closeBackdropClick = true,
+}) => {
 
     useEffect(() => {
         if (!isOpen) return;
@@ -31,14 +38,14 @@ const BasicModal = ({ isOpen, onClose, children, className=" " }) => {
     return (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center"
-          onClick={onClose}
+          onClick={closeBackdropClick ? onClose : undefined}
         >
           <div
             className={`relative rounded-xl p-4 shadow-lg overflow-hidden ${className}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 배경 박스만 따로 */}
-            <div className="absolute inset-0 bg-[#FDE1F0] opacity-70 backdrop-blur-sm rounded-xl z-0" />
+            <div className={`absolute inset-0 bg-[#FDE1F0] ${backgroundPoacity} backdrop-blur-sm rounded-xl z-0`} />
       
             {/* 모달 내부 콘텐츠는 선명하게 유지 */}
             <div className="relative z-10">
