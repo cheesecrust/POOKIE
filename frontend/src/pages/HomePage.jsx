@@ -88,7 +88,7 @@ const HomePage = () => {
       {/* 본문 콘텐츠 */}
       <main className="flex-grow flex flex-col items-center mt-10">
         {/* 좌우 배치: 텍스트+버튼(왼쪽) + 유저 프로필(오른쪽) */}
-        <div className="w-full max-w-[900px] mt-8 px-4 flex gap-2 items-start">
+        <div className="w-full max-w-[1000px] mt-8 px-4 flex gap-2 items-start">
           {/* 왼쪽: 텍스트 + 버튼 */}
           <div className="w-[55%]">
             <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
@@ -112,7 +112,7 @@ const HomePage = () => {
           </div>
 
           {/* 오른쪽: 유저 프로필 */}
-          <div className="bg-white p-4 rounded-xl border shadow-sm w-[45%] text-sm text-left flex flex-row gap-4 items-center">
+          <div className="bg-white p-4 rounded-xl border shadow-sm w-[40%] text-sm text-left flex flex-row gap-4 items-center">
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
@@ -150,7 +150,7 @@ const HomePage = () => {
         </div>
         
         {/* 오른쪽 하단 로그아웃 */}
-        <div className="w-full max-w-[900px] px-4 flex justify-end mt-2 mr-4">
+        <div className="w-full max-w-[1000px] px-4 flex justify-end mt-2 mr-24">
           <div
               className="flex items-center gap-1 hover:underline cursor-pointer"
               onClick={async () => {
@@ -164,7 +164,7 @@ const HomePage = () => {
         </div>
 
         {/* 검색창 */}
-        <div className="w-full max-w-[900px] mt-10 mb-6">
+        <div className="w-full max-w-[1000px] mt-10 mb-6">
           <SearchBar
             onSearch={handleSearch}
             placeholder="방 이름으로 검색"
@@ -172,10 +172,10 @@ const HomePage = () => {
         </div>
 
         {/* 방 리스트 */}
-        <RoomList
-          keyword={keyword}
-          roomList={roomListRef.current}
-        />
+          <RoomList
+            keyword={keyword}
+            roomList={roomListRef.current}
+          />
 
         {/* 모달 */}
         <RoomCreateModal isOpen={roomCreateModalOpen} onClose={() => setRoomCreateModalOpen(false)} />
