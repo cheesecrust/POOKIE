@@ -128,6 +128,7 @@ public class InGameService {
                     "KeywordList", keywordList,
                     "keywordIdx", room.getGameInfo().getKeywordIdx(),
                     "repIdxList", room.getGameInfo().repAccountIdxList(),
+                    "repIdx", room.getGameInfo().getRep(),
                     "norIdxList", room.getGameInfo().norAccountIdxList()
             ));
         }
