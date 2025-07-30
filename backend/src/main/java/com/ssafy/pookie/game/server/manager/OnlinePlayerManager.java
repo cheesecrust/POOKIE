@@ -74,7 +74,7 @@ public class OnlinePlayerManager {
         }
     }
 
-    public boolean isMemberExistInLobby(Long userId) {
-        return lobby.containsKey(userId);
+    public LobbyUserDto getMemberInLobby(Long userAccountId) {
+        return lobby.get(userAccountId);
     }
 }

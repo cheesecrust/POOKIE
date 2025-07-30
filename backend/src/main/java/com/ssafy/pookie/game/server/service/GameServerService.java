@@ -8,6 +8,7 @@ import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.*;
+import com.ssafy.pookie.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class GameServerService {
 
     private final OnlinePlayerManager onlinePlayerManager;
     private final UserAccountsRepository userAccountsRepository;
+    private final NotificationService notificationService;
 
     /*
         유저가 게임 Lobby 로 접속 시
@@ -367,6 +369,7 @@ public class GameServerService {
                 .build();
         handleOn(session, user);
 
+        notificationService.loginEvent(user);
         Long userId = (Long) session.getAttributes().get("userAccountId");
         UserAccounts userAccount = userAccountsRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user account not found"));

@@ -2,10 +2,8 @@ package com.ssafy.pookie.letter.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
-import com.ssafy.pookie.friend.model.FriendRequests;
-import com.ssafy.pookie.friend.model.RequestStatus;
-import com.ssafy.pookie.friend.repository.FriendRequestsRepository;
-import com.ssafy.pookie.friend.repository.FriendsRepository;
+import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
+import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.letter.dto.CombinedMessageDto;
 import com.ssafy.pookie.letter.dto.CombinedMessageProjection;
 import com.ssafy.pookie.letter.dto.LetterRequestDto;
@@ -14,6 +12,7 @@ import com.ssafy.pookie.letter.model.LetterStatus;
 import com.ssafy.pookie.letter.model.Letters;
 import com.ssafy.pookie.letter.repository.CombinedRepository;
 import com.ssafy.pookie.letter.repository.LettersRepository;
+import com.ssafy.pookie.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +31,8 @@ public class LetterService {
     private final LettersRepository lettersRepository;
     private final UserAccountsRepository userAccountsRepository;
     private final CombinedRepository combinedRepository;
+    private final NotificationService notificationService;
+    private final OnlinePlayerManager onlinePlayerManager;
 
     public LetterResponseDto sendLetter(Long userAccountId, LetterRequestDto letterRequest) {
         UserAccounts sender = userAccountsRepository.findById(userAccountId).get();
@@ -87,8 +88,13 @@ public class LetterService {
         Letters letter = lettersRepository.findByLetterIdAndUserInvolved(letterId, userAccountId)
                 .orElseThrow(() -> new Exception("letter not found"));
         if (letter.getReceiver().getId().equals(userAccountId)) {
+            throw new Exception("receiver and user is not match.");
+        }
+        if (letter.getStatus().equals(LetterStatus.NOT_READ)) {
             letter.updateStatus(LetterStatus.READ);
             lettersRepository.save(letter);
+            UserDto user = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
+            notificationService.readEvent(user);
         }
         return LetterResponseDto.of(letter);
     }
