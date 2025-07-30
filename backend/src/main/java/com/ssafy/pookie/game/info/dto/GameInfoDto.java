@@ -65,4 +65,6 @@ public class GameInfoDto {
         return this.normal.stream().map((user) -> user.getUserAccountId())
                 .collect(Collectors.toList());
     }
+
+    // 이어그리기에서,
 }

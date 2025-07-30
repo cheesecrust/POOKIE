@@ -26,12 +26,10 @@ public class InGameService {
     private final String CORRECT = "정답입니다.";
     private final String WRONG = "오답입니다.";
 
-    // TODO 모든 이벤트는 방장으로부터 오는지
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameKeywordsRepository gameKeywordsRepository;
     private final RtcService rtcService;
 
-    // TODO GameServerService 에서 분리해오기
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         // 현재 방의 상태를 가져옴

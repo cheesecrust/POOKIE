@@ -106,6 +106,9 @@ public class GameServerHandler extends TextWebSocketHandler {
                     submitAnswer.setUser(user);
                     inGameService.handleSubmitAnswer(submitAnswer);
                     break;
+                case PAINTER_CHANGE:
+
+                    break;
                 // Chat
                 case CHAT:
                     ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
