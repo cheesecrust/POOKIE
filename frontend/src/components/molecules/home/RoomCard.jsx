@@ -40,7 +40,7 @@ const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
         return;
       }
     
-      if (room.hasPassword) {
+      if (room.roomPw) {
         onPasswordRequest?.(room);
         return;
       }

@@ -2,14 +2,22 @@
 import BasicModal from "../../atoms/modal/BasicModal";
 import BasicInput from "../../atoms/input/BasicInput";
 import ModalButton from "../../atoms/button/ModalButton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const RoomPasswordModal = ({ isOpen, onClose, onSubmit }) => {
     const [password, setPassword] = useState("");
 
+    useEffect(() => {
+        if (isOpen) setPassword("");
+    }, [isOpen]);
+
+    const handleSubmit = () => {
+        onSubmit(password);
+    }
+
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
-            onSubmit(password);
+            handleSubmit();
         }
     }
     return (
@@ -25,6 +33,7 @@ const RoomPasswordModal = ({ isOpen, onClose, onSubmit }) => {
                 {/* 비밀번호 */}
                 <div className="flex items-center gap-4">
                     <BasicInput
+                        type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -35,7 +44,7 @@ const RoomPasswordModal = ({ isOpen, onClose, onSubmit }) => {
     
             {/* 입력 버튼 */}
             <div className="w-full mb-4 flex justify-center">
-              <ModalButton onClick={() => onSubmit(password)} className="">
+              <ModalButton onClick={handleSubmit} className="">
                 입장
               </ModalButton>
             </div>

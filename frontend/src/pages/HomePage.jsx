@@ -1,5 +1,4 @@
 // src/pages/HomePage.jsx
-import RoomPasswordModal from "../components/organisms/home/RoomPasswordModal";
 import RoomCreateModal from "../components/organisms/home/RoomCreateModal";
 import ModalButton from "../components/atoms/button/ModalButton";
 import RoomList from "../components/organisms/home/RoomList";
@@ -20,8 +19,6 @@ const HomePage = () => {
   const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
-  const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
-  const [secureRoom, setSecureRoom] = useState(null);
 
   // 소켓 연결 값
   const userRef = useRef(user);
@@ -83,22 +80,6 @@ const HomePage = () => {
     // 예: 검색 API 요청 or 상태 전달
   };
 
-  // 📝 비밀번호 요청 핸들러
-  const handlePasswordRequest = (room) => {
-    setRoomPasswordModalOpen(true);
-    setSecureRoom(room);
-  };
-
-  // 비밀번호 입력 시
-  const handlePasswordSubmit = (password) => {
-    emitJoinRoom({
-      roomId: secureRoom.roomId,
-      gameType: secureRoom.gameType,
-      roomPw: password,
-    });
-    setRoomPasswordModalOpen(false);
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
       {/* 상단 고정 헤더 */}
@@ -122,7 +103,7 @@ const HomePage = () => {
                 방 생성하기
               </ModalButton>
               <ModalButton
-                onClick={() => setRoomPasswordModalOpen(true)}
+                onClick={() => setRoomCreateModalOpen(true)}
                 className="px-6 py-2 rounded-full shadow-md hover:brightness-95"
               >
                 혼자 하기
@@ -194,16 +175,10 @@ const HomePage = () => {
         <RoomList
           keyword={keyword}
           roomList={roomListRef.current}
-          onPasswordRequest={handlePasswordRequest}
         />
 
         {/* 모달 */}
         <RoomCreateModal isOpen={roomCreateModalOpen} onClose={() => setRoomCreateModalOpen(false)} />
-        <RoomPasswordModal
-          isOpen={roomPasswordModalOpen}
-          onClose={() => setRoomPasswordModalOpen(false)}
-          onSubmit={handlePasswordSubmit}
-        />
       </main>
       {/* 하단 고정 푸터 */}
       <Footer />
