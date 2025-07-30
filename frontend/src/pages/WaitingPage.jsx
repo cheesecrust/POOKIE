@@ -14,7 +14,7 @@ import bgImage from "../assets/background/background_waiting.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
-import GameTypeToggleButton from "../components/organisms/waiting/GameTypeButton";
+import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggleButton";
 import useAuthStore from "../store/store";
 import {
   emitTeamChange,
@@ -152,8 +152,8 @@ const WaitingPage = () => {
   // 게임 시작 버튼 활성화 조건
   const isStartEnabled =
     isHost &&
-    room?.RED.length > 0 &&
-    room?.RED.length === room?.BLUE.length &&
+    room?.RED.length === 3 &&
+    room?.BLUE.length === 3 &&
     [...room.RED, ...room.BLUE].every((u) => u.status === "READY");
 
   // UI
@@ -170,13 +170,17 @@ const WaitingPage = () => {
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
           <div className="flex flex-row gap-6 p-2 justify-around items-center">
-            <h1 className="p-4 text-3xl">{room?.title ?? "room_title"}</h1>
+            <h1 className="p-4 text-3xl w-[200px]">
+              {room?.title ?? "room_title"}
+            </h1>
             <h1 className="p-4 text-xl">
               {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
             </h1>
+            <p className=" text-sm">게임 선택:</p>
             <GameTypeToggleButton
               gameType={room?.gameType}
               onToggle={handleGameTypeChange}
+              isHost={isHost}
             />
           </div>
 
@@ -193,7 +197,7 @@ const WaitingPage = () => {
             ) : (
               <ModalButton
                 onClick={handleReadyToggle}
-                className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
+                className="text-md px-6 py-3 w-37 h-15 rounded-xl"
               >
                 {isReady ? "준비 해제" : "준비 완료"}
               </ModalButton>

@@ -56,7 +56,9 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       </div>
 
       {/* 닉네임 */}
-      <p className="mt-1 text-xs font-bold">{user.userNickname}</p>
+      <div className="mt-1 w-[120px] text-sm font-bold bg-rose-100 rounded px-2 py-1 text-center">
+        {user.userNickname}
+      </div>
     </div>
   );
 };
