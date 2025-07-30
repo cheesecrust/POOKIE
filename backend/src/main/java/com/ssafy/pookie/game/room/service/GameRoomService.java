@@ -135,6 +135,8 @@ public class GameRoomService {
                     ));
                     onlinePlayerManager.getLobby().get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
+                    teamUser.setGrant(UserDto.Grant.NONE);
+                    teamUser.moveToLobby();
                     room.getSessions().remove(session);
                     room.getUsers().get(team).remove(teamUser);
                     onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
