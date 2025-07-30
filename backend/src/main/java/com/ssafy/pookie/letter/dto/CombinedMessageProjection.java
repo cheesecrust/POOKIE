@@ -12,4 +12,5 @@ public interface CombinedMessageProjection {
     String getStatus();
     String getType();
     LocalDateTime getCreatedAt();
+    Long getRequestId();
 }
