@@ -1,13 +1,34 @@
 // src/components/organisms/home/RoomList.jsx
 import RoomCard from "../../molecules/home/RoomCard";
+import RoomPasswordModal from "../../organisms/home/RoomPasswordModal";
 import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
+import { emitJoinRoom } from "../../../sockets/home/emit";
 
-const RoomList = ({ roomList, keyword, onPasswordRequest }) => {
+const RoomList = ({ roomList, keyword }) => {
+  const [secureRoom, setSecureRoom] = useState(null);
+  const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+
+  // 비밀번호 모달
+  const handlePasswordRequest = (room) => {
+    setSecureRoom(room);
+    setRoomPasswordModalOpen(true);
+  }
+
+  const handlePasswordSubmit = (roomPw) => {
+    emitJoinRoom({
+      roomId: secureRoom.roomId,
+      gameType: secureRoom.gameType,
+      roomPw: roomPw,
+    });
+    setRoomPasswordModalOpen(false);
+    setSecureRoom(null);
+  }
+
 
   // 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
@@ -48,7 +69,7 @@ const RoomList = ({ roomList, keyword, onPasswordRequest }) => {
                 key={room.roomId}
                 room={room}
                 participantCount={room.teamInfo?.total}
-                onPasswordRequest={onPasswordRequest}
+                onPasswordRequest={handlePasswordRequest}
               />
             ))}
           </div>
@@ -62,6 +83,14 @@ const RoomList = ({ roomList, keyword, onPasswordRequest }) => {
           />
         </div>
       </div>
+
+      {/* 비밀번호 모달 */}
+      <RoomPasswordModal
+        isOpen={roomPasswordModalOpen}
+        onClose={() => setRoomPasswordModalOpen(false)}
+        room={secureRoom}
+        onSubmit={handlePasswordSubmit}
+      />
     </div>
   );
 };
