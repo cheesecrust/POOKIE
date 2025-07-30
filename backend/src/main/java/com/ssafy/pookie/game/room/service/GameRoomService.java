@@ -133,19 +133,22 @@ public class GameRoomService {
                             "type", "LEAVE",
                             "msg", "Lobby 로 돌아갑니다."
                     ));
-                    onlinePlayerManager.getLobby().get(teamUser.getUserAccountId()).setStatus(LobbyUserDto.Status.ON);
                     find = true;
                     teamUser.setGrant(UserDto.Grant.NONE);
                     teamUser.moveToLobby();
                     room.getSessions().remove(session);
                     room.getUsers().get(team).remove(teamUser);
-                    onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
                     // 방에 아무도 남지 않은 경우 -> 방 삭제
                     if(room.getSessions().isEmpty()) {
                         onlinePlayerManager.removeRoomFromServer(roomId);
+                        onlinePlayerManager.sendToMessageUser(session, Map.of(
+                                "type", "UPDATE_ROOM_LIST",
+                                "roomList", gameServerService.existingRoomList()
+                        ));
+                        onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
                         return;
                     }
-                    broadcastRoomListToLobbyUsers();
+                    onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
                     leaveUserNickName = teamUser.getUserNickname();
                     if(teamUser.getGrant() == UserDto.Grant.MASTER) {
                         regrantRoomMaster(room);

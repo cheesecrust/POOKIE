@@ -122,6 +122,8 @@ public class RoomStateDto {
     public void turnChange() {
         if(this.getTurn() == Turn.RED) this.setTurn(Turn.BLUE);
         else this.setTurn(Turn.RED);
+
+        if(timer != null) this.timer.stop();
     }
 
     private String win;
@@ -144,6 +146,7 @@ public class RoomStateDto {
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
         }
+        if(timer != null) this.timer.stop();
     }
 
     public Map<String, Object> gameOver() {
@@ -202,7 +205,7 @@ public class RoomStateDto {
         roomInfo.put("RED", this.getUsers().get("RED") == null ? List.of() :
                 this.getUsers().get("RED").stream().map(user -> Map.of(
                         "id", user.getUserAccountId(),
-                        "email", this.getRoomMaster().getUserEmail(),
+                        "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
                         "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
                         "status", user.getStatus().toString()
@@ -211,7 +214,7 @@ public class RoomStateDto {
         roomInfo.put("BLUE", this.getUsers().get("BLUE") == null ? List.of() :
                 this.getUsers().get("BLUE").stream().map(user -> Map.of(
                         "id", user.getUserAccountId(),
-                        "email", this.getRoomMaster().getUserEmail(),
+                        "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
                         "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
                         "status", user.getStatus().toString()
