@@ -13,8 +13,8 @@
 // 페이지네이션 상태 관리 
 // 친구 찾기 모달 
 
-import { useState } from 'react'
-import { Axios } from 'axios'
+import { useState, useEffect } from 'react'
+import axiosInstance from '../../../lib/axiosInstance'
 import FriendMessageTab from '../../molecules/common/FriendMessageTab'
 import FriendList from '../../molecules/common/FriendList'
 import MessageList from '../../molecules/common/MessageList'
@@ -28,6 +28,9 @@ const dummyFriends = [
   { nickname: '유진', characterName: 'pooding_milk', isOnline: false, onMessage: () => {} },
   { nickname: '채연', characterName: 'pooding_matcha', isOnline: false, onMessage: () => {} },
   { nickname: '한슬', characterName: 'pooding_melon', isOnline: true, onMessage: () => {} },
+  { nickname: '연수', characterName: 'pooding_strawberry', isOnline: true, onMessage: () => {} },
+  { nickname: '재환환', characterName: 'pooding_strawberry', isOnline: true, onMessage: () => {} },
+
 ]
 
 const dummyReceivedMessages = [
@@ -41,33 +44,47 @@ const dummySentMessages = [
 const FriendMessageModal = ({onClose}) => {
   // 탭 상태 관리
   const [activeTab, setActiveTab] = useState('friend')
+  // 전체 페이지 상태 관리
+  const [totalPages, setTotalPages] = useState(1)
   // 현재 페이지 상태 관리
   const [currentPage, setCurrentPage] = useState(1)
   // 친구 찾기 모달 상태 관리
   const [isFindModalOpen, setIsFindModalOpen] = useState(false)
 
-  //  이 컴포넌트에서 직접 불러와야 할 데이터들 (API 호출 등)
-  // 1. 로그인한 유저의 친구 리스트
-  //   const [friends, setFriends] = useState([]) // characterName, nickname, isOnline
-  // 2. 받은 쪽지 리스트
-  //   const [receivedMessages, setReceivedMessages] = useState([]) // nickname, date, messageContent, isRead
-  // 3. 보낸 쪽지 리스트
-  //   const [sentMessages, setSentMessages] = useState([]) // nickname, date, messageContent, isRead
+  const [friends, setFriends] = useState([]) // [...{userid,nickname,status}]
+  const [receivedMessages, setReceivedMessages] = useState([]) // nickname, date, messageContent, isRead
+  const [sentMessages, setSentMessages] = useState([]) // nickname, date, messageContent, isRead
 
-  // 이 컴포넌트 또는 부모에서 정의해서 내려줘야 할 함수들
+  // 모달 첫 로딩 데이터 요청
+  useEffect(() => {
+    fetchFriends();
+    // fetchReceivedMessages();
+    // fetchSentMessages();
+  }, []);
 
-  // useEffect(() => {
-  //   // 모달 열릴 때 데이터 요청
-  //   fetchFriends();
-  //   fetchReceivedMessages();
-  //   fetchSentMessages();
-  // }, []);
-  
+  // currentPage 바뀔 때마다 다시 FriendList 요청
+  useEffect(() => {
+    fetchFriends(currentPage);
+  }, [currentPage]);
+
   // 친구 목록 api 요청    
-  // const fetchFriends = async () => {
-  //   const res = await axios.get("/api/friends/");
-  //   setFriends(res.data);
-  // };
+  const fetchFriends = async (page = 0) => {
+    try {
+      const res = await axiosInstance.get('/friends',{
+        params: {
+          search : '',
+          size: 4,
+          page
+        }
+      });
+
+      const { content, totalPages } = res.data.data;
+      setFriends(content);
+      setTotalPages(totalPages);
+    } catch (err) {
+      console.log("친구 목록 불러오기 실패:",err);
+    }
+  }
 
   // 받은 메시지 api 요청
   // const fetchReceivedMessages = async () => {
@@ -103,10 +120,6 @@ const FriendMessageModal = ({onClose}) => {
     setIsFindModalOpen(false)
   }
 
-  // 페이지네이션 관련해서도 다시 생각
-  const itemsPerPage = 5
-  const totalPages = Math.ceil(dummyFriends.length / itemsPerPage)
-
   return (
     <div className="relative w-[520px] h-[620px] bg-[#EBABAB] z-10 rounded-2xl shadow-xl pt-[60px] overflow-visible">
       {/* 상단 탭 */}
@@ -119,7 +132,7 @@ const FriendMessageModal = ({onClose}) => {
       <div className="flex flex-col justify-start h-full px-6 pt-2 pb-6">
         {/* 콘텐츠 (높이 고정, 스크롤 제거) */}
         <div className="h-[420px] flex flex-col gap-3">
-          {activeTab === 'friend' && <FriendList friends={dummyFriends} />}
+          {activeTab === 'friend' && <FriendList friends={friends} />}
           {activeTab === 'received' && (
             <MessageList messageType="received" messages={dummyReceivedMessages} />
           )}
@@ -156,5 +169,4 @@ const FriendMessageModal = ({onClose}) => {
     </div>
   )
 }
-
-export default FriendMessageModal
+export default FriendMessageModal;

@@ -23,7 +23,7 @@ const FriendList = ({ friends = [] }) => {
           return (
             <div
               key={`empty-${idx}`}
-              className="bg-[#B78F8F] rounded-2xl w-full h-[100px] flex items-center justify-center"
+              className="bg-[#B78F8F] rounded-2xl w-full h-[95px] flex items-center justify-center"
             >
               <span className="font-bold text-xl tracking-wider">EMPTY</span>
             </div>

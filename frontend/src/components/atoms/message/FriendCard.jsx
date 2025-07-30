@@ -4,6 +4,7 @@
 
 // 필요 기능: 쪽지 보내기 
 
+
 import UserCharacter from '../user/UserCharacter'
 import RightButton from '../button/RightButton'
 import SendMessageModal from './SendMessageModal'
@@ -39,8 +40,8 @@ const FriendCard = ({ characterName, nickname, isOnline}) => {
         ></span>
         <span className="font-bold">{isOnline ? 'Online' : 'Offline'}</span>
       </div>
-{/* 
-      <RightButton size="sm" onClick={handleModalOpen}>
+
+      {/* <RightButton size="sm" onClick={handleModalOpen}>
         쪽지보내기
       </RightButton>
       {isModalOpen} && (
