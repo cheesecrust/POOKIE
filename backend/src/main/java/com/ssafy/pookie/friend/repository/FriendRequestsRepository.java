@@ -5,7 +5,11 @@ import com.ssafy.pookie.friend.model.RequestStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,4 +24,9 @@ public interface FriendRequestsRepository extends JpaRepository<FriendRequests, 
     Page<FriendRequests> findByFriendIdAndStatus(Long friendId, RequestStatus status, Pageable pageable);
 
     List<FriendRequests> findByUserIdAndFriendId(Long userId, Long friendId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM FriendRequests l WHERE l.id = :friendRequestId AND (l.user.id = :accountId)")
+    int deleteByLetterIdAndUserInvolved(@Param("friendRequestId") Long friendRequestId, @Param("accountId") Long accountId);
 }
