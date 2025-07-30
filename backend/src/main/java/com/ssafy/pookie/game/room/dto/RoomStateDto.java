@@ -202,7 +202,7 @@ public class RoomStateDto {
         roomInfo.put("RED", this.getUsers().get("RED") == null ? List.of() :
                 this.getUsers().get("RED").stream().map(user -> Map.of(
                         "id", user.getUserAccountId(),
-                        "email", this.getRoomMaster().getUserEmail(),
+                        "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
                         "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
                         "status", user.getStatus().toString()
@@ -211,7 +211,7 @@ public class RoomStateDto {
         roomInfo.put("BLUE", this.getUsers().get("BLUE") == null ? List.of() :
                 this.getUsers().get("BLUE").stream().map(user -> Map.of(
                         "id", user.getUserAccountId(),
-                        "email", this.getRoomMaster().getUserEmail(),
+                        "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
                         "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
                         "status", user.getStatus().toString()
