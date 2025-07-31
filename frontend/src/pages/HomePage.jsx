@@ -119,7 +119,7 @@ const HomePage = () => {
             <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
               오늘도 좋은 하루!
               <br />
-              {user.userNickname}님, 어서오세요~!
+              {/* {user.userNickname}님, 어서오세요~! */}
             </h1>
 
             <div className="flex gap-4 mt-8">
@@ -143,7 +143,7 @@ const HomePage = () => {
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
-                src={user.repImg || defaultCharacter}
+                // src={user.repImg || defaultCharacter}
                 alt="대표캐릭터"
                 className="w-32 h-32 object-contain"
               />
@@ -154,9 +154,9 @@ const HomePage = () => {
               {/* 유저 정보 */}
               <div className="flex flex-col gap-1">
                 <p className="font-semibold">
-                  닉네임 : {user.userNickname}
+                  {/* 닉네임 : {user.userNickname} */}
                 </p>
-                <p>EXP : {user.userExp ?? 0}</p>
+                {/* <p>EXP : {user.userExp ?? 0}</p> */}
                 <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
                   <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
                 </div>
