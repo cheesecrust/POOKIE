@@ -18,7 +18,15 @@
 //   // socket.emit("chat", text);
 //   // setMessages((prev) => [...prev, { sender: "me", content: text }]);
 // };
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { getSocket } from "../../../sockets/common/websocket";
+import { emitChatMessage } from "../../../sockets/chat/emit";
+import {
+  handleChatMessage,
+  handleSystemMessage,
+} from "../../../sockets/chat/onMessage";
+import useAuthStore from "../../../store/store";
+
 import ChatInput from "../../atoms/input/ChatInput";
 import RightButton from "../../atoms/button/RightButton";
 
@@ -27,9 +35,30 @@ const ChatBox = ({ width, height }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [chatTarget, setChatTarget] = useState("전체 채팅");
   const [chatText, setChatText] = useState("");
+  const [messages, setMessages] = useState([]);
+  const socketRef = useRef(null);
+  const { user } = useAuthStore();
 
   const ChatboxWidth = `w-[${width}]`;
   const ChatboxHeight = isOpen ? `h-[${height}]` : "h-[50px]";
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    socketRef.current = socket;
+
+    const handleMessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === "CHAT") {
+        handleChatMessage(data, setMessages);
+      } else if (data.msg) {
+        handleSystemMessage(data, setMessages);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, []);
 
   const handleSelect = (target) => {
     setChatTarget(target);
@@ -39,10 +68,19 @@ const ChatBox = ({ width, height }) => {
   const handleSendMessage = () => {
     if (!chatText.trim()) return;
 
-    // ✅ 실제 메시지 전송 로직은 여기에서 처리
-    console.log(`[${chatTarget}] 메시지 전송:`, chatText);
+    const roomId = "ROOM_ID"; // ✅ 추후 props 또는 상태에서 받아와야 함
+    const team = chatTarget === "팀 채팅" ? user.team : "ALL";
 
-    // 전송 후 input 초기화
+    emitChatMessage({
+      roomId,
+      team,
+      message: chatText,
+      user: {
+        userId: user.id,
+        userNickname: user.nickname,
+      },
+    });
+
     setChatText("");
   };
 
