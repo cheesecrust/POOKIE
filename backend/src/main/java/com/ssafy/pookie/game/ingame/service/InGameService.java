@@ -33,48 +33,11 @@ public class InGameService {
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameKeywordsRepository gameKeywordsRepository;
     private final RtcService rtcService;
-    private final GameTimerService gameTimerService;
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-        if(!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) return;
-        // 1. 방 인원이 모드 채워졌는지
-        if(room.getSessions().size() < 6) {
-            onlinePlayerManager.sendToMessageUser(session, Map.of(
-                    "type", "ERROR",
-                    "msg", "6명 이상 모여야 시작 가능합니다."
-            ));
-            return;
-        }
-        if(room.getSessions().size() <= 6) {
-            // 모두 준비 완료 상태인지
-            int readyUserCnt = 0;
-            List<UserDto> teamUsers = room.getUsers().get("RED");
-            int redTeamCnt = teamUsers.size();
-            readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
-            teamUsers = room.getUsers().get("BLUE");
-            int blueTeamCnt = teamUsers.size();
-            readyUserCnt += (int)teamUsers.stream().filter((user) -> user.getStatus() == UserDto.Status.READY).count();
-            if(redTeamCnt != blueTeamCnt) {
-                onlinePlayerManager.sendToMessageUser(session, Map.of(
-                        "type", "ERROR",
-                        "msg", "팀원이 맞지 않습니다."
-                ));
-                return;
-            }
-            log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
-
-            if(readyUserCnt != room.getSessions().size()) {
-                onlinePlayerManager.sendToMessageUser(session, Map.of(
-                        "type", "ERROR",
-                        "msg", "준비완료가 되지 않았습니다."
-                ));
-                return;
-            }
-        }
 
         // 2. 인원 충족, 모두 준비 완료
         // 게임 시작 설정
@@ -91,7 +54,6 @@ public class InGameService {
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
-//        gameTimerService.preTimer(new TimerRequestDto(request.getUser(), request.getRoomId()), false);
         String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
@@ -167,7 +129,7 @@ public class InGameService {
         }
 
         for(UserDto user : teamUsers) {
-            if(repList.contains(user)) continue;
+            if(repList.contains(user) && !room.getGameType().equals(RoomStateDto.GameType.SAMEPOSE)) continue;
             normalList.add(user);
         }
     }
