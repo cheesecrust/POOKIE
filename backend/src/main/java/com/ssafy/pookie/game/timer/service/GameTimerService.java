@@ -110,9 +110,12 @@ public class GameTimerService {
                                 )
                         );
                         scheduler.shutdown();
+                        Thread.sleep(1000*1);
                         gameStartTimer(room, timerRequest);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
         );
