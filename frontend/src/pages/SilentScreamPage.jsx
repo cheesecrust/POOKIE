@@ -1,10 +1,19 @@
 // src/pages/SilentScreamPage.jsx
 
+import { useEffect } from "react";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 
 const SilentScreamPage = () => {
+
+  useEffect(() => {
+    console.log('로그인 상태 확인')
+    console.log('isLoggedIn', isLoggedIn)
+    console.log('user', user)
+    console.log('accessToken', accessToken)
+  }, []);
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지는 absolute로 완전 뒤로 보내야 함 */}

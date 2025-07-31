@@ -130,7 +130,7 @@ public class OnlinePlayerManager {
         this.rooms.values().stream().forEach((room) -> {
             if(room.getSessions().contains(session)) {
                 room.removeUser(session);
-                if(room.getSessions().size() == 0) {
+                if(room.getSessions().isEmpty()) {
                     removeRoomFromServer(room.getRoomId());
                 }
             }
