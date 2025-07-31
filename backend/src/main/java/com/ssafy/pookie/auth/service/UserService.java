@@ -8,6 +8,9 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.auth.repository.UsersRepository;
+import com.ssafy.pookie.character.model.Characters;
+import com.ssafy.pookie.character.model.PookieType;
+import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.friend.dto.FriendDto;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class UserService {
     private final UserAccountsRepository userAccountsRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CharacterService characterService;
 
     public SignupResponseDto signup(SignupRequestDto signupRequest) {
         // 이메일 중복 확인
@@ -55,6 +59,9 @@ public class UserService {
 
         Users savedUser = usersRepository.save(user);
         UserAccounts savedAccount = userAccountsRepository.save(account);
+        Characters character = characterService.setUserPookie(savedAccount, PookieType.BASE);
+        characterService.setPookieCatalog(savedAccount, character.getStep(), character.getType());
+        characterService.changeRepPookie(savedAccount.getId(), character.getType(), character.getStep());
 
         return SignupResponseDto.builder()
                 .userId(savedUser.getId())

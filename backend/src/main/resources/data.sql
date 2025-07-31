@@ -1,3 +1,19 @@
+-- 푸키 생성하기
+INSERT INTO characters (name, type, step) VALUES
+                                              ('pookiepookie', 0, 0),
+                                              ('redpookie', 1, 1),
+                                              ('strawberrypudding', 1, 2),
+                                              ('buldakpudding', 1, 2),
+                                              ('blueberrypudding', 1, 2),
+                                              ('greenpookie', 2, 1),
+                                              ('melonpudding', 2, 2),
+                                              ('chocopudding', 2, 2),
+                                              ('greenteapudding', 2, 2),
+                                              ('yellowpookie', 3, 1),
+                                              ('creampudding', 3, 2),
+                                              ('milkpudding', 3, 2),
+                                              ('caramelpudding', 3, 2);
+
 -- 게임 타입 먼저 삽입
 INSERT INTO game_types (game_name) VALUES ("SAMEPOSE");
 INSERT INTO game_types (game_name) VALUES ("SILENTSCREAM");
