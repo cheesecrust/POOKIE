@@ -8,21 +8,33 @@ import SearchBar from "../components/molecules/home/SearchBar";
 import toggleLeft from "../assets/icon/toggle_left.png";
 import defaultCharacter from "../assets/character/pookiepookie.png";
 import useAuthStore from "../store/store";
+import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { handleHomeSocketMessage } from "../sockets/home/onmessage";
 import { getSocket } from "../sockets/common/websocket";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { logout, user } = useAuthStore();
+  const location = useLocation();
+  const { user } = useAuthStore();
+  const { logout } = useAuthStore();
+  const { isLoggedIn } = useAuthStore((state) => state);
   const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
 
   // 소켓 연결 값
-  const userRef = useRef(user);
   const roomListRef = useRef([]);
+
+  // 로그아웃시 '/' 로 리다이렉트
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate("/", { replace: true });
+    }
+  }, [isLoggedIn, user, navigate]);
+
 
   // ✅ 소켓 메시지 핸들러 설정
   useEffect(() => {
@@ -34,9 +46,8 @@ const HomePage = () => {
       console.log("🟢 수신된 소켓 메시지:", msg);
       handleHomeSocketMessage(msg, {
         onUserReceived: (user) => {
-          userRef.current = user;
           rerender((prev) => prev + 1);
-          console.log(userRef.current);
+          console.log(user);
         },
         onRoomListReceived: (rooms) => {
           roomListRef.current = rooms;
@@ -45,7 +56,7 @@ const HomePage = () => {
         },
         navigateToWaiting: (room) => {
           console.log("대기실로 이동 할거야");
-          navigate("/waiting", { state: { room } });
+          navigate(`/waiting/${room.id}`, { state: { room } });
           console.log("대기실로 이동함!");
         },
         showErrorModal: (msg) => alert(msg),
@@ -80,6 +91,20 @@ const HomePage = () => {
     // 예: 검색 API 요청 or 상태 전달
   };
 
+  // 강퇴 모달
+  useEffect(() => {
+    if (location.state?.kicked) {
+      setIsKicked(true);
+
+      // 1초 후 자동 닫기
+      const timer = setTimeout(() => {
+        setIsKicked(false);
+      }, 1000);
+
+      return () => clearTimeout(timer); // 클린업
+    }
+  }, [location.state]);
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
       {/* 상단 고정 헤더 */}
@@ -94,7 +119,7 @@ const HomePage = () => {
             <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
               오늘도 좋은 하루!
               <br />
-              {userRef.current?.userNickname}님, 어서오세요~!
+              {user.userNickname}님, 어서오세요~!
             </h1>
 
             <div className="flex gap-4 mt-8">
@@ -118,7 +143,7 @@ const HomePage = () => {
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
-                src={userRef?.current?.repImg || defaultCharacter}
+                src={user.repImg || defaultCharacter}
                 alt="대표캐릭터"
                 className="w-32 h-32 object-contain"
               />
@@ -129,9 +154,9 @@ const HomePage = () => {
               {/* 유저 정보 */}
               <div className="flex flex-col gap-1">
                 <p className="font-semibold">
-                  닉네임 : {userRef?.current?.userNickname}
+                  닉네임 : {user.userNickname}
                 </p>
-                <p>EXP : {userRef?.current?.userExp ?? 0}</p>
+                <p>EXP : {user.userExp ?? 0}</p>
                 <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
                   <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
                 </div>
@@ -168,17 +193,14 @@ const HomePage = () => {
 
         {/* 검색창 */}
         <div className="w-full max-w-[1000px] mt-10 mb-6">
-          <SearchBar
-            onSearch={handleSearch}
-            placeholder="방 이름으로 검색"
-          />
+          <SearchBar onSearch={handleSearch} placeholder="방 이름으로 검색" />
         </div>
 
         {/* 방 리스트 */}
-          <RoomList
-            keyword={keyword}
-            roomList={roomListRef.current}
-          />
+        <RoomList keyword={keyword} roomList={roomListRef.current} />
+
+        {/* 강퇴 모달 */}
+        {isKicked && <KickNoticeModal />}
 
         {/* 모달 */}
         <RoomCreateModal

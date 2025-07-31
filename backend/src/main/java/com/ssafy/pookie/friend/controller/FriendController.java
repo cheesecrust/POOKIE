@@ -10,6 +10,7 @@ import com.ssafy.pookie.friend.dto.FriendResponseDto;
 import com.ssafy.pookie.friend.model.Status;
 import com.ssafy.pookie.friend.service.FriendService;
 import com.ssafy.pookie.global.security.user.CustomUserDetails;
+import com.ssafy.pookie.notification.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -31,6 +33,7 @@ public class FriendController {
 
     private final FriendService friendService;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     /**
      * 친구 요청 보내기
@@ -49,11 +52,15 @@ public class FriendController {
                     currentUserId,
                     requestDto.getAddresseeId()
             );
-
+            notificationService.sendRequestEvent(requestDto.getAddresseeId());
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 전송했습니다.", result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
+        } catch (IOException e) {
+            log.error("알림 전송 실패" + e.getMessage());
+          return ResponseEntity.badRequest()
+                  .body(ApiResponse.error(e.getMessage()));  
         } catch (Exception e) {
             log.error("친구 요청 전송 실패", e);
             return ResponseEntity.internalServerError()
@@ -93,7 +100,6 @@ public class FriendController {
         try {
             Long userAccountId = userDetails.getUserAccountId();
             friendService.rejectFriendRequest(requestId, userAccountId);
-
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 거절했습니다.", null));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -242,4 +248,17 @@ public class FriendController {
                     .body(ApiResponse.error("사용지 목록 조회에 실패했습니다."));
         }
     }
+
+    @DeleteMapping("/request/{friendRequestId}")
+    public ResponseEntity<ApiResponse<?>> deleteFriendRequest(
+            @PathVariable Long friendRequestId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userAccountId = userDetails.getUserAccountId();
+        boolean result = friendService.deleteFriendRequest(userAccountId, friendRequestId);
+        if (result) {
+            return ResponseEntity.ok(ApiResponse.success("삭제되었습니다.", result));
+        }
+        return ResponseEntity.ok(ApiResponse.error("삭제 실패하였습니다."));
+    }
+
 }

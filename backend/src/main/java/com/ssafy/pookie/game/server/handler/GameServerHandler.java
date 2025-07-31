@@ -3,7 +3,10 @@ package com.ssafy.pookie.game.server.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.chat.dto.ChatDto;
 import com.ssafy.pookie.game.chat.service.GameChatService;
+import com.ssafy.pookie.game.draw.dto.DrawEvent;
+import com.ssafy.pookie.game.draw.service.DrawService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
+import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
@@ -41,6 +44,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final InGameService inGameService;
 
     private final ObjectMapper objectMapper;
+    private final DrawService drawService;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -50,32 +54,33 @@ public class GameServerHandler extends TextWebSocketHandler {
             UserDto user = new UserDto().mapUserDto(session);
             JoinDto join;
             TurnDto gameResult;
+            log.debug("{} Request", msg.getType());
             switch (msg.getType()) {
                 // Room
                 case JOIN_ROOM:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
-                    gameService.handleJoin(session, join);
+                    gameRoomService.handleJoin(session, join);
                     break;
                 case LEAVE_ROOM:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
-                    gameService.handleLeave(session, join.getRoomId());
+                    gameRoomService.handleLeave(session, join.getRoomId());
                     break;
                 case USER_TEAM_CHANGE:
                     UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
                     userTeamChangeRequestDto.setUser(user);
-                    gameService.handleUserTeamChange(session, userTeamChangeRequestDto);
+                    gameRoomService.handleUserTeamChange(session, userTeamChangeRequestDto);
                     break;
                 case USER_READY_CHANGE:
                     UserStatusChangeDto userStatusChangeDto = objectMapper.convertValue(msg.getPayload(), UserStatusChangeDto.class);
                     userStatusChangeDto.setUser(user);
-                    gameService.handleUserStatus(session, userStatusChangeDto);
+                    gameRoomService.handleUserStatus(session, userStatusChangeDto);
                     break;
                 case USER_FORCED_REMOVE:
                     RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
                     roomMasterForcedRemovalDto.setRoomMaster(user);
-                    gameService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
+                    gameRoomService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                     break;
                 case CHANGE_GAMETYPE:
                     RoomGameTypeChangeRequestDto roomGameTypeChangeRequestDto = objectMapper.convertValue(msg.getPayload(), RoomGameTypeChangeRequestDto.class);
@@ -103,6 +108,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                     submitAnswer.setUser(user);
                     inGameService.handleSubmitAnswer(submitAnswer);
                     break;
+                case PAINTER_CHANGE:
+                    PainterChangeRequest painterChangeRequest = objectMapper.convertValue(msg.getPayload(), PainterChangeRequest.class);
+                    painterChangeRequest.setUser(user);
+                    inGameService.handlePainterChange(painterChangeRequest);
+                    break;
                 // Chat
                 case CHAT:
                     ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);
@@ -113,7 +123,13 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case TIMER_START:
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
-                    gameTimerService.handleStartTimer(timerRequest);
+                    gameTimerService.preTimer(timerRequest);
+                    break;
+                // Draw
+                case DRAW:
+                    DrawEvent drawEvent = objectMapper.convertValue(msg.getPayload(), DrawEvent.class);
+                    drawEvent.setUser(user);
+                    drawService.drawEvent(drawEvent);
                     break;
             }
         } catch(Exception e) {
@@ -129,12 +145,14 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
+        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
         gameService.joinInLobby(session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("[WebSocket] Disconnected : "+ session.getId());
-        gameService.removeFromLobby(session);
+        onlinePlayerManager.removeFromLobby(session);
+        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }
 }

@@ -20,15 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class GameTimerService {
     private final OnlinePlayerManager onlinePlayerManager;
 
-    public void handleStartTimer(TimerRequestDto timerRequest) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
-        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() != RoomStateDto.Status.START) {
-            onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
-                    "type", "ERROR",
-                    "msg", "요청이 잘못되었습니다."
-            ));
-            return;
-        }
+    public void gameStartTimer(RoomStateDto room, TimerRequestDto timerRequest) throws IOException {
         // 새로운 Scheduler 생성
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         // 타이머 인스턴스 생성
@@ -57,7 +49,7 @@ public class GameTimerService {
                                 timerRequest.getRoomId(),
                                 null,
                                 Map.of(
-                                        "type", "TIMER_END",
+                                        "type", "GAME_TIMER_END",
                                         "msg", "시간이 종료되었습니다."
                                 )
                         );
@@ -67,10 +59,70 @@ public class GameTimerService {
                     }
                 }
         );
+        onlinePlayerManager.broadCastMessageToRoomUser(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
+                "type", "GAME_TIMER_START"
+        ));
         // Room 에 타이머 설정
         room.setTimer(timer);
         // 요청 시간만큼 시작
         timer.start(room.getGameType());
+    }
+
+    public void preTimer(TimerRequestDto timerRequest) throws IOException {
+        RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
+        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() != RoomStateDto.Status.START) {
+            onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
+                    "type", "ERROR",
+                    "msg", "요청이 잘못되었습니다."
+            ));
+            return;
+        }
+        // 새로운 Scheduler 생성
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        // 타이머 인스턴스 생성
+        GameTimerDto timer = new GameTimerDto(
+                scheduler,
+                timeLeft -> {
+                    // 매 초마다 Room 에 타이머 전송 ( ALL )
+                    try {
+                        onlinePlayerManager.broadCastMessageToRoomUser(
+                                timerRequest.getUser().getSession(),
+                                timerRequest.getRoomId(),
+                                null,
+                                Map.of(
+                                        "type", "TIMER",
+                                        "time", timeLeft+1  // 시간 보정
+                                ));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                () -> {
+                    // 타이머 종료 시 Room 에 종료 알림 ( ALL )
+                    try {
+                        onlinePlayerManager.broadCastMessageToRoomUser(
+                                timerRequest.getUser().getSession(),
+                                timerRequest.getRoomId(),
+                                null,
+                                Map.of(
+                                        "type", "PRE_TIMER_END",
+                                        "msg", "시간이 종료되었습니다."
+                                )
+                        );
+                        scheduler.shutdown();
+                        gameStartTimer(room, timerRequest);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
+        onlinePlayerManager.broadCastMessageToRoomUser(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
+                "type", "PRE_TIMER_START"
+        ));
+        // Room 에 타이머 설정
+        room.setTimer(timer);
+        // 요청 시간만큼 시작
+        timer.start(null);
     }
 
     public boolean isAuthorized(WebSocketSession session, RoomStateDto room) {

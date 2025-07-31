@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CombinedMessageDto {
 
-    private Long id;
+    private Long requestId;
     private Long receiverId;
     private String receiverNickname;
     private Long senderId;
@@ -26,7 +26,6 @@ public class CombinedMessageDto {
     // CombinedMessageProjection을 DTO로 변환하는 메서드
     public static CombinedMessageDto from(CombinedMessageProjection projection) {
         return CombinedMessageDto.builder()
-                .id(projection.getId())
                 .receiverId(projection.getReceiverId())
                 .receiverNickname(projection.getReceiverNickname())
                 .senderId(projection.getSenderId())
@@ -35,6 +34,7 @@ public class CombinedMessageDto {
                 .status(projection.getStatus())
                 .type(projection.getType())
                 .createdAt(projection.getCreatedAt())
+                .requestId(projection.getRequestId())
                 .build();
     }
 }

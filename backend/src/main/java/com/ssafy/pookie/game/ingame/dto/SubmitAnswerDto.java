@@ -8,8 +8,9 @@ public class SubmitAnswerDto {
     private UserDto user;
     private String roomId;
     private Integer round;
-    private Long repIdx;    // 이어그리기에서 그림 그리는 순서
-    private Long norIdx;
+    // 현재 발화자의 id -> DB 내의 idx
+    private Long repId;
+    private Long norId;
     private Integer keywordIdx;
     private String inputAnswer;
 }

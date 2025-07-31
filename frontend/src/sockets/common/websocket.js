@@ -65,8 +65,9 @@ export const connectSocket = ({
 export const sendMessage = (type, data) => {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type, payload: data }));
+    console.log("보낸 소켓 메시지:", { type, payload: data });
   } else {
-    console.warn("WebSocket is not open:", { type, payload: data });
+    console.warn("[X] WebSocket is not open:", { type, payload: data });
   }
 };
 
