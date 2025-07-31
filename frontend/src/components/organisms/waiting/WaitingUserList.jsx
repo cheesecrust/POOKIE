@@ -36,9 +36,9 @@ const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick }) => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-6 w-full px-4 py-4">
+    <div className="grid grid-cols-3 gap-12 w-full px-4 py-4">
       {paddedSlots.map((u, index) => (
-        <div key={index} className="flex justify-center items-center">
+        <div key={index} className="flex justify-around items-center">
           {u ? (
             <WaitingUserCard
               user={u}
@@ -47,7 +47,7 @@ const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick }) => {
               onRightClickKick={onRightClickKick}
             />
           ) : (
-            <div className="w-36 h-48 bg-white border-4 border-dashed border-gray-300 rounded-xl opacity-50" />
+            <div className="w-40 h-52 bg-white border-4 border-dashed border-gray-300 rounded-xl opacity-50" />
           )}
         </div>
       ))}

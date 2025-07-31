@@ -54,15 +54,15 @@ const RoomList = ({ roomList, keyword }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center">
+    <div className="flex flex-col items-center">
       {/* 게임 탭 */}
-      <div className="w-[900px] flex justify-center">
+      <div className="w-[1000px] flex justify-center">
         <GameTab activeTab={activeTab} onChange={handleTabChange} />
       </div>
 
       {/* 방 리스트 */}
-      <div className="w-[900px] flex justify-center">
-        <div className="w-full bg-[#F4C0C0] px-16 py-10">
+      <div className="w-[1000px] flex justify-center">
+        <div className="w-full bg-[#F4C0C0] px-18 py-16 h-[750px] flex flex-col justify-between">
           <div className="grid grid-cols-2 gap-10 place-items-center">
             {paginatedRooms.map((room) => (
               <RoomCard
@@ -79,7 +79,7 @@ const RoomList = ({ roomList, keyword }) => {
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             totalPages={totalPages}
-            className="mt-14"
+            className="mt-16"
           />
         </div>
       </div>

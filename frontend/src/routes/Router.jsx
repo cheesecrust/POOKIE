@@ -9,7 +9,7 @@ import SamePosePage from "../pages/SamePosePage";
 import SilentScreamPage from "../pages/SilentScreamPage";
 import SketchRelayPage from "../pages/SketchRelayPage";
 import WaitingPage from "../pages/WaitingPage";
-
+import SketchRelayPage_VIDU from "../pages/SketchRelayPage_openvidu";
 const Router = () => {
   return (
     <Routes>
@@ -20,6 +20,7 @@ const Router = () => {
       <Route path="/samepose" element={<SamePosePage />} />
       <Route path="/silentscream" element={<SilentScreamPage />} />
       <Route path="/sketchrelay" element={<SketchRelayPage />} />
+      <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} />
       <Route path="/waiting" element={<WaitingPage />} />
     </Routes>
   );

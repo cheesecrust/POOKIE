@@ -11,9 +11,9 @@
 /> */
 }
 
-const RoundInfo = ({ round = 0, redScore = 0, blueScore = 0 }) => {
+const RoundInfo = ({ round = 0, redScore = 0, blueScore = 0, className="" }) => {
   return (
-    <div className="flex flex-col items-center gap-2 text-center font-pixel text-black">
+    <div className={`${className} flex flex-col items-center gap-2 text-center font-pixel text-black`}>
       {/* 라운드 표시 */}
       <p className="text-lg tracking-widest">ROUND {round}</p>
 

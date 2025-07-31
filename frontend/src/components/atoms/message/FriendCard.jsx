@@ -4,12 +4,13 @@
 
 // 필요 기능: 쪽지 보내기 
 
+
 import UserCharacter from '../user/UserCharacter'
 import RightButton from '../button/RightButton'
 import SendMessageModal from './SendMessageModal'
 import { useState } from 'react'
 
-const FriendCard = ({ characterName, nickname, isOnline}) => {
+const FriendCard = ({ characterName, nickname, isOnline, friendId, onRemoveFriend}) => {
 
   // 쪽지보내기 모달 상태
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -25,7 +26,7 @@ const FriendCard = ({ characterName, nickname, isOnline}) => {
   return (
     <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px]">
       <div className="flex items-center gap-4">
-        <UserCharacter name={characterName} size={80} />
+        <UserCharacter name="pooding_strawberry" size={80} />
         <div className="flex flex-col">
           <span className="text-lg font-bold">{nickname}</span>
         </div>
@@ -39,13 +40,16 @@ const FriendCard = ({ characterName, nickname, isOnline}) => {
         ></span>
         <span className="font-bold">{isOnline ? 'Online' : 'Offline'}</span>
       </div>
-{/* 
+
       <RightButton size="sm" onClick={handleModalOpen}>
         쪽지보내기
       </RightButton>
-      {isModalOpen} && (
-        <SendMessageModal onClose={handleModalClose} senderId={senderId} targetId={targetId} />
-      ) */}
+      {isModalOpen && (
+        <SendMessageModal onClose={handleModalClose} friendId={friendId} />
+      )}
+      <RightButton size="sm" onClick={() => onRemoveFriend(friendId)}>
+        친구삭제
+      </RightButton>
     </div>
 
 

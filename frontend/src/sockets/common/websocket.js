@@ -37,10 +37,10 @@ export const connectSocket = ({
         console.warn("[WebSocket MESSAGE] type 없음:", e);
         return;
       }
-  
+
       console.log(`[WebSocket MESSAGE] type: ${e.type}`, e);
       onMessage?.(e);
-  
+
     } catch (err) {
       console.error("[WebSocket MESSAGE ERROR]", e, err);
     }
@@ -64,9 +64,10 @@ export const connectSocket = ({
  */
 export const sendMessage = (type, data) => {
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type, payload:data }));
+    socket.send(JSON.stringify({ type, payload: data }));
+    console.log("보낸 소켓 메시지:", { type, payload: data });
   } else {
-    console.warn("WebSocket is not open:", { type, payload:data });
+    console.warn("[X] WebSocket is not open:", { type, payload: data });
   }
 };
 

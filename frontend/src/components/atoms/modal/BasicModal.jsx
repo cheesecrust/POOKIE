@@ -5,7 +5,14 @@
 // </BasicModal>
 import { useEffect } from 'react'
 
-const BasicModal = ({ isOpen, onClose, children, className=" ", backgroundPoacity = "opacity-70", }) => {
+const BasicModal = ({
+  isOpen,
+  onClose,
+  children,
+  className=" ",
+  backgroundPoacity = "opacity-70",
+  closeBackdropClick = true,
+}) => {
 
     useEffect(() => {
         if (!isOpen) return;
@@ -31,7 +38,7 @@ const BasicModal = ({ isOpen, onClose, children, className=" ", backgroundPoacit
     return (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center"
-          onClick={onClose}
+          onClick={closeBackdropClick ? onClose : undefined}
         >
           <div
             className={`relative rounded-xl p-4 shadow-lg overflow-hidden ${className}`}
