@@ -2,6 +2,7 @@ package com.ssafy.pookie.auth.model;
 
 import com.ssafy.pookie.auth.model.base.Roles;
 import com.ssafy.pookie.auth.model.base.Users;
+import com.ssafy.pookie.character.model.UserCharacters;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -10,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter

@@ -1,0 +1,121 @@
+package com.ssafy.pookie.character.service;
+
+import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.character.model.CharacterCatalog;
+import com.ssafy.pookie.character.model.Characters;
+import com.ssafy.pookie.character.model.PookieType;
+import com.ssafy.pookie.character.model.UserCharacters;
+import com.ssafy.pookie.character.repository.CharacterCatalogRepository;
+import com.ssafy.pookie.character.repository.CharactersRepository;
+import com.ssafy.pookie.character.repository.UserCharactersRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CharacterService {
+
+    private final CharacterCatalogRepository characterCatalogRepository;
+    private final CharactersRepository charactersRepository;
+    private final UserCharactersRepository userCharactersRepository;
+    private final UserAccountsRepository userAccountsRepository;
+
+    /**
+     * 내가 키우는 캐릭터 레벨업 하기
+     */
+    public UserCharacters levelUpMyPookie(Long userAccountId, int addedExp) throws RuntimeException {
+        List<UserCharacters> userCharacters = userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, true);
+        if (userCharacters.size() > 2) throw new RuntimeException("pookie 수 문제");
+        UserCharacters userCharacter = userCharacters.get(0);
+        userCharacter.upExp(addedExp);
+        userCharactersRepository.save(userCharacter);
+        return userCharacter;
+    }
+    
+    /**
+     * user의 도감 조회하기
+     */
+    public List<CharacterCatalog> getPookiesByUserId(Long userAccountId) {
+        return characterCatalogRepository.findCharacterCatalogByUserAccountId(userAccountId);
+    }
+
+    /**
+     * 나의 푸딩 파양하기
+     */
+    public void dropUserPookie(Long userAccountId) {
+
+    }
+
+    /**
+     * 대표 푸딩 가져오기
+     * 대표 푸딩은 도감에서 대표로 설정된 푸딩을 가져온다.
+     */
+    public Characters getRepPookie(Long userAccountId) throws RuntimeException {
+        List<CharacterCatalog> catalog = characterCatalogRepository.findCharacterCatalogByUserAccountIdAndIsRepresent(userAccountId, true);
+        if (catalog.size() > 2) throw new RuntimeException("pookie 대표 수 문제");
+        return catalog.get(0).getCharacter();
+    }
+
+    /**
+     * 대표 푸딩 바꾸기
+     * 대표 푸딩은 도감에서 대표로 설정된 푸딩을 가져온다.
+     */
+    @Transactional
+    public void changeRepPookie(Long userAccountId, PookieType pookieType, int step) throws RuntimeException {
+        CharacterCatalog catalog = characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(
+                userAccountId, step, pookieType
+        );
+        if (catalog == null) throw new RuntimeException("그런 푸킨 없다.");
+        catalog.updateIsRep(true);
+        System.out.println(catalog.isRepresent());
+        characterCatalogRepository.save(catalog);
+        // TOD0: 원래꺼 변경
+    }
+
+    /**
+     * 나의 푸딩 조회하기
+     */
+    public UserCharacters findMyPookieByUserId(Long userAccountId) {
+        List<UserCharacters> userCharacters = userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, true);
+        if (userCharacters.size() > 2) throw new RuntimeException("pookie 수 문제");
+        return userCharacters.get(0);
+    }
+
+    /**
+     * 푸딩 지급하기
+     */
+    public Characters setUserPookie(UserAccounts userAccount, PookieType pookieType) {
+        Characters character = charactersRepository.findCharactersByType(pookieType).get(0);
+
+        UserCharacters userCharacters = UserCharacters.builder()
+                .userAccount(userAccount)
+                .character(character)
+                .exp(0)
+                .isDrop(false)
+                .build();
+
+        userCharactersRepository.save(userCharacters);
+        return character;
+    }
+
+    public void setPookieCatalog(UserAccounts userAccount, int step, PookieType pookieType) {
+        CharacterCatalog catalog = characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(
+                userAccount.getId(), step, pookieType
+        );
+        if (catalog != null) return;
+        System.out.println("qw");
+        Characters character = charactersRepository.findCharactersByTypeAndStep(pookieType, step).get(0);
+        System.out.println('a');
+        System.out.println(character);
+        catalog = CharacterCatalog.builder()
+                .userAccount(userAccount)
+                .character(character)
+                .isRepresent(false)
+                .build();
+        characterCatalogRepository.save(catalog);
+    }
+}
