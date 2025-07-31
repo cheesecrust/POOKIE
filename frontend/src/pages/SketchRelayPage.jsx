@@ -1,17 +1,56 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-
 import background_sketchrelay from "../assets/background/background_sketchrelay.gif";
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RightButton from '../components/atoms/button/RightButton';
-
+import PopUpModal from '../components/atoms/modal/PopUpModal';
+import KeywordModal from '../components/atoms/modal/KeywordModal';
 import {
   emitGameStart,
   emitTurnChange,
   emitRoundOver,
 } from "../sockets/games/sketchRelay/emit";
 
+// 필요로 하는 정보 ( 소켓 이용 )
+// 1. 누구의 턴
+// - 레드팀, 블루팀
+// - 그리는 사람의 턴 (A -> B -> A -> B 5초씩 30초)
+// 2. 제시어 ( 맞히는 사람 빼고 제시어 전달 총 5명)
+// 3. 제시어 맞히는 사람 정답 제출하고 확인 맞으면 correct, 틀리면 wrong
+// 4. 제시어 맞히면 +1점
+// 5. 레드팀,블루팀 한번씩했으면 다음 라운드로 이동 (라운드 정보)
+// 6. 3 라운드 끝났으면 총 점수 합계
+// 7. 타이머 정보
+// 8. 채팅 정보
+
+// 모달 띄우는 경우
+// 1. 처음 이 화면 들어왔을때 게임 START 모달 (PopUpModal 이용)
+// 2. 턴이 바뀔 때  (PopUpModal 이용)
+// 3. 정답 입력 모달 (타이머 30초 끝났을 때) (모달 미정)
+// 4. 정답 입력후 맞으면 정답! 틀리면 땡! 모달 (KeywordModal 이용)
+// 5. 3라운드 끝났을때 총점 모달 (모달 미정)
+
 const SketchRelayPage = () => {
+  // 턴 및 라운드
+  const [turn, setTurn] = useState("red");
+  const [round,setRound] = useState(1);
+  // 타이머
+  const [turnTimeLeft,setTurnTimeLeft] = useState(30);
+  const [drawerTimeLeft,setDrawerTimeLeft] = useState(5);
+  // 플레이어 정보
+  const [player, setPlayers] = useState([]);
+  // 제시어 
+  const [keyword, setKeyword] = useState("");
+  // 게임 상태
+  const [scores, setScores] = useState({ red: 0, blue: 0 });
+  
+  // 모달 상태 (게임시작, 턴체인지, 정답입력, 결과확인)
+  const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
+  const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+
+  // emit 정해지면 함수 작성  
 
   // 도화지 ref
   const canvasRef = useRef(null);
@@ -84,11 +123,9 @@ const SketchRelayPage = () => {
   // 스타일 설정 함수 분리
   const setDrawingStyle = useCallback((ctx) => {
     if (isErasing) {
-      ctx.strokeStyle = 'white';
       ctx.lineWidth = 25;
       ctx.globalCompositeOperation = 'destination-out';
     } else {
-      ctx.strokeStyle = 'black';
       ctx.lineWidth = 3;
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -210,7 +247,7 @@ const SketchRelayPage = () => {
   </div>
 
   {/* ChatBox (우측 하단 고정) */}
-  <div className="absolute bottom-4 left-0 z-20">
+  <div className="absolute bottom-4 left-0 z-20 ">
     <div className="relative w-[300px] h-[300px] "> 
       <div className="absolute bottom-0 left-0 ">  
         <ChatBox width="300px" height="300px"/>          
