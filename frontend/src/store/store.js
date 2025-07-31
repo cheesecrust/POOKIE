@@ -28,6 +28,7 @@ const useAuthStore = create(
   
         // refreshToken은 로컬에만!
         localStorage.setItem('refreshToken', refreshToken);
+        await get().fetchUserInfo();
   
         return { success: true };
       } catch (err) {
@@ -51,6 +52,20 @@ const useAuthStore = create(
         isLoggedIn: false,
         user: null,
       });
+    },
+
+
+    // 유저 정보 불러오기: auth/info
+    fetchUserInfo: async () => {
+      try {
+        const res = await axiosInstance.get('/auth/info');
+        const user = res.data.data;
+        set({ user });
+        console.log('유저 정보 불러오기 성공:', user);
+      } catch (err) {
+        console.error('유저 정보 불러오기 실패:', err);
+        set({ user:null, isLoggedIn: false });
+      }
     },
 
     // ✅ 회원가입 + 자동 로그인 처리
@@ -78,27 +93,28 @@ const useAuthStore = create(
 
   
     // 🌱 새로고침 후 로그인 상태 복원
-    loadUserFromStorage: () => {
+    loadUserFromStorage: async () => {
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return;
-  
-      // → 앱 시작 시 refresh로 accessToken 다시 받아오도록
-      axiosInstance
-        .post('/auth/refresh', null, {
+
+      try {
+        const res = await axiosInstance.post('/auth/refresh', null, {
           headers: { Authorization: `Bearer ${refreshToken}` },
-        })
-        .then((res) => {
-          const { accessToken, userAccountId, nickname } = res.data.data;
-          set({
-            accessToken,
-            isLoggedIn: true,
-            user: { id: userAccountId, nickname },
-          });
-        })
-        .catch(() => {
-          localStorage.removeItem('refreshToken');
-          set({ accessToken: null, isLoggedIn: false });
         });
+
+        const { accessToken } = res.data.data;
+
+        set({
+          accessToken,
+          isLoggedIn: true,
+        });
+
+        await get().fetchUserInfo();
+      } catch (err) {
+        console.error('리프레시 토큰 재발급 실패');
+        localStorage.removeItem('refreshToken');
+        set({ accessToken: null, isLoggedIn: false });
+      }
     },
   }),
   {
@@ -112,4 +128,4 @@ const useAuthStore = create(
   }
 ));
   
-  export default useAuthStore;
+export default useAuthStore;
