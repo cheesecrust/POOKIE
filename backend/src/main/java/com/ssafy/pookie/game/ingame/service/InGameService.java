@@ -2,6 +2,7 @@ package com.ssafy.pookie.game.ingame.service;
 
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
+import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
@@ -12,6 +13,7 @@ import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.webrtc.service.RtcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.objenesis.instantiator.basic.AccessibleInstantiator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -93,6 +95,7 @@ public class InGameService {
                 "type", "STARTED_GAME",
                 "msg", "게임을 시작합니다.",
                 "turn", room.getTurn().toString(),
+                "round", room.getRound(),
                 "rtc_token", rtcToken
         ));
 
@@ -126,14 +129,7 @@ public class InGameService {
         // 키워드 목록 저장
         room.getGameInfo().setKeywordList(keywordList);
         for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), Map.of(
-                    "type", "KEYWORD",
-                    "KeywordList", keywordList,
-                    "keywordIdx", room.getGameInfo().getKeywordIdx(),
-                    "repIdxList", room.getGameInfo().repAccountIdxList(),
-                    "repIdx", room.getGameInfo().getRep(),
-                    "norIdxList", room.getGameInfo().norAccountIdxList()
-            ));
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo("KEYWORD"));
         }
     }
     // 현재 팀의 대표자 뽑기 ( 발화자 )
@@ -171,11 +167,6 @@ public class InGameService {
             if(repList.contains(user)) continue;
             normalList.add(user);
         }
-
-        System.out.println("대표");
-        System.out.println(repList);
-        System.out.println("일반");
-        System.out.println(normalList);
     }
 
     // 턴이 종료되었을 때
@@ -195,7 +186,9 @@ public class InGameService {
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "TURN_CHANGED",
-                "turn", room.getTurn().toString()
+                "round", room.getRound(),
+                "turn", room.getTurn().toString(),
+                "tempTeamScore", room.getTempTeamScores()
         ));
         deliverKeywords(room);
     }
@@ -251,7 +244,9 @@ public class InGameService {
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                 "type", "NEW_ROUND",
                 "msg", "새로운 라운드가 시작됩니다.",
-                "turn", room.getTurn().toString()
+                "turn", room.getTurn().toString(),
+                "round", room.getRound(),
+                "teamScore", room.getTeamScores()
         ));
         deliverKeywords(room);
     }
@@ -269,7 +264,13 @@ public class InGameService {
         // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
         if(!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
                 || room.getGameInfo().getNormal().stream().filter(
-                        (user) -> user.getUserAccountId().equals(request.getNorIdx())).findFirst().orElse(null) == null) return;
+                        (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", "ERROR",
+                    "msg", "잘못된 요청입니다."
+            ));
+            return;
+        }
 
         // 정답이 일치하는지 확인한다.
         Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
@@ -285,7 +286,32 @@ public class InGameService {
         ));
     }
 
+    public void handlePainterChange(PainterChangeRequest request) throws IOException {
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+        if(!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room)
+        && isMasterRequest(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", "ERROR",
+                    "msg", "잘못된 요청입니다."
+            ));
+        }
+
+        if(!room.getGameInfo().changePainter()) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", "ERROR",
+                    "msg", "다음 차례가 없습니다."
+            ));
+            return;
+        }
+
+        for(UserDto rep : room.getGameInfo().getRep()) {
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo("PAINTER_CHANGED"));
+        }
+    }
+
     // 들어오는 요청이 방장이 보낸 요청인지 확인
+    // 방장이라면 true
+    // 아니면 false
     public Boolean isMasterRequest(WebSocketSession requestSession, RoomStateDto room) {
         return room != null && room.getRoomMaster().getSession() == requestSession;
     }
