@@ -179,7 +179,7 @@ RESULTS_DIR = "./results_debug"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-@app.post("/upload_images")
+@app.post("/ai/upload_images")
 async def upload_images(images: List[UploadFile] = File(...)):
     if len(images) != 3:
         return {"status": "error", "message": "정확히 3장의 이미지를 업로드해야 합니다."}
