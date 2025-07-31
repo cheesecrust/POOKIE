@@ -25,7 +25,7 @@ itsdangerous==2.2.0
 jax==0.6.2
 jaxlib==0.6.2
 Jinja2==3.1.6
-joblib @ file:///home/conda/feedstock_root/build_artifacts/joblib_1748019130050/work
+joblib==1.4.2
 kiwisolver==1.4.8
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
@@ -56,8 +56,8 @@ PyYAML==6.0.2
 rich==14.1.0
 rich-toolkit==0.14.8
 rignore==0.6.4
-scikit-learn @ file:///D:/bld/scikit-learn_1752825740524/work/dist/scikit_learn-1.7.1-cp310-cp310-win_amd64.whl#sha256=28bb07b1515c61de1724f2af3d2aaeea9ca20ce0e8f69b2556b5d15a8dd4137f
-scipy @ file:///C:/bld/scipy-split_1739790833536/work/dist/scipy-1.15.2-cp310-cp310-win_amd64.whl#sha256=4748853a0c723cda1fa2bdead847ba7c2443bde9cec3436e3e7243cfa54b55ff
+scikit-learn==1.7.1
+scipy==1.15.2
 sentencepiece==0.2.0
 sentry-sdk==2.33.2
 shellingham==1.5.4
@@ -65,7 +65,7 @@ six==1.17.0
 sniffio==1.3.1
 sounddevice==0.5.2
 starlette==0.47.2
-threadpoolctl @ file:///home/conda/feedstock_root/build_artifacts/threadpoolctl_1741878222898/work
+threadpoolctl==3.5.0
 typer==0.16.0
 typing-inspection==0.4.1
 typing_extensions==4.14.1
