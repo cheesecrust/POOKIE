@@ -8,17 +8,20 @@ import SearchBar from "../components/molecules/home/SearchBar";
 import toggleLeft from "../assets/icon/toggle_left.png";
 import defaultCharacter from "../assets/character/pookiepookie.png";
 import useAuthStore from "../store/store";
+import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { handleHomeSocketMessage } from "../sockets/home/onmessage";
 import { getSocket } from "../sockets/common/websocket";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuthStore();
   const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
 
   // 소켓 연결 값
   const userRef = useRef(user);
@@ -79,6 +82,20 @@ const HomePage = () => {
     console.log("검색어:", keyword);
     // 예: 검색 API 요청 or 상태 전달
   };
+
+  // 강퇴 모달
+  useEffect(() => {
+    if (location.state?.kicked) {
+      setIsKicked(true);
+
+      // 1초 후 자동 닫기
+      const timer = setTimeout(() => {
+        setIsKicked(false);
+      }, 1000);
+
+      return () => clearTimeout(timer); // 클린업
+    }
+  }, [location.state]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
@@ -168,17 +185,14 @@ const HomePage = () => {
 
         {/* 검색창 */}
         <div className="w-full max-w-[1000px] mt-10 mb-6">
-          <SearchBar
-            onSearch={handleSearch}
-            placeholder="방 이름으로 검색"
-          />
+          <SearchBar onSearch={handleSearch} placeholder="방 이름으로 검색" />
         </div>
 
         {/* 방 리스트 */}
-          <RoomList
-            keyword={keyword}
-            roomList={roomListRef.current}
-          />
+        <RoomList keyword={keyword} roomList={roomListRef.current} />
+
+        {/* 강퇴 모달 */}
+        {isKicked && <KickNoticeModal />}
 
         {/* 모달 */}
         <RoomCreateModal

@@ -1,4 +1,4 @@
-// src/components/molecules/games/TeamToggleButton.jsx
+// src/components/molecules/waiting/TeamToggleButton.jsx
 const TeamToggleButton = ({ currentTeam, onClick, disabled = false }) => {
   if (!currentTeam) return null;
 

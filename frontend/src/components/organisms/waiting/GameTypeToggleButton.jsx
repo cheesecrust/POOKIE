@@ -1,21 +1,21 @@
-// src/components/organisms/waiting/GameTypeButton.jsx
+// src/components/organisms/waiting/GameTypeToggleButton.jsx
 
 import { useState, useRef, useEffect } from "react";
 import RightButton from "../../atoms/button/RightButton";
 
 const gameTypeLabels = {
   SAMEPOSE: "일심동체",
-  SILENTSCREAM: "고요속의 외침",
+  SILENTSCREAM: "고요속의외침",
   SKETCHRELAY: "그림이어그리기",
 };
 
 const gameTypes = ["SAMEPOSE", "SILENTSCREAM", "SKETCHRELAY"];
 
-const GameTypeToggleButton = ({ gameType, onToggle }) => {
+// 게임 타입과 게임 타입 변경 함수, 방장 여부를 받아옴
+const GameTypeToggleButton = ({ gameType, onToggle, isHost }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
-  // 바깥 클릭 시 토글 닫기
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -26,28 +26,33 @@ const GameTypeToggleButton = ({ gameType, onToggle }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 선택하면 자동 닫힘
   const handleSelect = (selectedType) => {
+    if (!isHost) return;
     if (selectedType !== gameType) {
       onToggle(selectedType);
     }
-    setIsOpen(false); // 선택 후 닫기
+    setIsOpen(false);
   };
 
   return (
     <div className="relative inline-block" ref={containerRef}>
       <RightButton
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="bg-[#FDE1F0] opacity-80 border border-pink-100"
+        onClick={() => isHost && setIsOpen((prev) => !prev)}
+        className={`w-36 bg-[#FDE1F0] opacity-95 border rounded-md border-pink-300 ${
+          !isHost ? "cursor-default text-gray-800" : ""
+        }`}
       >
         {gameTypeLabels[gameType] ?? "게임 선택"}
       </RightButton>
 
-      {isOpen && (
-        <div className="absolute left-0 mt-2 w-full bg-[#FDE1F0] rounded shadow z-10 opacity-80">
+      {/* 게임 타입 선택 드롭롭 */}
+      {isOpen && isHost && (
+        <div className="absolute left-0 mt-2 w-full bg-[#FDE1F0] rounded-md shadow z-10 opacity-70">
           {gameTypes.map((type, index) => (
             <div
               key={type}
-              className={`text-sm px-4 py-2 cursor-pointer hover:bg-pink-100 ${
+              className={`text-sm px-4 py-2 cursor-pointer hover:bg-white ${
                 type === gameType ? "text-pink-500 font-bold" : ""
               } ${index < gameTypes.length - 1 ? "border-b border-gray-200" : ""}`}
               onClick={() => handleSelect(type)}
