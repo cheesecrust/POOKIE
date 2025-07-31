@@ -12,15 +12,15 @@ import { SOCKET_TYPES } from "../socketTypes";
  */
 
 export const handleHomeSocketMessage = (
-    msg,
-    {
-      onRoomListReceived,
-      onUserReceived,
-      navigateToWaiting,
-      showErrorModal,
-      closeRoomModal,
-    }
-  ) => {
+  msg,
+  {
+    onRoomListReceived,
+    onUserReceived,
+    navigateToWaiting,
+    showErrorModal,
+    closeRoomModal,
+  }
+) => {
   switch (msg.type) {
     case "ON":
       // 초기 연결 시, roomList, user 정보 수신
@@ -31,16 +31,26 @@ export const handleHomeSocketMessage = (
       break;
 
     case SOCKET_TYPES.ROOM_JOINED:
-        if (closeRoomModal) closeRoomModal();
-        navigateToWaiting(msg.room); // 대기실로 이동 (room 정보 전달)
-        break;
+      if (closeRoomModal) closeRoomModal();
+      navigateToWaiting(msg.room); // 대기실로 이동 (room 정보 전달)
+      break;
+
+    case SOCKET_TYPES.UPDATE_ROOM_LIST:
+      if (msg.roomList) onRoomListReceived(msg.roomList);
+      console.log("UPDATE_ROOM_LIST", msg);
+      break;
+
+    case SOCKET_TYPES.REMOVED_ROOM:
+      if (msg.roomList) onRoomListReceived(msg.roomList);
+      console.log("REMOVED_ROOM", msg);
+      break;
 
     case SOCKET_TYPES.ERROR:
-        if (showErrorModal) showErrorModal(msg.msg); // 예: "비밀번호가 틀렸습니다"
-        break;
+      if (showErrorModal) showErrorModal(msg.msg); // 예: "비밀번호가 틀렸습니다"
+      break;
 
     default:
-        console.log("Unhandled socket message:", msg);
-        break;
+      console.log("Unhandled socket message:", msg);
+      break;
   }
 };

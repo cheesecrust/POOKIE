@@ -4,7 +4,7 @@
 
 // 필요 기능: 쪽지 삭제, 쪽지 신고
 
-const MessageCard = ({messageType, nickname,date, messageContent,isRead,onDelete,onReport}) => {
+const MessageCard = ({messageType, nickname, date, messageContent,requestId,isRead,onDelete,onReport}) => {
     return (
         <div className="relative w-full p-4 rounded-2xl bg-white  h-[95px]">
           <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
@@ -17,14 +17,19 @@ const MessageCard = ({messageType, nickname,date, messageContent,isRead,onDelete
     
           <div className="absolute bottom-2 right-2 flex gap-2 text-xs">
             {messageType === 'sent' && (
-              <span className="text-gray-500 italic">{isRead ? '읽음' : ''}</span>
+              <>
+              <span className="text-gray-500 italic">{isRead===1 ? '읽음' : '읽지 않음'}</span>
+              <button onClick={()=> {onDelete(requestId,messageType)}} className="text-gray-400 hover:underline">삭제</button>
+              </>
             )}
     
             {messageType === 'received' && (
+              <>
               <button onClick={onReport} className="text-red-500 hover:underline">신고</button>
+              <button onClick={()=> {onDelete(requestId,messageType)}} className="text-gray-400 hover:underline">삭제</button>
+              </>
             )}
     
-            <button onClick={onDelete} className="text-gray-400 hover:underline">삭제</button>
           </div>
         </div>
       );

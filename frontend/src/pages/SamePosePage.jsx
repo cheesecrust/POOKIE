@@ -5,7 +5,6 @@ import RoundInfo from "../components/molecules/games/RoundInfo";
 import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
-import TeamToggleButton from "../components/molecules/games/TeamToggleButton";
 
 const SamePosePage = () => {
   return (

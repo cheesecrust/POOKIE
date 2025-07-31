@@ -8,70 +8,73 @@ import SearchBar from "../components/molecules/home/SearchBar";
 import toggleLeft from "../assets/icon/toggle_left.png";
 import defaultCharacter from "../assets/character/pookiepookie.png";
 import useAuthStore from "../store/store";
-import { useRef, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
+import { useRef, useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { handleHomeSocketMessage } from "../sockets/home/onmessage";
 import { getSocket } from "../sockets/common/websocket";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuthStore();
   const [, rerender] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
 
   // 소켓 연결 값
   const userRef = useRef(user);
   const roomListRef = useRef([]);
 
-    // ✅ 소켓 메시지 핸들러 설정
-    useEffect(() => {
-      const socket = getSocket();
-      if (!socket) return;
-  
-      socket.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        console.log("🟢 수신된 소켓 메시지:", msg);
-        handleHomeSocketMessage(msg, {
-          onUserReceived: (user) => {
-            userRef.current = user;
-            rerender((prev) => prev + 1);
-            console.log(userRef.current)
-          },
-          onRoomListReceived: (rooms) => {
-            roomListRef.current = rooms;
-            rerender((prev) => prev + 1);
-            console.log(roomListRef.current)
-          },
-          navigateToWaiting: (room) => {
-            console.log('대기실로 이동 할거야');
-            navigate("/waiting", { state: { room } });
-            console.log('대기실로 이동함!')
-          },
-          showErrorModal: (msg) => alert(msg),
-          closeRoomModal: () => setRoomCreateModalOpen(false),
-        });
-      };
-  
-      socket.onopen = () => console.log("🟢 WebSocket 연결 완료 (Home)");
-      socket.onclose = (e) => {
-        console.log("🔴 WebSocket 연결 종료 (Home)", {
-          code: e.code,
-          reason: e.reason,
-          wasClean: e.wasClean,
-          location: window.location.pathname,
-        });
-      };      
-      socket.onerror = (e) =>
-        console.error("❌ WebSocket 에러 (Home):", e.message);
-  
-      return () => {
-        socket.onmessage = null;
-        socket.onopen = null;
-        socket.onclose = null;
-        socket.onerror = null;
-      };
-    }, []);
+  // ✅ 소켓 메시지 핸들러 설정
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    socket.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      console.log("🟢 수신된 소켓 메시지:", msg);
+      handleHomeSocketMessage(msg, {
+        onUserReceived: (user) => {
+          userRef.current = user;
+          rerender((prev) => prev + 1);
+          console.log(userRef.current);
+        },
+        onRoomListReceived: (rooms) => {
+          roomListRef.current = rooms;
+          rerender((prev) => prev + 1);
+          console.log(roomListRef.current);
+        },
+        navigateToWaiting: (room) => {
+          console.log("대기실로 이동 할거야");
+          navigate("/waiting", { state: { room } });
+          console.log("대기실로 이동함!");
+        },
+        showErrorModal: (msg) => alert(msg),
+        closeRoomModal: () => setRoomCreateModalOpen(false),
+      });
+    };
+
+    socket.onopen = () => console.log("🟢 WebSocket 연결 완료 (Home)");
+    socket.onclose = (e) => {
+      console.log("🔴 WebSocket 연결 종료 (Home)", {
+        code: e.code,
+        reason: e.reason,
+        wasClean: e.wasClean,
+        location: window.location.pathname,
+      });
+    };
+    socket.onerror = (e) =>
+      console.error("❌ WebSocket 에러 (Home):", e.message);
+
+    return () => {
+      socket.onmessage = null;
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onerror = null;
+    };
+  }, []);
 
   // 🔍 검색 함수 (백엔드 연동 시 수정 예정)
   const handleSearch = (keyword) => {
@@ -79,6 +82,20 @@ const HomePage = () => {
     console.log("검색어:", keyword);
     // 예: 검색 API 요청 or 상태 전달
   };
+
+  // 강퇴 모달
+  useEffect(() => {
+    if (location.state?.kicked) {
+      setIsKicked(true);
+
+      // 1초 후 자동 닫기
+      const timer = setTimeout(() => {
+        setIsKicked(false);
+      }, 1000);
+
+      return () => clearTimeout(timer); // 클린업
+    }
+  }, [location.state]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
@@ -88,11 +105,13 @@ const HomePage = () => {
       {/* 본문 콘텐츠 */}
       <main className="flex-grow flex flex-col items-center mt-10">
         {/* 좌우 배치: 텍스트+버튼(왼쪽) + 유저 프로필(오른쪽) */}
-        <div className="w-full max-w-[900px] mt-8 px-4 flex gap-2 items-start">
+        <div className="w-full max-w-[1000px] mt-8 px-4 flex gap-2 items-start">
           {/* 왼쪽: 텍스트 + 버튼 */}
           <div className="w-[55%]">
             <h1 className="text-2xl font-bold text-left leading-relaxed mt-4">
-              오늘도 좋은 하루!<br />{userRef.current?.userNickname}님, 어서오세요~!
+              오늘도 좋은 하루!
+              <br />
+              {userRef.current?.userNickname}님, 어서오세요~!
             </h1>
 
             <div className="flex gap-4 mt-8">
@@ -112,7 +131,7 @@ const HomePage = () => {
           </div>
 
           {/* 오른쪽: 유저 프로필 */}
-          <div className="bg-white p-4 rounded-xl border shadow-sm w-[45%] text-sm text-left flex flex-row gap-4 items-center">
+          <div className="bg-white p-4 rounded-xl border shadow-sm w-[40%] text-sm text-left flex flex-row gap-4 items-center">
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
@@ -126,7 +145,9 @@ const HomePage = () => {
             <div className="flex flex-col justify-between flex-grow h-full">
               {/* 유저 정보 */}
               <div className="flex flex-col gap-1">
-                <p className="font-semibold">닉네임 : {userRef?.current?.userNickname}</p>
+                <p className="font-semibold">
+                  닉네임 : {userRef?.current?.userNickname}
+                </p>
                 <p>EXP : {userRef?.current?.userExp ?? 0}</p>
                 <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
                   <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
@@ -137,7 +158,7 @@ const HomePage = () => {
               <div className="flex justify-end mt-4">
                 <ModalButton
                   onClick={async () => {
-                    navigate('/myroom');
+                    navigate("/myroom");
                   }}
                   className="w-fit"
                 >
@@ -145,40 +166,39 @@ const HomePage = () => {
                 </ModalButton>
               </div>
             </div>
-
           </div>
         </div>
-        
+
         {/* 오른쪽 하단 로그아웃 */}
-        <div className="w-full max-w-[900px] px-4 flex justify-end mt-2 mr-4">
+        <div className="w-full max-w-[1000px] px-4 flex justify-end mt-2 mr-24">
           <div
-              className="flex items-center gap-1 hover:underline cursor-pointer"
-              onClick={async () => {
-                await logout();
-                navigate('/');
-              }}
+            className="flex items-center gap-1 hover:underline cursor-pointer"
+            onClick={async () => {
+              await logout();
+              navigate("/");
+            }}
           >
-              <img src={toggleLeft} alt="화살표" className="w-3 h-3 mr-1" />
-              <span>로그아웃</span>
+            <img src={toggleLeft} alt="화살표" className="w-3 h-3 mr-1" />
+            <span>로그아웃</span>
           </div>
         </div>
 
         {/* 검색창 */}
-        <div className="w-full max-w-[900px] mt-10 mb-6">
-          <SearchBar
-            onSearch={handleSearch}
-            placeholder="방 이름으로 검색"
-          />
+        <div className="w-full max-w-[1000px] mt-10 mb-6">
+          <SearchBar onSearch={handleSearch} placeholder="방 이름으로 검색" />
         </div>
 
         {/* 방 리스트 */}
-        <RoomList
-          keyword={keyword}
-          roomList={roomListRef.current}
-        />
+        <RoomList keyword={keyword} roomList={roomListRef.current} />
+
+        {/* 강퇴 모달 */}
+        {isKicked && <KickNoticeModal />}
 
         {/* 모달 */}
-        <RoomCreateModal isOpen={roomCreateModalOpen} onClose={() => setRoomCreateModalOpen(false)} />
+        <RoomCreateModal
+          isOpen={roomCreateModalOpen}
+          onClose={() => setRoomCreateModalOpen(false)}
+        />
       </main>
       {/* 하단 고정 푸터 */}
       <Footer />

@@ -130,7 +130,7 @@ public class GameRoomService {
             for(UserDto teamUser : teamUsers) {
                 if(teamUser.getSession() == session) {
                     onlinePlayerManager.sendToMessageUser(session, Map.of(
-                            "type", "LEAVE",
+                            "type", "LEAVED_ROOM",
                             "msg", "Lobby 로 돌아갑니다."
                     ));
                     find = true;

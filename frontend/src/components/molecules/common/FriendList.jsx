@@ -1,6 +1,6 @@
 import FriendCard from '../../atoms/message/FriendCard'
 
-const FriendList = ({ friends = [] }) => {
+const FriendList = ({ friends = [], onRemoveFriend }) => {
   // 4칸 고정
   const totalSlots = 4
 
@@ -12,10 +12,11 @@ const FriendList = ({ friends = [] }) => {
           return (
             <FriendCard
               key={idx}
+              friendId={friend.userId}
               nickname={friend.nickname}
               characterName={friend.characterName}
-              isOnline={friend.isOnline}
-              onMessage={() => friend.onMessage?.()}
+              isOnline={friend.status === 'ACTIVE'}
+              onRemoveFriend={onRemoveFriend}
             />
           )
         } else {
@@ -23,7 +24,7 @@ const FriendList = ({ friends = [] }) => {
           return (
             <div
               key={`empty-${idx}`}
-              className="bg-[#B78F8F] rounded-2xl w-full h-[100px] flex items-center justify-center"
+              className="bg-[#B78F8F] rounded-2xl w-full h-[95px] flex items-center justify-center"
             >
               <span className="font-bold text-xl tracking-wider">EMPTY</span>
             </div>
