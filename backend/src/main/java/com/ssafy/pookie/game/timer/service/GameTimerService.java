@@ -171,7 +171,8 @@ public class GameTimerService {
                 return;
             }
         }
-        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() == RoomStateDto.Status.WAITING) {
+        if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() == RoomStateDto.Status.WAITING
+                || room.getRound() > 0) {
             onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
                     "type", "ERROR",
                     "msg", "요청이 잘못되었습니다."
