@@ -6,7 +6,6 @@ import numpy as np
 import cv2
 import mediapipe as mp
 from sklearn.metrics.pairwise import cosine_similarity
-import matplotlib.pyplot as plt
 
 # ---------------- FastAPI 기본 설정 ---------------- #
 app = FastAPI()
@@ -15,7 +14,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://i13a604.p.ssafy.io"  # ✅ 배포 서버 허용
+        "https://i13a604.p.ssafy.io"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -158,6 +157,22 @@ def weighted_similarity(v1, v2, w_pose, w_hand):
     hand_sim = cosine_similarity([v1_hand], [v2_hand])[0][0]
     return w_pose * pose_sim + w_hand * hand_sim
 
+# ---------------- Row 이미지 생성 ---------------- #
+def concat_images_horizontally_with_text(image_paths, similarities, all_pass, save_path="result_row.jpg"):
+    images = [cv2.imread(path) for path in image_paths if cv2.imread(path) is not None]
+    if not images:
+        return None
+    h, w = images[0].shape[:2]
+    resized = [cv2.resize(img, (w, h)) for img in images]
+    concat_img = cv2.hconcat(resized)
+    text = f"1-2: {similarities['1-2']:.3f}, 1-3: {similarities['1-3']:.3f}, 2-3: {similarities['2-3']:.3f}"
+    status = "✅ Match!" if all_pass else "❌ Not Match!"
+    cv2.putText(concat_img, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+    cv2.putText(concat_img, status, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                (0, 200, 0) if all_pass else (0, 0, 255), 2)
+    cv2.imwrite(save_path, concat_img)
+    return save_path
+
 # ---------------- FastAPI 엔드포인트 ---------------- #
 UPLOAD_DIR = "./captured_images"
 RESULTS_DIR = "./results_debug"
@@ -183,20 +198,36 @@ async def upload_images(images: List[UploadFile] = File(...)):
         vecs.append(vec)
         vis_paths.append(vis_path)
 
+    # ✅ 가중치 계산
     w_pose, w_hand = get_weights_by_keyword(saved_files[0])
+
     sim12 = weighted_similarity(vecs[0], vecs[1], w_pose, w_hand)
     sim13 = weighted_similarity(vecs[0], vecs[2], w_pose, w_hand)
     sim23 = weighted_similarity(vecs[1], vecs[2], w_pose, w_hand)
-    all_pass = sim12 >= 0.6 and sim13 >= 0.6 and sim23 >= 0.6
+
+    # ✅ numpy.float64 → float 변환
+    sim12, sim13, sim23 = float(sim12), float(sim13), float(sim23)
+
+    # ✅ numpy.bool_ → bool 변환
+    all_pass = bool(sim12 >= 0.6 and sim13 >= 0.6 and sim23 >= 0.6)
+
+    similarities = {
+        "1-2": round(sim12, 3),
+        "1-3": round(sim13, 3),
+        "2-3": round(sim23, 3)
+    }
+
+    # Row 이미지 생성
+    row_image_path = os.path.join(RESULTS_DIR, "result_row.jpg")
+    concat_path = concat_images_horizontally_with_text(
+        vis_paths, similarities, all_pass, save_path=row_image_path
+    )
 
     return {
         "status": "ok",
         "saved_files": [os.path.basename(f) for f in saved_files],
         "vis_files": [os.path.basename(v) for v in vis_paths],
-        "similarities": {
-            "1-2": round(sim12, 3),
-            "1-3": round(sim13, 3),
-            "2-3": round(sim23, 3),
-        },
+        "row_file": os.path.basename(concat_path) if concat_path else None,
+        "similarities": similarities,
         "all_pass": all_pass,
     }
