@@ -28,6 +28,24 @@ services:
     networks:
       - spring-network
 
+  # FastAPI 애플리케이션
+  fastapi-app:
+    build:
+      context: ../ai   # backend 기준으로 상위로 올라가서 ai 폴더 참조
+    image: ${FASTAPI_APP_IMAGE:-fastapi-app:latest}
+    container_name: fastapi-app-container
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - ../ai:/app   # 개발 중에는 코드 수정 반영 위해 마운트
+    networks:
+      - spring-network
+    depends_on:
+      - spring-app
+
   # MySQL 데이터베이스
   mysql:
     image: mysql:8.0
