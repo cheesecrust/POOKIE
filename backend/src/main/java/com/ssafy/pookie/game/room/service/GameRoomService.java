@@ -96,6 +96,14 @@ public class GameRoomService {
         }
 
         // 신규 유저의 팀 배정
+        // 팀원 수 확인
+        if(room.getSessions().size() <= 6) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "인원이 가득 차 있습니다."
+            ));
+            return;
+        }
         // 일반 플레이어 -> Default 는 Ready 상태
         joinDto.getUser().setTeam(room.assignTeamForNewUser());
         if(joinDto.getUser().getGrant() == UserDto.Grant.NONE) {
