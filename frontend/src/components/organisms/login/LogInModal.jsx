@@ -79,6 +79,7 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
             isOpen={isOpen}
             onClose={onClose}
             className="w-[550px] h-[420px]"
+            closeBackdropClick={false}
         >
             <h2 className="text-center text-2xl font-bold mt-4 mb-8">로그인</h2>
     

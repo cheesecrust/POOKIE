@@ -96,6 +96,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
             isOpen={isOpen}
             onClose={onClose}
             className="w-[550px] min-h-[500px]"
+            closeBackdropClick={false}
         >
             <h2 className="text-center text-2xl font-bold mt-4 mb-8">회원가입</h2>
     

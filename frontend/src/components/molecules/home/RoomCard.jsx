@@ -57,7 +57,7 @@ const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
     
     return (
       <div
-        className="w-[300px] h-[200px] rounded-lg overflow-hidden shadow-md relative bg-cover bg-center"
+        className="w-[360px] h-[240px] rounded-lg overflow-hidden shadow-md relative bg-cover bg-center"
         style={{ backgroundImage: `url(${getBackgroundImage(room.gameType)})` }}
       >
         {/* 우측 상단 인원 수 */}
