@@ -17,11 +17,11 @@ const Router = () => {
       <Route path="/home" element={<HomePage />} />
       <Route path="/managing" element={<ManagingPage />} />
       <Route path="/myroom" element={<MyRoomPage />} />
-      <Route path="/samepose" element={<SamePosePage />} />
-      <Route path="/silentscream" element={<SilentScreamPage />} />
-      <Route path="/sketchrelay" element={<SketchRelayPage />} />
+      <Route path="/samepose/:roomId" element={<SamePosePage />} />
+      <Route path="/silentscream/:roomId" element={<SilentScreamPage />} />
+      <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} />
       <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} />
-      <Route path="/waiting" element={<WaitingPage />} />
+      <Route path="/waiting/:roomId" element={<WaitingPage />} />
     </Routes>
   );
 };

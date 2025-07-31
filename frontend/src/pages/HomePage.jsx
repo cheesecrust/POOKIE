@@ -56,7 +56,7 @@ const HomePage = () => {
         },
         navigateToWaiting: (room) => {
           console.log("대기실로 이동 할거야");
-          navigate("/waiting", { state: { room } });
+          navigate(`/waiting/${room.id}`, { state: { room } });
           console.log("대기실로 이동함!");
         },
         showErrorModal: (msg) => alert(msg),

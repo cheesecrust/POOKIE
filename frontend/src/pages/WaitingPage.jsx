@@ -1,7 +1,7 @@
 // src/pages/WaitingPage.jsx
 
 // 방정보 받아오기 위해서서
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { handleWaitingMessage } from "../sockets/waiting/onMessage";
 import { getSocket } from "../sockets/common/websocket";
@@ -49,6 +49,7 @@ const WaitingPage = () => {
         const data = JSON.parse(e.data);
         handleWaitingMessage(data, {
           user,
+          room,
           setRoom,
           setTeam,
           setIsReady,
@@ -101,7 +102,7 @@ const WaitingPage = () => {
     setIsReady(!isReady);
   };
 
-  // 강퇴
+  // 강퇴 (네)누르면
   const handleKickConfirm = () => {
     console.log("[🔴 강퇴 요청] 대상:", kickTarget);
     emitForceRemove({
