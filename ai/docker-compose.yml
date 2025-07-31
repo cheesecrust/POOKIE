@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  fastapi-app:
+    build:
+      context: .       # ai 디렉토리 기준
+    image: fastapi-app:latest
+    container_name: fastapi-app-container
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - ./logs:/app/logs   # 로그 저장 경로
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge

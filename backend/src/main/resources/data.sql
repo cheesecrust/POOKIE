@@ -118,12 +118,12 @@ INSERT INTO game_types (game_name) VALUES ("SKETCHRELAY");
 
 -- SAMEPOSE (같은 포즈) 키워드 6개(우선 check 진행)
 INSERT INTO game_keywords (game_type_id, word) VALUES
-    (1, "heart"),
-    (1, "gun"),
-    (1, "baseball"),
-    (1, "boxing"),
-    (1, "basketball"),
-    (1, "pretty");
+                                                    (1, "하트"),
+                                                    (1, "총"),
+                                                    (1, "야구"),
+                                                    (1, "권투"),
+                                                    (1, "농구"),
+                                                    (1, "예쁜척");
 
 -- SILENTSCREAM (소리없는 외침) 키워드 100개
 INSERT INTO game_keywords (game_type_id, word) VALUES
