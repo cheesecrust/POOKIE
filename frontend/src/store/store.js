@@ -1,14 +1,16 @@
 // src/store/store.js
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import axiosInstance from "../lib/axiosInstance";
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create(
+  persist(
+    (set, get) => ({
     accessToken: null,
     user: null,
-    setUser: (user) => set({ user }),
     isLoggedIn: false,
-  
-    // 🔐 액세스 토큰만 상태로 관리
+    
+    setUser: (user) => set({ user }),
     setAccessToken: (token) => set({ accessToken: token }),
   
     // ✅ 로그인 요청 + user 상태 저장
@@ -62,7 +64,7 @@ const useAuthStore = create((set) => ({
         });
 
         // 2. 자동 로그인 시도
-        const loginRes = await useAuthStore.getState().login({ email, password });
+        const loginRes = await get().login({ email, password });
         if (!loginRes.success) {
           return { success: false, message: "회원가입은 성공했지만 로그인 실패: " + loginRes.message };
         }
@@ -98,6 +100,16 @@ const useAuthStore = create((set) => ({
           set({ accessToken: null, isLoggedIn: false });
         });
     },
-  }));
+  }),
+  {
+    name: 'auth',
+    getStorage: () => localStorage,
+    partialize: (state) => ({
+      accessToken: state.accessToken,
+      user: state.user,
+      isLoggedIn: state.isLoggedIn,
+    }),
+  }
+));
   
   export default useAuthStore;
