@@ -7,6 +7,8 @@ import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
+import com.ssafy.pookie.game.timer.dto.TimerRequestDto;
+import com.ssafy.pookie.game.timer.service.GameTimerService;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
@@ -31,6 +33,7 @@ public class InGameService {
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameKeywordsRepository gameKeywordsRepository;
     private final RtcService rtcService;
+    private final GameTimerService gameTimerService;
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
@@ -88,7 +91,7 @@ public class InGameService {
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
-
+//        gameTimerService.preTimer(new TimerRequestDto(request.getUser(), request.getRoomId()), false);
         String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(

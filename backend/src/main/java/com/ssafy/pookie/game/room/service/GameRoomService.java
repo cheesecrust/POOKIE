@@ -107,9 +107,9 @@ public class GameRoomService {
         // 일반 플레이어 -> Default 는 Ready 상태
         joinDto.getUser().setTeam(room.assignTeamForNewUser());
         if(joinDto.getUser().getGrant() == UserDto.Grant.NONE) {
-            joinDto.getUser().setStatus(UserDto.Status.READY);
             joinDto.getUser().setGrant(UserDto.Grant.PLAYER);
         }
+        joinDto.getUser().setStatus(UserDto.Status.READY);
         // 세션 설정
         // 게임 설정
         // 각 팀에 유저 배치

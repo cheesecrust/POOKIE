@@ -68,7 +68,7 @@ public class GameTimerService {
         timer.start(room.getGameType());
     }
 
-    public void preTimer(TimerRequestDto timerRequest) throws IOException {
+    public synchronized void preTimer(TimerRequestDto timerRequest, Boolean ingame) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
         if(!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() != RoomStateDto.Status.START) {
             onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
@@ -110,6 +110,7 @@ public class GameTimerService {
                                 )
                         );
                         scheduler.shutdown();
+                        if(!ingame) return;
                         Thread.sleep(1000*1);
                         gameStartTimer(room, timerRequest);
                     } catch (IOException e) {
