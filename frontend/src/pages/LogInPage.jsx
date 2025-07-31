@@ -4,12 +4,23 @@ import SignUpModal from "../components/organisms/login/SignUpModal"
 import FindPasswordModal from "../components/organisms/login/FindPasswordModal";
 import backgroundLogIn from "../assets/background/background_login.png"
 import TitleLogo from "../assets/icon/title_logo.png"
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "../store/store";
 
 const LogInPage = () => {
+    const navigate = useNavigate();
+    const { isLoggedIn } = useAuthStore((state) => state);
     const [showLogin, setShowLogin] = useState(true);
     const [showSignUp, setShowSignUp] = useState(false);
     const [showFindPassword, setShowFindPassword] = useState(false);
+
+    // 이미 로그인된 유전느 home 으로 강제 redirect
+    useEffect(() => {
+        if (isLoggedIn) {
+            navigate("/home", { replace: true });
+        }
+    }, [isLoggedIn, navigate ]);
 
     return (
       <div className="relative w-full h-screen overflow-hidden">

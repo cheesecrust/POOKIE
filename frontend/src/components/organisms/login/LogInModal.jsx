@@ -12,7 +12,7 @@ import { connectSocket, closeSocket } from "../../../sockets/common/websocket";
 const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const { login } = useAuthStore();
+    const login = useAuthStore((state) => state.login);
     
     const navigate = useNavigate();
     
@@ -27,10 +27,14 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
         if (res.success) {
             alert('로그인 성공!')
 
-            const currentUser = useAuthStore.getState().user;
-            const accessToken = useAuthStore.getState().accessToken;
+            const { user, accessToken } = useAuthStore.getState()
 
-            console.log('현재 로그인 유저:', currentUser)
+            if (!user || !accessToken) {
+                alert('로그인 정보를 찾을 수 없습니다.')
+                return
+            }
+
+            console.log('현재 로그인 유저:', user)
 
             // 중복 방지 위해 연결 종료
             closeSocket();
