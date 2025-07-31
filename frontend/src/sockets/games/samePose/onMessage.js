@@ -5,11 +5,15 @@
  * @param {Object} handlers - 콜백들
  * @param {Function} [handlers.onKeywordReceived] - KEYWORD 수신 시 실행할 콜백
  */
-export const handleSamePoseMessage = (msg, { onKeywordReceived }) => {
+export const handleSamePoseMessage = (msg, { onKeywordReceived, onStartedGame }) => {
   switch (msg.type) {
     case "KEYWORD":
       console.log("[samePose] KEYWORD 메시지 수신:", msg);
       onKeywordReceived?.(msg);
+      break;
+
+    case "STARTED_GAME":
+      onStartedGame?.(msg);
       break;
 
     default:
