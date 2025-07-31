@@ -174,7 +174,7 @@ const SketchRelayPage_VIDU = () => {
     }, 5000); // 5초 후 실행
   };
 
-  // JWT 토큰 요청
+  // openvidu의 토큰 서버에 요청(서버에서 openvidu 토큰 얻어옴)
   async function getToken(roomName, participantName) {
     const token = import.meta.env.VITE_TOKEN;
     const apiUrl = import.meta.env.VITE_API_URL;
