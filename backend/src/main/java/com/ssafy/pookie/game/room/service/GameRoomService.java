@@ -71,7 +71,10 @@ public class GameRoomService {
 
             return newRoom;
         });
-        if(create) broadCastCreateRoomEvent(room);
+        if(create) {
+            broadCastCreateRoomEvent(room);
+            joinDto.getUser().setGrant(UserDto.Grant.MASTER);
+        }
         if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) {
             log.warn("Room GameType does not match");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -107,7 +110,7 @@ public class GameRoomService {
 
         room.getSessions().add(session);
         onlinePlayerManager.getLobby().get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
-        log.info("User {} joined room {}", joinDto.getUser().getUserNickname(), room.getRoomTitle());
+        log.info("User {} joined room {} ({})", joinDto.getUser().getUserNickname(), room.getRoomTitle(), joinDto.getUser().getGrant());
 
         // Client response msg
         onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
@@ -120,52 +123,66 @@ public class GameRoomService {
 
     // User 가 Room 을 떠날 때
     public void handleLeave(WebSocketSession session, String roomId) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
-        if(!onlinePlayerManager.isAuthorized(session, room)) return;
-        String leaveUserNickName = "";
-        // 해당 룸에서 세션과 유저 제거
-        boolean find = false;
-        for(String team : room.getUsers().keySet()) {
-            List<UserDto> teamUsers = room.getUsers().get(team);
-            for(UserDto teamUser : teamUsers) {
-                if(teamUser.getSession() == session) {
-                    onlinePlayerManager.sendToMessageUser(session, Map.of(
-                            "type", "LEAVED_ROOM",
-                            "msg", "Lobby 로 돌아갑니다."
-                    ));
-                    find = true;
-                    teamUser.setGrant(UserDto.Grant.NONE);
-                    teamUser.moveToLobby();
-                    room.getSessions().remove(session);
-                    room.getUsers().get(team).remove(teamUser);
-                    // 방에 아무도 남지 않은 경우 -> 방 삭제
-                    if(room.getSessions().isEmpty()) {
-                        onlinePlayerManager.removeRoomFromServer(roomId);
-                        onlinePlayerManager.sendToMessageUser(session, Map.of(
-                                "type", "UPDATE_ROOM_LIST",
-                                "roomList", gameServerService.existingRoomList()
-                        ));
-                        onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
-                        return;
+        try {
+            // 1. 현재 방을 가져온다.
+            RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
+            // 1-1. 현재 방이 존재하고, 해당 방에 요청한 사람이 있는지 확인
+            if (!onlinePlayerManager.isAuthorized(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+
+            // 정상적인 유저가 맞을 때
+            // 2. 현재 나가려는 유저의 정보를 가져옴
+            UserDto leaveUser = null;
+            for (String team : room.getUsers().keySet()) {
+                for(UserDto user : room.getUsers().get(team)) {
+                    if(user.getSession() == session) {
+                        leaveUser = user;
+                        break;
                     }
-                    onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(room.getRoomId(), teamUser), false, LobbyUserDto.Status.ON);
-                    leaveUserNickName = teamUser.getUserNickname();
-                    if(teamUser.getGrant() == UserDto.Grant.MASTER) {
-                        regrantRoomMaster(room);
-                    }
-                    break;
+                    if(leaveUser != null) break;
                 }
             }
-            if(find) break;
-        }
-
-        if(!find) return;
-
-        for(WebSocketSession teamSession : room.getSessions()) {
-            onlinePlayerManager.sendToMessageUser(teamSession, Map.of(
+            // 2-1. 유저를 방에서 제거한다.
+            room.removeUser(session);
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "LEAVED_ROOM",
+                    "msg", "Lobby 로 돌아갑니다."
+            ));
+            // 2-2. 방이 비어있다면, 삭제한다.
+            if(room.getSessions().isEmpty()) {
+                onlinePlayerManager.removeRoomFromServer(roomId);
+                onlinePlayerManager.sendToMessageUser(session, Map.of(
+                        "type", "UPDATE_ROOM_LIST",
+                        "roomList", gameServerService.existingRoomList()
+                ));
+                onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
+                leaveUser.setGrant(UserDto.Grant.NONE);
+                return;
+            }
+            onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
+            // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
+            if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
+                regrantRoomMaster(room);
+            }
+            leaveUser.setGrant(UserDto.Grant.NONE);
+            // 현재 사용자가 나가서 그대로 보내면 안됨
+            WebSocketSession remainSession = null;
+            for(WebSocketSession s : room.getSessions()) {
+                if (remainSession != null) break;
+                remainSession = s;
+            }
+            onlinePlayerManager.broadCastMessageToRoomUser(remainSession, roomId, null, Map.of(
                     "type", "PLAYER_LEFT",
-                    "msg", leaveUserNickName + "가 나갔습니다.",
+                    "msg", leaveUser.getUserNickname() + "이 나갔습니다.",
                     "room", room.mappingRoomInfo()
+            ));
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "UPDATE_ROOM_LIST",
+                    "roomList", gameServerService.existingRoomList()
+            ));
+        } catch(IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", e.getMessage()
             ));
         }
     }
@@ -288,19 +305,19 @@ public class GameRoomService {
         });
     }
 
-    private void broadcastRoomListToLobbyUsers() throws IOException{
-        List<?> roomList = gameServerService.existingRoomList();
-        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
-            try {
-                if(user.getStatus() == LobbyUserDto.Status.ON) {
-                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
-                            "type", "UPDATE_ROOM_LIST",
-                            "roomList", roomList
-                    ));
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
+//    private void broadcastRoomListToLobbyUsers() throws IOException{
+//        List<?> roomList = gameServerService.existingRoomList();
+//        onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
+//            try {
+//                if(user.getStatus() == LobbyUserDto.Status.ON) {
+//                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
+//                            "type", "UPDATE_ROOM_LIST",
+//                            "roomList", roomList
+//                    ));
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
+//    }
 }
