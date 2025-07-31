@@ -129,7 +129,7 @@ public class InGameService {
         }
 
         for(UserDto user : teamUsers) {
-            if(repList.contains(user)) continue;
+            if(repList.contains(user) && !room.getGameType().equals(RoomStateDto.GameType.SAMEPOSE)) continue;
             normalList.add(user);
         }
     }
