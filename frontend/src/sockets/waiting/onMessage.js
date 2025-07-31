@@ -2,7 +2,7 @@
 
 export const handleWaitingMessage = (
     data,
-    { user, setRoom, setTeam, setIsReady, navigate }
+    { user, room, setRoom, setTeam, setIsReady, navigate }
 ) => {
     if (!data?.type) return;
 
@@ -46,6 +46,12 @@ export const handleWaitingMessage = (
             console.log("PLAYER_LEFT 수신", data);
 
             const room = data.room;
+
+            // const msg = data.msg; // ex: "testNickname1가 나갔습니다."
+
+            // // ✨ 채팅창에 시스템 메시지로 표시 가능
+            // addSystemChatMessage(msg);
+
             const stillInRoom = [...room.RED, ...room.BLUE].some((u) => u.id === user.id);
 
             if (!stillInRoom) {
@@ -58,17 +64,15 @@ export const handleWaitingMessage = (
             break;
         }
 
-        case "LEAVE":
-            console.log("LEAVE 수신:", data);
-            if (data.msg === "Lobby 로 돌아갑니다.") {
-                navigate("/home");
-            }
+        case "LEAVED_ROOM":
+            console.log("LEAVE 수신", data);
+            navigate("/home");
             break;
 
         case "STARTED_GAME": {
             console.log("게임 시작:", data);
-            const gameType = data.room?.gameType?.toLowerCase();
-            const roomId = data.room?.id;
+            const gameType = room?.gameType?.toLowerCase();
+            const roomId = room?.id;
             if (gameType && roomId) {
                 navigate(`/${gameType}/${roomId}`);
             }
@@ -76,9 +80,13 @@ export const handleWaitingMessage = (
         }
 
         case "UPDATE_ROOM_LIST":
+            console.log("UPDATE_ROOM_LIST 수신", data);
+            break;
+
         case "REMOVED_ROOM":
             // 필요 시 여기에 처리 추가
             break;
+
 
         case "ERROR":
             console.error("❌ 서버 오류:", data.msg);

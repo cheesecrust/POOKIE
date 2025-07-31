@@ -1,12 +1,38 @@
 // src/pages/SamePosePage.jsx
 
-import KeywordModal from "../components/atoms/modal/KeywordModal";
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
+import { useEffect, useState } from "react";
+import { getSocket } from "../sockets/common/websocket";
+import { handleSamePoseMessage } from "../sockets/games/samePose/onMessage";
 
 const SamePosePage = () => {
+  const [keyword, setKeyword] = useState("");
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleMessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        handleSamePoseMessage(msg, {
+          onKeywordReceived: (msg) => {
+            const receivedKeyword = msg.KeywordList?.[0];
+            if (receivedKeyword) setKeyword(receivedKeyword);
+          },
+        });
+      } catch (err) {
+        console.error("[SamePosePage] 메시지 파싱 실패:", err);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, []);
+
   return (
     <div
       className="flex flex-col h-screen bg-cover bg-center"
@@ -27,15 +53,15 @@ const SamePosePage = () => {
           </div>
 
           {/* 중앙 제시어 카드 */}
-          <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[180px] ">
-            <div className=" font-bold flex flex-row">
+          <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[180px] gap-5 ">
+            <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
               <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
-              제시어
+              <p>제시어</p>
             </div>
-            <div className="text-2xl font-semibold text-black mt-2">
+            <p className="text-2xl font-semibold text-black mt-2">
               {/* 제시어 받아다 써야함 */}
-              야구 방망이
-            </div>
+              {keyword || ""}
+            </p>
           </div>
 
           {/* 우측 라운드 정보 */}
