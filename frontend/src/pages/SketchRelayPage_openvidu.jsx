@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { connectSocket } from "../sockets/common/websocket";
 import { emitGameStart, emitTurnChange, emitRoundOver } from "../sockets/games/sketchRelay/emit";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
-
+import useAuthStore from "../store/store"
 
 const FASTAPI_URL = "http://localhost:8000/upload_images"; // FastAPI endpoint
 
@@ -176,16 +176,25 @@ const SketchRelayPage_VIDU = () => {
 
   // openvidu의 토큰 서버에 요청(서버에서 openvidu 토큰 얻어옴)
   async function getToken(roomName, participantName) {
-    const token = import.meta.env.VITE_TOKEN;
+    const { accessToken } = useAuthStore.getState(); // zustand에서 accessToken 가져오기
+
+    if (!accessToken) {
+      throw new Error("로그인이 필요합니다. accessToken 없음");
+    }
     const apiUrl = import.meta.env.VITE_API_URL;
     const res = await fetch(`${apiUrl}/rtc/token`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ room: roomName, name: participantName, team: "red" }),
     });
+    
+    if (!res.ok) {
+      throw new Error("open vidu 토큰 요청 실패");
+    }
+
     const tokenObj = await res.json();
     return tokenObj.token;
   }
