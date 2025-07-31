@@ -97,7 +97,7 @@ public class GameRoomService {
 
         // 신규 유저의 팀 배정
         // 팀원 수 확인
-        if(room.getSessions().size() <= 6) {
+        if(room.getSessions().size() >= 6) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "인원이 가득 차 있습니다."
