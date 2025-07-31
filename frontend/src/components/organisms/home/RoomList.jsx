@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { emitJoinRoom } from "../../../sockets/home/emit";
 
 const RoomList = ({ roomList, keyword }) => {
+  console.log("전달된 roomList", roomList);
   const [secureRoom, setSecureRoom] = useState(null);
   const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
