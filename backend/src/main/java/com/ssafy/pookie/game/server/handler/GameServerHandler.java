@@ -6,6 +6,7 @@ import com.ssafy.pookie.game.chat.service.GameChatService;
 import com.ssafy.pookie.game.draw.dto.DrawEvent;
 import com.ssafy.pookie.game.draw.service.DrawService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
+import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
@@ -53,6 +54,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             UserDto user = new UserDto().mapUserDto(session);
             JoinDto join;
             TurnDto gameResult;
+            log.debug("{} Request", msg.getType());
             switch (msg.getType()) {
                 // Room
                 case JOIN_ROOM:
@@ -105,6 +107,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                     SubmitAnswerDto submitAnswer = objectMapper.convertValue(msg.getPayload(), SubmitAnswerDto.class);
                     submitAnswer.setUser(user);
                     inGameService.handleSubmitAnswer(submitAnswer);
+                    break;
+                case PAINTER_CHANGE:
+                    PainterChangeRequest painterChangeRequest = objectMapper.convertValue(msg.getPayload(), PainterChangeRequest.class);
+                    painterChangeRequest.setUser(user);
+                    inGameService.handlePainterChange(painterChangeRequest);
                     break;
                 // Chat
                 case CHAT:
