@@ -3,8 +3,8 @@
 // 방정보 받아오기 위해서서
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { handleWaitingMessage } from "../sockets/waiting/onMessage";
-import { getSocket } from "../sockets/common/websocket";
+import { handleWaitingMessage } from "../sockets/waiting/onmessage";
+import { getSocket } from "../sockets/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";

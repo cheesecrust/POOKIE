@@ -1,5 +1,5 @@
 // src/sockets/chat/emitChat.js
-import { sendMessage } from "../common/websocket";
+import { sendMessage } from "../websocket";
 
 /**
  * 채팅 메시지 전송 (전체 또는 팀 채팅)
