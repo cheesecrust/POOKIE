@@ -70,11 +70,11 @@ public class CharacterService {
                 userAccount, step, pookieType
         );
         if (catalog == null) throw new RuntimeException("그런 푸킨 없다.");
-        CharacterCatalog presentCatalog = characterCatalogRepository
-                .findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true)
-                .get(0);
+//        CharacterCatalog presentCatalog = characterCatalogRepository
+//                .findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true)
+//                .get(0);
         changeRepState(userAccount, catalog.getCharacter(), true);
-        changeRepState(userAccount, presentCatalog.getCharacter(), false);
+//        changeRepState(userAccount, presentCatalog.getCharacter(), false);
     }
 
     public void changeRepState(UserAccounts userAccount, Characters character, boolean reqState) {
