@@ -54,7 +54,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             UserDto user = new UserDto().mapUserDto(session);
             JoinDto join;
             TurnDto gameResult;
-            log.debug("{} Request", msg.getType());
+            log.debug("{} Request Received", msg.getType());
             switch (msg.getType()) {
                 // Room
                 case JOIN_ROOM:
