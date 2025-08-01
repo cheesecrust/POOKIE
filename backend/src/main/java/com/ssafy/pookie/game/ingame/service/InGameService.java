@@ -273,7 +273,7 @@ public class InGameService {
         }
 
         for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo("PAINTER_CHANGED"));
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
         }
     }
 
