@@ -3,6 +3,7 @@
 
 import UserReady from "../../atoms/user/UserReady";
 import pookiepookie from "../../../assets/character/pookiepookie.png";
+import crown from "../../../assets/icon/crown.png";
 import KickButton from "../../atoms/button/KickButton";
 
 const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
@@ -46,8 +47,8 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
 
         {/* 방장 뱃지 */}
         {user.isHost && (
-          <div className="absolute top-1 left-1 bg-yellow-300 text-[10px] font-bold px-1 rounded">
-            방장
+          <div className="absolute top-1">
+            <img src={crown} alt="방장" className="w-10 h-10" />
           </div>
         )}
 
@@ -56,7 +57,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       </div>
 
       {/* 닉네임 */}
-      <div className="mt-1 w-[120px] text-sm font-bold bg-rose-100 rounded px-2 py-1 text-center">
+      <div className="mt-1 w-[120px] text-sm font-bold bg-white rounded px-2 py-1 text-center rounded-2xl">
         {user.userNickname}
       </div>
     </div>

@@ -1,12 +1,12 @@
 // src/sockets/waiting/emit.js
-
-import { sendMessage } from '../common/websocket';
+// emit과 동시에 navigate 할일 있으면 여기서 
+import { sendMessage } from '../websocket';
 
 /**
  * 팀 변경 요청 emit
  */
 export const emitTeamChange = ({ roomId, curTeam }) => {
-	sendMessage('USER_TEAM_CHANGE', {
+	sendMessage('WAITING_TEAM_CHANGE', {
 		roomId,
 		curTeam,
 	});
@@ -16,7 +16,7 @@ export const emitTeamChange = ({ roomId, curTeam }) => {
  * 준비 상태 변경 요청 emit
  */
 export const emitReadyChange = ({ roomId, team }) => {
-	sendMessage('USER_READY_CHANGE', {
+	sendMessage('WAITING_READY_CHANGE', {
 		roomId,
 		team,
 	});
@@ -26,7 +26,7 @@ export const emitReadyChange = ({ roomId, team }) => {
  * 대기방 나가기 요청 emit
  */
 export const emitLeaveRoom = ({ roomId }) => {
-	sendMessage('LEAVE_ROOM', {
+	sendMessage('WAITING_USER_LEAVE', {
 		roomId,
 	});
 };
@@ -35,7 +35,7 @@ export const emitLeaveRoom = ({ roomId }) => {
  * 강제 퇴장 요청 emit (방장만 가능)
  */
 export const emitForceRemove = ({ roomId, removeTargetId, removeTargetNickname, removeTargetTeam }) => {
-	sendMessage('USER_FORCED_REMOVE', {
+	sendMessage('WAITING_USER_REMOVE', {
 		roomId,
 		removeTargetId,
 		removeTargetNickname,

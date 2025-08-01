@@ -1,6 +1,6 @@
-// src/sockets/waiting/onMessage.js
+// src/sockets/waiting/onmessage.js
 
-export const handleWaitingMessage = (
+const handleWaitingMessage = (
     data,
     { user, room, setRoom, setTeam, setIsReady, navigate }
 ) => {
@@ -22,28 +22,34 @@ export const handleWaitingMessage = (
     };
 
     switch (data.type) {
-        case "ROOM_JOINED":
-            console.log("ROOM_JOINED 수신", data);
+        // 방 참여
+        case "WAITING_JOINED":
+            console.log("WAITING_JOINED 수신", data);
             updateClientState(data.room);
             break;
 
-        case "USER_TEAM_CHANGED":
-            console.log("USER_TEAM_CHANGED 수신", data);
+        // 팀 변경
+        case "WAITING_TEAM_CHANGED":
+            console.log("WAITING_TEAM_CHANGED 수신", data);
             updateClientState(data.room);
             break;
 
-        case "USER_READY_CHANGED":
-            console.log("USER_READY_CHANGED 수신", data);
+        // 준비 변경
+        case "WAITING_READY_CHANGED":
+            console.log("WAITING_READY_CHANGED 수신", data);
             updateClientState(data.room);
             break;
 
-        case "CHANGED_GAMETYPE":
-            console.log("게임 타입 변경됨", data);
+        // 게임 타입 변경
+        case "WAITING_GAMETYPE_CHANGED":
+            console.log("WAITING_GAMETYPE_CHANGED 수신", data);
             updateClientState(data.room);
             break;
 
-        case "PLAYER_LEFT": {
-            console.log("PLAYER_LEFT 수신", data);
+
+        // 유저가 떠나서 나머지가 받는 응답
+        case "WAITING_USER_REMOVED": {
+            console.log("WAITING_USER_REMOVED 수신", data);
 
             const room = data.room;
 
@@ -63,11 +69,6 @@ export const handleWaitingMessage = (
             updateClientState(room);
             break;
         }
-
-        case "LEAVED_ROOM":
-            console.log("LEAVE 수신", data);
-            navigate("/home");
-            break;
 
         case "STARTED_GAME": {
             console.log("게임 시작:", data);
@@ -97,3 +98,5 @@ export const handleWaitingMessage = (
             console.warn("⚠️ 처리되지 않은 메시지 타입:", data);
     }
 };
+
+export default handleWaitingMessage;

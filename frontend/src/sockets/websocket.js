@@ -1,26 +1,26 @@
 // src/sockets/common/websocket.js
 
+import { handleSocketMessage } from "./handler";
+
 let socket = null;
 
 /**
  * WebSocket 연결
  * @param {Object} config
  * @param {string} config.url - ws:// 또는 wss:// 주소
- * @param {string} config.token - JWT 토큰
- * @param {function} config.onMessage
+ * @param {string} config.token 
+ * @param {Object} config.handlers 
  * @param {function} config.onOpen
  * @param {function} config.onClose
  * @param {function} config.onError
  */
-
-
 export const connectSocket = ({
   url,
   token,
-  onMessage,
+  handlers, // 핸들러
   onOpen,
   onClose,
-  onError
+  onError,
 }) => {
   const fullUrl = `${url}?token=${token}`;
   socket = new WebSocket(fullUrl);
@@ -30,19 +30,19 @@ export const connectSocket = ({
     onOpen?.(e);
   };
 
-  socket.onmessage = (e) => {
+  socket.onmessage = async (e) => {
     try {
-      // 그냥 e가 데이터임
-      if (!e.type) {
-        console.warn("[WebSocket MESSAGE] type 없음:", e);
+      const msg = JSON.parse(e.data);
+
+      if (!msg.type) {
+        console.warn("[WebSocket MESSAGE] type 없음:", msg);
         return;
       }
 
-      console.log(`[WebSocket MESSAGE] type: ${e.type}`, e);
-      onMessage?.(e);
-
+      console.log(`[WebSocket MESSAGE] type: ${msg.type}`, msg);
+      await handleSocketMessage(msg, handlers);  // 공통 핸들러를 담당하는 함수  handlers.js에 있는 함수
     } catch (err) {
-      console.error("[WebSocket MESSAGE ERROR]", e, err);
+      console.error("[WebSocket MESSAGE ERROR]", err);
     }
   };
 

@@ -19,7 +19,7 @@
 //   // setMessages((prev) => [...prev, { sender: "me", content: text }]);
 // };
 import { useState, useEffect, useRef } from "react";
-import { getSocket } from "../../../sockets/common/websocket";
+import { getSocket } from "../../../sockets/websocket";
 import { emitChatMessage } from "../../../sockets/chat/emit";
 import {
   handleChatMessage,
