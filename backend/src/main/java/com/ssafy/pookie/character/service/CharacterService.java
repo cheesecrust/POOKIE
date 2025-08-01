@@ -65,15 +65,24 @@ public class CharacterService {
      * 대표 푸딩은 도감에서 대표로 설정된 푸딩을 가져온다.
      */
     @Transactional
-    public void changeRepPookie(Long userAccountId, PookieType pookieType, int step) throws RuntimeException {
-        CharacterCatalog catalog = characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(
-                userAccountId, step, pookieType
+    public void changeRepPookie(UserAccounts userAccount, PookieType pookieType, int step) throws RuntimeException {
+        CharacterCatalog catalog = characterCatalogRepository.findCharacterCatalogByUserAccountAndCharacterStepAndCharacterType(
+                userAccount, step, pookieType
         );
         if (catalog == null) throw new RuntimeException("그런 푸킨 없다.");
-        catalog.updateIsRep(true);
-        System.out.println(catalog.isRepresent());
+        CharacterCatalog presentCatalog = characterCatalogRepository
+                .findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true)
+                .get(0);
+        changeRepState(userAccount, catalog.getCharacter(), true);
+        changeRepState(userAccount, presentCatalog.getCharacter(), false);
+    }
+
+    public void changeRepState(UserAccounts userAccount, Characters character, boolean reqState) {
+        CharacterCatalog catalog = characterCatalogRepository
+                .findCharacterCatalogByUserAccountAndCharacter(userAccount, character)
+                .get(0);
+        catalog.updateIsRep(reqState);
         characterCatalogRepository.save(catalog);
-        // TOD0: 원래꺼 변경
     }
 
     /**
