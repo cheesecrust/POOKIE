@@ -76,7 +76,7 @@ public class GameInfoDto {
     public Map<String, Object> mapGameInfo(String typeMessage) {
         return Map.of(
                 "type", typeMessage,
-                "KeywordList", keywordList,
+                "keywordList", keywordList,
                 "keywordIdx", this.keywordIdx,
                 "repIdxList", this.repAccountIdxList(),
                 "repIdx", this.repIdx,

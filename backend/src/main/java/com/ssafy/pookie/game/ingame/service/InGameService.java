@@ -95,7 +95,7 @@ public class InGameService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo("KEYWORD"));
         }
-        log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()));
+        log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
     }
     // 현재 팀의 대표자 뽑기 ( 발화자 )
     public void pickTeamRep(RoomStateDto room) {
@@ -259,13 +259,15 @@ public class InGameService {
                     "type", "ERROR",
                     "msg", "잘못된 요청입니다."
             ));
+            return;
         }
-
+        log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
         if(!room.getGameInfo().changePainter()) {
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", "ERROR",
                     "msg", "다음 차례가 없습니다."
             ));
+            log.warn("다음 차례가 없습니다.");
             return;
         }
 
