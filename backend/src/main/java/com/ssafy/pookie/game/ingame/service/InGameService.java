@@ -38,6 +38,7 @@ public class InGameService {
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         // 현재 방의 상태를 가져옴
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+        log.info("GAME START REQUEST : Room {}", room.getRoomId());
 
         // 2. 인원 충족, 모두 준비 완료
         // 게임 시작 설정
@@ -49,8 +50,6 @@ public class InGameService {
         // 게임 정보 설정
         room.getGameInfo().setStartGame();
 
-        log.info("Room {} Game Start", room.getRoomId());
-        log.info("State : {}", room.mappingRoomInfo());
         // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
         // 게임중으로 업데이트
         onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
@@ -96,6 +95,7 @@ public class InGameService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo("KEYWORD"));
         }
+        log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()));
     }
     // 현재 팀의 대표자 뽑기 ( 발화자 )
     public void pickTeamRep(RoomStateDto room) {

@@ -46,6 +46,7 @@ public class GameRoomService {
             joinDto.setRoomId(tempUUID);
             create = true;
         } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())){
+            log.warn("Room {} information is inAccurate", joinDto.getRoomId());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "존재하지 않는 방입니다."
@@ -98,6 +99,7 @@ public class GameRoomService {
         // 신규 유저의 팀 배정
         // 팀원 수 확인
         if(room.getSessions().size() >= 6) {
+            log.warn("Room is full");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
                     "msg", "인원이 가득 차 있습니다."
@@ -134,6 +136,7 @@ public class GameRoomService {
         try {
             // 1. 현재 방을 가져온다.
             RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
+            log.info("LEAVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), session.getAttributes().get("email"));
             // 1-1. 현재 방이 존재하고, 해당 방에 요청한 사람이 있는지 확인
             if (!onlinePlayerManager.isAuthorized(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
 
@@ -151,12 +154,14 @@ public class GameRoomService {
             }
             // 2-1. 유저를 방에서 제거한다.
             room.removeUser(session);
+            log.info("Player {} was LEAVED ROOM", session.getAttributes().get("email"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "LEAVED_ROOM",
                     "msg", "Lobby 로 돌아갑니다."
             ));
             // 2-2. 방이 비어있다면, 삭제한다.
             if(room.getSessions().isEmpty()) {
+                log.info("REMOVED ROOM {}", room.getRoomId());
                 onlinePlayerManager.removeRoomFromServer(roomId);
                 onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", "UPDATE_ROOM_LIST",
@@ -169,6 +174,7 @@ public class GameRoomService {
             onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
+                log.info("REGRANT Master");
                 regrantRoomMaster(room);
             }
             leaveUser.setGrant(UserDto.Grant.NONE);
@@ -213,7 +219,7 @@ public class GameRoomService {
     public void handleUserTeamChange(WebSocketSession session, UserTeamChangeRequestDto teamChangeRequest) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(teamChangeRequest.getRoomId());
         if(!onlinePlayerManager.isAuthorized(session, room)) return;
-
+        log.info("TEAM CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), teamChangeRequest.getUser().getUserEmail());
         if(!teamChangeRequest.changeTeam(room)) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
@@ -221,7 +227,7 @@ public class GameRoomService {
             ));
             return;
         }
-
+        log.info("{} team changed in {}", teamChangeRequest.getUser().getUserEmail(), room.getRoomId());
         onlinePlayerManager.broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
                 "type", "USER_TEAM_CHANGED",
                 "msg", teamChangeRequest.getUser().getUserNickname()+"이 팀을 변경하였습니다.",
@@ -233,7 +239,7 @@ public class GameRoomService {
     public void handleUserStatus(WebSocketSession session, UserStatusChangeDto request) throws IOException {
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         if(!onlinePlayerManager.isAuthorized(session, room) || room.getRoomMaster().getSession() == session) return;
-
+        log.info("USER STATUE CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), request.getUser().getUserEmail());
         if(!request.changeStatus(room)) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "ERROR",
@@ -241,6 +247,7 @@ public class GameRoomService {
             ));
             return;
         }
+        log.info("{} status changed in {}", request.getUser().getUserEmail(), room.getRoomId());
         onlinePlayerManager.broadCastMessageToRoomUser(session, request.getRoomId(), null, Map.of(
                 "type", "USER_READY_CHANGED",
                 "room", room.mappingRoomInfo()
@@ -253,7 +260,6 @@ public class GameRoomService {
 
         // 방장인지 확인
         if(room.getRoomMaster().getSession() != session) return;
-
         UserDto removeTarget = request.findRemoveTarget(room);
         if(removeTarget == null || removeTarget.getSession() == session) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -262,6 +268,7 @@ public class GameRoomService {
             ));
             return;
         }
+        log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
 
         handleLeave(removeTarget.getSession(), request.getRoomId());
     }
