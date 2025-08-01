@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { emitGameStart, emitTurnChange, emitRoundOver } from "../sockets/games/sketchRelay/emit";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
 import useAuthStore from "../store/store";
+import { shallow } from "zustand/shallow";
 
 const SketchRelayPage_VIDU = () => {
   const [roomName] = useState("9acd8513-8a8a-44aa-8cdd-3117d2c2fcb1");
@@ -17,11 +18,8 @@ const SketchRelayPage_VIDU = () => {
 
   const roomRef = useRef(null);
 
-  // zustand에서 user 정보 가져오기
-  const { user, accessToken } = useAuthStore((state) => ({
-    user: state.user,
-    accessToken: state.accessToken,
-  }));
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const myNickname = user?.nickname;
 
   // ✅ LiveKit 연결
@@ -45,14 +43,17 @@ const SketchRelayPage_VIDU = () => {
 
         roomRef.current = newRoom;
 
-        // ✅ firstUser 지정
-        if (newRoom.remoteParticipants.size === 0) {
-          setFirstUser(myNickname);
+        // ✅ firstUser 지정 (닉네임이 유효할 때만)
+        if (newRoom.remoteParticipants.size === 0 && myNickname) {
+          setFirstUser((prev) => (prev !== myNickname ? myNickname : prev));
         } else {
           const [firstParticipant] = newRoom.remoteParticipants.values();
-          const participantNickname =
-            firstParticipant.metadata?.nickname || "unknown";
-          setFirstUser(participantNickname);
+          const participantNickname = firstParticipant?.metadata?.nickname;
+          if (participantNickname) {
+            setFirstUser((prev) =>
+              prev !== participantNickname ? participantNickname : prev
+            );
+          }
         }
 
         const handleTrackSubscribed = (track, publication, participant) => {
@@ -95,8 +96,12 @@ const SketchRelayPage_VIDU = () => {
 
         // 참가자 퇴장 시 처리
         newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
-          setRedTeam((prev) => prev.filter((p) => p.identity !== participant.identity));
-          setBlueTeam((prev) => prev.filter((p) => p.identity !== participant.identity));
+          setRedTeam((prev) =>
+            prev.filter((p) => p.identity !== participant.identity)
+          );
+          setBlueTeam((prev) =>
+            prev.filter((p) => p.identity !== participant.identity)
+          );
         });
       } catch (error) {
         console.error("LiveKit 연결 실패:", error);
@@ -108,7 +113,7 @@ const SketchRelayPage_VIDU = () => {
     return () => {
       if (roomRef.current) roomRef.current.disconnect();
     };
-  }, [roomName, participantName]);
+  }, []); // ✅ 한 번만 실행
 
   // ✅ 캠 캡처 후 FastAPI 전송
   const handleCapture = async () => {
@@ -126,8 +131,12 @@ const SketchRelayPage_VIDU = () => {
           videoEl.muted = true;
           videoEl.playsInline = true;
 
-          videoEl.addEventListener("loadeddata", () => {
-            videoEl.play().then(() => {
+          videoEl.addEventListener("loadeddata", async () => {
+            try {
+              await videoEl.play().catch(() => {
+                console.warn("⚠️ 자동재생 차단됨: 사용자 액션 필요");
+              });
+
               const doCapture = () => {
                 const width = videoEl.videoWidth;
                 const height = videoEl.videoHeight;
@@ -139,8 +148,8 @@ const SketchRelayPage_VIDU = () => {
                 canvas.toBlob((blob) => {
                   const filename = `${nickname}.png`;
                   formData.append("images", blob, filename);
-                  videoEl.srcObject.getTracks().forEach((track) => track.stop());
-                  videoEl.remove();
+                  // ❌ track.stop() 제거 → 카메라 유지
+                  videoEl.remove(); 
                   resolve();
                 }, "image/png");
               };
@@ -150,7 +159,10 @@ const SketchRelayPage_VIDU = () => {
               } else {
                 setTimeout(doCapture, 200);
               }
-            });
+            } catch (err) {
+              console.error("비디오 캡처 실패:", err);
+              resolve();
+            }
           });
         });
       };
@@ -162,6 +174,7 @@ const SketchRelayPage_VIDU = () => {
         ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
       ]);
 
+      // ✅ FastAPI 전송
       const fastapiUrl = import.meta.env.VITE_FASTAPI_URL;
       try {
         const res = await fetch(fastapiUrl, {
@@ -176,6 +189,7 @@ const SketchRelayPage_VIDU = () => {
       }
     }, 5000);
   };
+
 
   // ✅ LiveKit 토큰 요청 (변경 없음)
   async function getToken(roomName, participantName) {
