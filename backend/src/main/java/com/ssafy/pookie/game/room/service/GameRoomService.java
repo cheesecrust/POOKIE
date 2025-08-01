@@ -40,9 +40,18 @@ public class GameRoomService {
 
         boolean create = false;
         if(joinDto.getRoomId() == null || joinDto.getRoomId().isEmpty()) {
+            if(joinDto.getRoomTitle().length() > 12) {
+                log.warn("Room title is too long");
+                onlinePlayerManager.sendToMessageUser(session, Map.of(
+                        "type", "ERROR",
+                        "msg", "방 제목은 12글자 이내로 작성해주세요."
+                ));
+                return;    
+            }
+            
             String tempUUID = UUID.randomUUID().toString();
             while(onlinePlayerManager.getRooms().contains(tempUUID)) tempUUID = UUID.randomUUID().toString();
-
+            
             joinDto.setRoomId(tempUUID);
             create = true;
         } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())){
