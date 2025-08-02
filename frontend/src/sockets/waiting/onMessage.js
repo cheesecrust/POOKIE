@@ -1,4 +1,4 @@
-// src/sockets/waiting/onmessage.js
+// src/sockets/waiting/onMessage.js
 
 const handleWaitingMessage = (
     data,

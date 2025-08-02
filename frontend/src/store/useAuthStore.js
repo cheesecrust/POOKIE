@@ -1,4 +1,4 @@
-// src/store/store.js
+// src/store/useAuthStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axiosInstance from "../lib/axiosInstance";

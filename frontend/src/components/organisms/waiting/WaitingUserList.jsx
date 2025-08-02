@@ -24,7 +24,7 @@
 // src/components/organisms/waiting/WaitingUserList.jsx
 
 import WaitingUserCard from "../../molecules/waiting/WaitingUserCard";
-import useAuthStore from "../../../store/store";
+import useAuthStore from "../../../store/useAuthStore";
 
 const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick }) => {
   const { user } = useAuthStore();

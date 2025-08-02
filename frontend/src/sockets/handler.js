@@ -14,7 +14,7 @@ export const handleSocketMessage = (msg, handlers) => {
     const typePrefix = msg.type.split("_")[0];
 
     const routeMap = { // 접두사로 구분
-        ROOM: () => import("./home/onmessage").then((mod) => mod.default?.(msg, handlers)), // home
+        ROOM: () => import("./home/handleHomeMessage").then((mod) => mod.default?.(msg, handlers)), // home
         WAITING: () => import("./waiting/onmessage").then((mod) => mod.default?.(msg, handlers)), // waiting
         GAME: () => import("./game/onmessage").then((mod) => mod.default?.(msg, handlers)), // game
     };

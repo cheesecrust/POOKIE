@@ -4,10 +4,9 @@ import RoomPasswordModal from "../../organisms/home/RoomPasswordModal";
 import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
 import { useState, useMemo } from "react";
-import { emitJoinRoom } from "../../../sockets/home/emit";
+import { emitRoomJoin } from "../../../sockets/home/emit";
 
 const RoomList = ({ roomList, keyword }) => {
-  console.log("전달된 roomList", roomList);
   const [secureRoom, setSecureRoom] = useState(null);
   const [roomPasswordModalOpen, setRoomPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
@@ -21,7 +20,7 @@ const RoomList = ({ roomList, keyword }) => {
   }
 
   const handlePasswordSubmit = (roomPw) => {
-    emitJoinRoom({
+    emitRoomJoin({
       roomId: secureRoom.roomId,
       gameType: secureRoom.gameType,
       roomPw: roomPw,

@@ -25,7 +25,7 @@ import {
   handleChatMessage,
   handleSystemMessage,
 } from "../../../sockets/chat/onMessage";
-import useAuthStore from "../../../store/store";
+import useAuthStore from "../../../store/useAuthStore";
 
 import ChatInput from "../../atoms/input/ChatInput";
 import RightButton from "../../atoms/button/RightButton";

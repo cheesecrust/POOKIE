@@ -1,5 +1,4 @@
 // src/components/molecules/home/RoomCard.jsx
-// 백 연결 후 수정 로직 필요(+정원 초과 시, 버튼 비활성화)
 // 사용 예시:
 // <RoomCard
 //   roomTitle="6반 모여라"
@@ -12,9 +11,9 @@ import RoomPasswordModal from '../../organisms/home/RoomPasswordModal'
 import backgroundSamePose from '../../../assets/background/background_samepose.gif'
 import backgroundSketchRelay from '../../../assets/background/background_sketchrelay.gif'
 import backgroundSilentScream from '../../../assets/background/background_silentscream.gif'
-import { emitJoinRoom } from "../../../sockets/home/emit"
+import { emitRoomJoin } from "../../../sockets/home/emit"
 import { useRef, useState } from "react"
-import useAuthStore from "../../../store/store"
+import useAuthStore from "../../../store/useAuthStore"
 
 const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
     const userRef = useRef(useAuthStore.getState().user);
@@ -45,7 +44,7 @@ const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
         return;
       }
     
-      emitJoinRoom({
+      emitRoomJoin({
         roomId: room.roomId,
         gameType: room.gameType,
         user: {
@@ -73,6 +72,7 @@ const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
         {/* 우측 하단 PLAY 버튼 (아이콘 제거) */}
         <ModalButton
           onClick={handleEnterRoom}
+          disabled={participantCount >= 6}
           className="absolute bottom-4 right-4 text-black font-bold px-4 py-1 shadow hover:brightness-95"
         >
           PLAY
