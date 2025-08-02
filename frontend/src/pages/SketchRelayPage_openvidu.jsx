@@ -3,12 +3,10 @@ import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
 import { useEffect, useRef, useState } from "react";
-import { connectSocket } from "../sockets/common/websocket";
 import { emitGameStart, emitTurnChange, emitRoundOver } from "../sockets/games/sketchRelay/emit";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
-import useAuthStore from "../store/store"
-
-const FASTAPI_URL = "http://localhost:8000/upload_images"; // FastAPI endpoint
+import useAuthStore from "../store/store";
+import { shallow } from "zustand/shallow";
 
 const SketchRelayPage_VIDU = () => {
   const [roomName] = useState("9acd8513-8a8a-44aa-8cdd-3117d2c2fcb1");
@@ -19,7 +17,10 @@ const SketchRelayPage_VIDU = () => {
   const [firstUser, setFirstUser] = useState(null);
 
   const roomRef = useRef(null);
-  const myUserId = localStorage.getItem("userId");
+
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const myNickname = user?.nickname;
 
   // ✅ LiveKit 연결
   useEffect(() => {
@@ -31,34 +32,45 @@ const SketchRelayPage_VIDU = () => {
         await newRoom.connect(livekitUrl, token);
         console.log("✅ LiveKit 연결 성공");
 
+        // 캠 시작
         const videoTrack = await createLocalVideoTrack();
         await newRoom.localParticipant.publishTrack(videoTrack);
-        setPublisherTrack({ track: videoTrack, identity: participantName });
+        setPublisherTrack({
+          track: videoTrack,
+          identity: participantName,
+          nickname: myNickname,
+        });
 
         roomRef.current = newRoom;
 
-         // ✅ 방에 있는 참가자 수 확인 후 firstUser 지정
-        if (newRoom.remoteParticipants.size === 0) {
-          // 내가 첫 참가자
-          setFirstUser(myUserId);
+        // ✅ firstUser 지정 (닉네임이 유효할 때만)
+        if (newRoom.remoteParticipants.size === 0 && myNickname) {
+          setFirstUser((prev) => (prev !== myNickname ? myNickname : prev));
         } else {
-          // 이미 다른 참가자가 있음 → 그 중 한 명을 firstUser로 지정
           const [firstParticipant] = newRoom.remoteParticipants.values();
-          const participantUserId = firstParticipant.metadata?.userId 
-            || localStorage.getItem(`userId_${firstParticipant.identity}`);
-          setFirstUser(participantUserId);
+          const participantNickname = firstParticipant?.metadata?.nickname;
+          if (participantNickname) {
+            setFirstUser((prev) =>
+              prev !== participantNickname ? participantNickname : prev
+            );
+          }
         }
 
         const handleTrackSubscribed = (track, publication, participant) => {
           if (!participant || track.kind !== "video" || participant.isLocal) return;
-          const team = "red"; // 필요 시 메타데이터로 결정
-          const subscriberObj = { track, identity: participant.identity };
+          const nickname = participant.metadata?.nickname || "unknown";
+          const subscriberObj = {
+            track,
+            identity: participant.identity,
+            nickname,
+          };
           const updateTeam = (setter) => {
             setter((prev) => {
               if (prev.find((p) => p.identity === participant.identity)) return prev;
               return [...prev, subscriberObj];
             });
           };
+          const team = participant.metadata?.team || "red";
           if (team === "red") updateTeam(setRedTeam);
           else updateTeam(setBlueTeam);
         };
@@ -82,6 +94,15 @@ const SketchRelayPage_VIDU = () => {
           });
         });
 
+        // 참가자 퇴장 시 처리
+        newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
+          setRedTeam((prev) =>
+            prev.filter((p) => p.identity !== participant.identity)
+          );
+          setBlueTeam((prev) =>
+            prev.filter((p) => p.identity !== participant.identity)
+          );
+        });
       } catch (error) {
         console.error("LiveKit 연결 실패:", error);
       }
@@ -92,10 +113,10 @@ const SketchRelayPage_VIDU = () => {
     return () => {
       if (roomRef.current) roomRef.current.disconnect();
     };
-  }, [roomName, participantName]);
+  }, []); // ✅ 한 번만 실행
 
   // ✅ 캠 캡처 후 FastAPI 전송
-    const handleCapture = async () => {
+  const handleCapture = async () => {
     console.log("📸 사진 촬영 준비 중... 5초 뒤에 촬영됩니다!");
 
     setTimeout(async () => {
@@ -103,81 +124,75 @@ const SketchRelayPage_VIDU = () => {
       const ctx = canvas.getContext("2d");
       const formData = new FormData();
 
-      const captureTrack = (videoTrack, identity) => {
+      const captureTrack = (videoTrack, nickname) => {
         return new Promise((resolve) => {
           const videoEl = document.createElement("video");
           videoEl.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
           videoEl.muted = true;
           videoEl.playsInline = true;
 
-          videoEl.addEventListener("loadeddata", () => {
-            videoEl.play().then(() => {
+          videoEl.addEventListener("loadeddata", async () => {
+            try {
+              await videoEl.play().catch(() => {
+                console.warn("⚠️ 자동재생 차단됨: 사용자 액션 필요");
+              });
+
+              const doCapture = () => {
+                const width = videoEl.videoWidth;
+                const height = videoEl.videoHeight;
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(videoEl, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                  const filename = `${nickname}.png`;
+                  formData.append("images", blob, filename);
+                  // ❌ track.stop() 제거 → 카메라 유지
+                  videoEl.remove(); 
+                  resolve();
+                }, "image/png");
+              };
+
               if (videoEl.requestVideoFrameCallback) {
-                videoEl.requestVideoFrameCallback(() => {
-                  const width = videoEl.videoWidth;
-                  const height = videoEl.videoHeight;
-
-                  canvas.width = width;
-                  canvas.height = height;
-                  ctx.drawImage(videoEl, 0, 0, width, height);
-
-                  canvas.toBlob((blob) => {
-                    const safeIdentity = identity.startsWith("dummyuser_")
-                      ? identity
-                      : `dummyuser_${identity}`;
-                    formData.append("images", blob, `${safeIdentity}.png`);
-                    resolve();
-                  }, "image/png");
-                });
+                videoEl.requestVideoFrameCallback(doCapture);
               } else {
-                setTimeout(() => {
-                  const width = videoEl.videoWidth;
-                  const height = videoEl.videoHeight;
-
-                  canvas.width = width;
-                  canvas.height = height;
-                  ctx.drawImage(videoEl, 0, 0, width, height);
-
-                  canvas.toBlob((blob) => {
-                    const safeIdentity = identity.startsWith("dummyuser_")
-                      ? identity
-                      : `dummyuser_${identity}`;
-                    formData.append("images", blob, `${safeIdentity}.png`);
-                    resolve();
-                  }, "image/png");
-                }, 200);
+                setTimeout(doCapture, 200);
               }
-            });
+            } catch (err) {
+              console.error("비디오 캡처 실패:", err);
+              resolve();
+            }
           });
         });
       };
 
-      // ✅ 본인 + 모든 참가자 캡처
-      if (publisherTrack) {
-        await captureTrack(publisherTrack.track, publisherTrack.identity);
-      }
-      for (const user of [...redTeam, ...blueTeam]) {
-        await captureTrack(user.track, user.identity);
-      }
+      // ✅ 본인 + 모든 참가자 캡처 (병렬 처리)
+      await Promise.all([
+        ...(publisherTrack ? [captureTrack(publisherTrack.track, myNickname)] : []),
+        ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
+        ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
+      ]);
 
-      // ✅ FastAPI로 전송
+      // ✅ FastAPI 전송
+      const fastapiUrl = import.meta.env.VITE_FASTAPI_URL;
       try {
-        const res = await fetch(FASTAPI_URL, {
+        const res = await fetch(fastapiUrl, {
           method: "POST",
           body: formData,
         });
+        if (!res.ok) throw new Error(`FastAPI 요청 실패: ${res.status}`);
         const result = await res.json();
         console.log("✅ FastAPI 응답:", result);
       } catch (err) {
         console.error("❌ FastAPI 전송 실패:", err);
       }
-    }, 5000); // 5초 후 실행
+    }, 5000);
   };
 
-  // openvidu의 토큰 서버에 요청(서버에서 openvidu 토큰 얻어옴)
-  async function getToken(roomName, participantName) {
-    const { accessToken } = useAuthStore.getState(); // zustand에서 accessToken 가져오기
 
+  // ✅ LiveKit 토큰 요청 (변경 없음)
+  async function getToken(roomName, participantName) {
     if (!accessToken) {
       throw new Error("로그인이 필요합니다. accessToken 없음");
     }
@@ -190,7 +205,7 @@ const SketchRelayPage_VIDU = () => {
       },
       body: JSON.stringify({ room: roomName, name: participantName, team: "red" }),
     });
-    
+
     if (!res.ok) {
       throw new Error("open vidu 토큰 요청 실패");
     }
@@ -201,18 +216,25 @@ const SketchRelayPage_VIDU = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      <img src={background_sketchrelay} alt="background" className="absolute top-0 left-0 w-full h-full object-cover -z-10" />
+      <img
+        src={background_sketchrelay}
+        alt="background"
+        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+      />
       <div className="relative z-10 w-full h-full flex flex-col justify-between items-center py-12 px-10">
 
         {/* 캠 출력 */}
         <div className="flex gap-4 justify-center">
           {[...(publisherTrack ? [publisherTrack] : []), ...redTeam, ...blueTeam].map((sub, i) => (
-            <LiveKitVideo key={i} videoTrack={sub.track} isLocal={sub.identity === participantName} />
+            <div key={i} className="flex flex-col items-center">
+              <LiveKitVideo videoTrack={sub.track} isLocal={sub.identity === participantName} />
+              <p className="text-sm mt-1">{sub.nickname}</p>
+            </div>
           ))}
         </div>
 
         {/* 사진 찍기 버튼 (첫 참가자만 보임) */}
-        {firstUser === myUserId && (
+        {firstUser === myNickname && (
           <button
             onClick={handleCapture}
             className="bg-yellow-400 px-4 py-2 rounded shadow-lg mt-4"
