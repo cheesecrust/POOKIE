@@ -34,7 +34,8 @@ public class Users {
     @Column(nullable = false)
     private String password;
 
-    private String socialId;
+    @Column(nullable = true, unique = true, length = 255)
+    private String socialId;  // 소셜 로그인 시 매핑되는 값 (nullable 가능)
 
     @CreatedDate
     @Column(updatable = false)
@@ -42,4 +43,12 @@ public class Users {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public boolean canLoginWithSocial() {
+        return socialId != null;
+    }
+
+    public boolean canLoginWithEmail() {
+        return email != null && password != null;
+    }
 }
