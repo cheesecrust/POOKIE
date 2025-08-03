@@ -6,7 +6,7 @@ import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState } from "react";
 import { getSocket } from "../sockets/websocket";
-// import { handleSamePoseMessage } from "../sockets/games/samePose/onMessage";
+// import { handleSamePoseMessage } from "../sockets/samePose/onMessage";
 
 const SamePosePage = () => {
   const [keyword, setKeyword] = useState("");

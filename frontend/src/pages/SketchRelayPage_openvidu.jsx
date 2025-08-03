@@ -1,20 +1,26 @@
-// import background_sketchrelay from "../assets/background/background_sketchrelay.gif";
-// import RoundInfo from "../components/molecules/games/RoundInfo";
-// import ChatBox from "../components/molecules/common/ChatBox";
-// import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
-// import { useEffect, useRef, useState } from "react";
-// import { emitGameStart, emitTurnChange, emitRoundOver } from "../sockets/games/sketchRelay/emit";
-// import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
-// import useAuthStore from "../store/store";
-// import { shallow } from "zustand/shallow";
+import background_sketchrelay from "../assets/background/background_sketchrelay.gif";
+import RoundInfo from "../components/molecules/games/RoundInfo";
+import ChatBox from "../components/molecules/common/ChatBox";
+import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
+import { useEffect, useRef, useState } from "react";
+// import {
+//   emitGameStart,
+//   emitTurnChange,
+//   emitRoundOver,
+// } from "../sockets/sketchRelay/emit";
+import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
+import useAuthStore from "../store/store";
+import { shallow } from "zustand/shallow";
 
-// const SketchRelayPage_VIDU = () => {
-//   const [roomName] = useState("9acd8513-8a8a-44aa-8cdd-3117d2c2fcb1");
-//   const [participantName] = useState(`dummyuser_${Math.floor(Math.random() * 10000)}`);
-//   const [redTeam, setRedTeam] = useState([]);
-//   const [blueTeam, setBlueTeam] = useState([]);
-//   const [publisherTrack, setPublisherTrack] = useState(null);
-//   const [firstUser, setFirstUser] = useState(null);
+const SketchRelayPage_VIDU = () => {
+  const [roomName] = useState("9acd8513-8a8a-44aa-8cdd-3117d2c2fcb1");
+  const [participantName] = useState(
+    `dummyuser_${Math.floor(Math.random() * 10000)}`
+  );
+  const [redTeam, setRedTeam] = useState([]);
+  const [blueTeam, setBlueTeam] = useState([]);
+  const [publisherTrack, setPublisherTrack] = useState(null);
+  const [firstUser, setFirstUser] = useState(null);
 
 //   const roomRef = useRef(null);
 
@@ -56,36 +62,45 @@
 //           }
 //         }
 
-//         const handleTrackSubscribed = (track, publication, participant) => {
-//           if (!participant || track.kind !== "video" || participant.isLocal) return;
-//           const nickname = participant.metadata?.nickname || "unknown";
-//           const subscriberObj = {
-//             track,
-//             identity: participant.identity,
-//             nickname,
-//           };
-//           const updateTeam = (setter) => {
-//             setter((prev) => {
-//               if (prev.find((p) => p.identity === participant.identity)) return prev;
-//               return [...prev, subscriberObj];
-//             });
-//           };
-//           const team = participant.metadata?.team || "red";
-//           if (team === "red") updateTeam(setRedTeam);
-//           else updateTeam(setBlueTeam);
-//         };
+        const handleTrackSubscribed = (track, publication, participant) => {
+          if (!participant || track.kind !== "video" || participant.isLocal)
+            return;
+          const nickname = participant.metadata?.nickname || "unknown";
+          const subscriberObj = {
+            track,
+            identity: participant.identity,
+            nickname,
+          };
+          const updateTeam = (setter) => {
+            setter((prev) => {
+              if (prev.find((p) => p.identity === participant.identity))
+                return prev;
+              return [...prev, subscriberObj];
+            });
+          };
+          const team = participant.metadata?.team || "red";
+          if (team === "red") updateTeam(setRedTeam);
+          else updateTeam(setBlueTeam);
+        };
 
-//         // 기존 참가자 처리
-//         for (const participant of newRoom.remoteParticipants.values()) {
-//           for (const publication of participant.trackPublications.values()) {
-//             if (publication.isSubscribed && publication.track?.kind === "video") {
-//               handleTrackSubscribed(publication.track, publication, participant);
-//             }
-//           }
-//           participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
-//             handleTrackSubscribed(track, publication, participant);
-//           });
-//         }
+        // 기존 참가자 처리
+        for (const participant of newRoom.remoteParticipants.values()) {
+          for (const publication of participant.trackPublications.values()) {
+            if (
+              publication.isSubscribed &&
+              publication.track?.kind === "video"
+            ) {
+              handleTrackSubscribed(
+                publication.track,
+                publication,
+                participant
+              );
+            }
+          }
+          participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
+            handleTrackSubscribed(track, publication, participant);
+          });
+        }
 
 //         // 새 참가자
 //         newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
@@ -145,14 +160,14 @@
 //                 canvas.height = height;
 //                 ctx.drawImage(videoEl, 0, 0, width, height);
 
-//                 canvas.toBlob((blob) => {
-//                   const filename = `${nickname}.png`;
-//                   formData.append("images", blob, filename);
-//                   // ❌ track.stop() 제거 → 카메라 유지
-//                   videoEl.remove(); 
-//                   resolve();
-//                 }, "image/png");
-//               };
+                canvas.toBlob((blob) => {
+                  const filename = `${nickname}.png`;
+                  formData.append("images", blob, filename);
+                  // ❌ track.stop() 제거 → 카메라 유지
+                  videoEl.remove();
+                  resolve();
+                }, "image/png");
+              };
 
 //               if (videoEl.requestVideoFrameCallback) {
 //                 videoEl.requestVideoFrameCallback(doCapture);
@@ -167,44 +182,49 @@
 //         });
 //       };
 
-//       // ✅ 본인 + 모든 참가자 캡처 (병렬 처리)
-//       await Promise.all([
-//         ...(publisherTrack ? [captureTrack(publisherTrack.track, myNickname)] : []),
-//         ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
-//         ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
-//       ]);
+      // ✅ 본인 + 모든 참가자 캡처 (병렬 처리)
+      await Promise.all([
+        ...(publisherTrack
+          ? [captureTrack(publisherTrack.track, myNickname)]
+          : []),
+        ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
+        ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
+      ]);
 
-//       // ✅ FastAPI 전송
-//       const fastapiUrl = import.meta.env.VITE_FASTAPI_URL;
-//       try {
-//         const res = await fetch(fastapiUrl, {
-//           method: "POST",
-//           body: formData,
-//         });
-//         if (!res.ok) throw new Error(`FastAPI 요청 실패: ${res.status}`);
-//         const result = await res.json();
-//         console.log("✅ FastAPI 응답:", result);
-//       } catch (err) {
-//         console.error("❌ FastAPI 전송 실패:", err);
-//       }
-//     }, 5000);
-//   };
+      // ✅ FastAPI 전송
+      const fastapiUrl = import.meta.env.VITE_FASTAPI_URL;
+      try {
+        const res = await fetch(fastapiUrl, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`FastAPI 요청 실패: ${res.status}`);
+        const result = await res.json();
+        console.log("✅ FastAPI 응답:", result);
+      } catch (err) {
+        console.error("❌ FastAPI 전송 실패:", err);
+      }
+    }, 5000);
+  };
 
-
-//   // ✅ LiveKit 토큰 요청 (변경 없음)
-//   async function getToken(roomName, participantName) {
-//     if (!accessToken) {
-//       throw new Error("로그인이 필요합니다. accessToken 없음");
-//     }
-//     const apiUrl = import.meta.env.VITE_API_URL;
-//     const res = await fetch(`${apiUrl}/rtc/token`, {
-//       method: "POST",
-//       headers: {
-//         Authorization: `Bearer ${accessToken}`,
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ room: roomName, name: participantName, team: "red" }),
-//     });
+  // ✅ LiveKit 토큰 요청 (변경 없음)
+  async function getToken(roomName, participantName) {
+    if (!accessToken) {
+      throw new Error("로그인이 필요합니다. accessToken 없음");
+    }
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const res = await fetch(`${apiUrl}/rtc/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        room: roomName,
+        name: participantName,
+        team: "red",
+      }),
+    });
 
 //     if (!res.ok) {
 //       throw new Error("open vidu 토큰 요청 실패");
@@ -214,24 +234,30 @@
 //     return tokenObj.token;
 //   }
 
-//   return (
-//     <div className="relative w-full h-screen overflow-hidden">
-//       <img
-//         src={background_sketchrelay}
-//         alt="background"
-//         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
-//       />
-//       <div className="relative z-10 w-full h-full flex flex-col justify-between items-center py-12 px-10">
-
-//         {/* 캠 출력 */}
-//         <div className="flex gap-4 justify-center">
-//           {[...(publisherTrack ? [publisherTrack] : []), ...redTeam, ...blueTeam].map((sub, i) => (
-//             <div key={i} className="flex flex-col items-center">
-//               <LiveKitVideo videoTrack={sub.track} isLocal={sub.identity === participantName} />
-//               <p className="text-sm mt-1">{sub.nickname}</p>
-//             </div>
-//           ))}
-//         </div>
+  return (
+    <div className="relative w-full h-screen overflow-hidden">
+      <img
+        src={background_sketchrelay}
+        alt="background"
+        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+      />
+      <div className="relative z-10 w-full h-full flex flex-col justify-between items-center py-12 px-10">
+        {/* 캠 출력 */}
+        <div className="flex gap-4 justify-center">
+          {[
+            ...(publisherTrack ? [publisherTrack] : []),
+            ...redTeam,
+            ...blueTeam,
+          ].map((sub, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <LiveKitVideo
+                videoTrack={sub.track}
+                isLocal={sub.identity === participantName}
+              />
+              <p className="text-sm mt-1">{sub.nickname}</p>
+            </div>
+          ))}
+        </div>
 
 //         {/* 사진 찍기 버튼 (첫 참가자만 보임) */}
 //         {firstUser === myNickname && (
@@ -255,13 +281,28 @@
 //         <ChatBox width="300px" height="300px" />
 //       </div>
 
-//       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-//         <button onClick={emitGameStart} className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
-//         <button onClick={emitTurnChange} className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
-//         <button onClick={emitRoundOver} className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
-//       </div>
-//     </div>
-//   );
-// };
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+        <button
+          onClick={emitGameStart}
+          className="bg-green-300 px-4 py-2 rounded"
+        >
+          GAME_START
+        </button>
+        <button
+          onClick={emitTurnChange}
+          className="bg-blue-300 px-4 py-2 rounded"
+        >
+          TURN_CHANGE
+        </button>
+        <button
+          onClick={emitRoundOver}
+          className="bg-red-300 px-4 py-2 rounded"
+        >
+          ROUND_OVER
+        </button>
+      </div>
+    </div>
+  );
+};
 
-// export default SketchRelayPage_VIDU;
+export default SketchRelayPage_VIDU;

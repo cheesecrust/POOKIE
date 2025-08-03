@@ -13,16 +13,16 @@ export const handleSocketMessage = (msg, handlers) => {
 
     // ON 메시지 별도 처리
     if (msg.type === "ON") {
-       import("./home/handleHomeMessage")
-       .then((mod) =>
-        mod.default?.(msg, {
-          setRoomList: handlers?.setRoomList
-        })
-       )
-       .catch((err) => {
-           console.error("[SocketRouter] ON 핸들러 로딩 실패:", err);
-       });
-       return;
+        import("./home/handleHomeMessage")
+            .then((mod) =>
+                mod.default?.(msg, {
+                    setRoomList: handlers?.setRoomList
+                })
+            )
+            .catch((err) => {
+                console.error("[SocketRouter] ON 핸들러 로딩 실패:", err);
+            });
+        return;
     }
 
     const typePrefix = msg.type.split("_")[0];
