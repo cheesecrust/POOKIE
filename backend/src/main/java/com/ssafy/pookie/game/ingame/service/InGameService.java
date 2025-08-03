@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.ingame.service;
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
+import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
@@ -288,6 +289,18 @@ public class InGameService {
             }
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
+        }
+    }
+
+    public void handlePass(PassRequestDto request) throws IOException {
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(request.getRequestUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));

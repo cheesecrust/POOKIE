@@ -7,6 +7,7 @@ import com.ssafy.pookie.game.draw.dto.DrawEvent;
 import com.ssafy.pookie.game.draw.service.DrawService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
+import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
@@ -119,6 +120,10 @@ public class GameServerHandler extends TextWebSocketHandler {
                     painterChangeRequest.setUser(user);
                     inGameService.handlePainterChange(painterChangeRequest);
                     break;
+                case GAME_PASS:
+                    PassRequestDto requestDto = objectMapper.convertValue(msg.getPayload(), PassRequestDto.class);
+                    requestDto.setRequestUser(user);
+                    inGameService.handlePass(requestDto);
                 // Chat
                 case CHAT:
                     ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);

@@ -99,4 +99,9 @@ public class GameInfoDto {
                 "repIdx", this.repIdx
         );
     }
+
+    // 키워드를 패스할 수 있는지 확인
+    public boolean canPassKeyword(UserDto requestUser) {
+        return this.rep.contains(requestUser);
+    }
 }
