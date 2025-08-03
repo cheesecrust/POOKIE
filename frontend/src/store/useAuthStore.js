@@ -119,7 +119,7 @@ const useAuthStore = create(
 
   
     // 🌱 새로고침 후 로그인 상태 복원
-    loadUserFromStorage: async () => {
+    loadUserFromStorage: async (navigate = null) => {
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return;
 
@@ -136,6 +136,29 @@ const useAuthStore = create(
         });
 
         await get().fetchUserInfo();
+
+        // 📍소켓 재연결📍
+        connectSocket({
+          url: import.meta.env.VITE_SOCKET_URL,
+          token: accessToken,
+          handlers: {
+            // common handler
+            navigate,
+
+            // home handler
+            setRoomList: useRoomStore.getState().setRoomList,
+
+            // waiting handler
+            user: get().user,
+            setRoom: () => {},
+            setTeam: () => {},
+            setIsReady: () => {},
+
+            // game handler
+
+            // chat handler
+          }
+        });
       } catch (err) {
         console.error('리프레시 토큰 재발급 실패');
         localStorage.removeItem('refreshToken');
