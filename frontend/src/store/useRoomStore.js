@@ -1,21 +1,12 @@
 // src/store/useRoomStore.js
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
-const useRoomStore = create(
-    persist(
-        (set) => ({
-            roomList: [],
-            setRoomList: (roomList) => set({ roomList }),
-        }),
-        {
-            name: 'roomList',
-            getStorage: () => localStorage,
-            partialize: (state) => ({
-                roomList: state.roomList,
-            }),
-        }
-    )
-);
+const useRoomStore = create((set) => ({
+    roomList: [],
+    setRoomList: (roomList) => {
+        console.log("setRoomList 실행 완료:", roomList);
+        set({ roomList });
+    },
+}));
 
 export default useRoomStore;

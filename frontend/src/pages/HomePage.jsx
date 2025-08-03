@@ -11,7 +11,7 @@ import useAuthStore from "../store/useAuthStore";
 import useRoomStore from "../store/useRoomStore";
 import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import characterImageMap from "../utils/characterImageMap";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSocket } from "../sockets/websocket";
 import handleHomeMessage from "../sockets/home/handleHomeMessage";
@@ -22,9 +22,8 @@ const HomePage = () => {
   const { user } = useAuthStore();
   const { logout } = useAuthStore();
   const { isLoggedIn } = useAuthStore((state) => state);
-  const [keyword, setKeyword] = useState("");
   const roomList = useRoomStore((state) => state.roomList);
-  const setRoomList = useRoomStore((state) => state.setRoomList);
+  const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
 
@@ -40,6 +39,8 @@ const HomePage = () => {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
+
+    const { setRoomList } = useRoomStore.getState();
 
     socket.onmessage = (e) => {
       const msg = JSON.parse(e.data);
@@ -96,7 +97,6 @@ const HomePage = () => {
       </div>
     );
   }
-
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
