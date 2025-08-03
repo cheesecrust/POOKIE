@@ -37,34 +37,44 @@ public class InGameService {
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
-        // 현재 방의 상태를 가져옴
-        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        log.info("GAME START REQUEST : Room {}", room.getRoomId());
+        try {
+            // 현재 방의 상태를 가져옴
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            log.info("GAME START REQUEST : Room {}", room.getRoomId());
 
-        // 2. 인원 충족, 모두 준비 완료
-        // 게임 시작 설정
-        room.setStatus(RoomStateDto.Status.START);
-        // 라운드 설정
-        if(!increaseRound(session, room)) return;
-        // 턴 설정
-        room.turnChange();
-        // 게임 정보 설정
-        room.getGameInfo().setStartGame();
+            // 2. 인원 충족, 모두 준비 완료
+            // 게임 시작 설정
+            room.setStatus(RoomStateDto.Status.START);
+            // 라운드 설정
+            if (!increaseRound(session, room)) {
+                room.setStatus(RoomStateDto.Status.WAITING);
+                throw new IllegalArgumentException("게임 시작 도중 오류가 발생하였습니다.");
+            }
+            // 턴 설정
+            room.turnChange();
+            // 게임 정보 설정
+            room.getGameInfo().setStartGame();
 
-        // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
-        // 게임중으로 업데이트
-        onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
-        String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
-        // Client response msg
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_STARTED,
-                "msg", "게임을 시작합니다.",
-                "turn", room.getTurn().toString(),
-                "round", room.getRound(),
-                "rtc_token", rtcToken
-        ));
+            // 현재 Session ( Room ) 에 있는 User 의 Lobby Status 업데이트
+            // 게임중으로 업데이트
+            onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(request.getRoomId(), request.getUser()), true, LobbyUserDto.Status.GAME);
+            String rtcToken = rtcService.makeToken(request.getUser().getUserNickname(), request.getUser().getUserAccountId(), request.getRoomId());
+            // Client response msg
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_STARTED,
+                    "msg", "게임을 시작합니다.",
+                    "turn", room.getTurn().toString(),
+                    "round", room.getRound(),
+                    "rtc_token", rtcToken
+            ));
 
-        deliverKeywords(room);
+            deliverKeywords(room);
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
+        }
     }
 
     // 제시어를 전달
@@ -137,26 +147,34 @@ public class InGameService {
 
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto gameResult) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
-        if(!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) return;
-        // TURN_CHANGE 이벤트는 RED 에서만 일어남
-        if(room.getTurn() != RoomStateDto.Turn.RED) return;
-        // 클라이언트와 서버의 데이터를 교차 검증한다.
-        if(!room.validationTempScore(gameResult)) {
-            gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
+            if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room))
+                return;
+            // TURN_CHANGE 이벤트는 RED 에서만 일어남
+            if (room.getTurn() != RoomStateDto.Turn.RED) throw new IllegalArgumentException("턴 정보가 잘못되었습니다.");
+            // 클라이언트와 서버의 데이터를 교차 검증한다.
+            if (!room.validationTempScore(gameResult)) {
+                gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+            }
+            // 턴 바꿔주기
+            room.turnChange();
+            log.info("Room {} turn change", room.getRoomId());
+            log.info("{}", room.mappingRoomInfo());
+            // Client response msg
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
+                    "round", room.getRound(),
+                    "turn", room.getTurn().toString(),
+                    "tempTeamScore", room.getTempTeamScores()
+            ));
+            deliverKeywords(room);
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
-        // 턴 바꿔주기
-        room.turnChange();
-        log.info("Room {} turn change", room.getRoomId());
-        log.info("{}", room.mappingRoomInfo());
-        // Client response msg
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
-                "round", room.getRound(),
-                "turn", room.getTurn().toString(),
-                "tempTeamScore", room.getTempTeamScores()
-        ));
-        deliverKeywords(room);
     }
 
     // 게임 라운드 증가
