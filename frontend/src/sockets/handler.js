@@ -25,6 +25,38 @@ export const handleSocketMessage = (msg, handlers) => {
         return;
     }
 
+    // 예외 처리: WAITING_JOINED → home, GAME_STARTED → waiting
+    if (msg.type === "WAITING_JOINED") {
+        import("./home/handleHomeMessage")
+            .then((mod) => mod.default?.(msg,
+                {
+                    setRoomList: handlers?.setRoomList,
+                    navigate: handlers?.navigate,
+                }))
+            .catch((err) => {
+                console.error("[SocketRouter] WAITING_JOINED 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
+    if (msg.type === "GAME_STARTED") {
+        import("./waiting/handleWaitingMessage")
+            .then((mod) =>
+                mod.default?.(msg, {
+                    user: handlers?.user,
+                    room: handlers?.room,
+                    setRoom: handlers?.setRoom,
+                    setTeam: handlers?.setTeam,
+                    setIsReady: handlers?.setIsReady,
+                    navigate: handlers?.navigate,
+                })
+            )
+            .catch((err) => {
+                console.error("[SocketRouter] GAME_STARTED 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     const routeMap = { // 접두사로 구분
@@ -36,7 +68,6 @@ export const handleSocketMessage = (msg, handlers) => {
                 setRoom: handlers?.setRoom,
                 setTeam: handlers?.setTeam,
                 setIsReady: handlers?.setIsReady,
-                navigate: handlers?.navigate
             })), // waiting
         GAME: () => import("./game/handleGameMessage").then((mod) => mod.default?.(msg, handlers)), // game
     };

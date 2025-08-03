@@ -15,12 +15,9 @@ const useAuthStore = create(
     
     setUser: (user) => set({ user }),
     setAccessToken: (token) => set({ accessToken: token }),
-
-    navigate: null,
-    setNavigate: (navigateFn) => set({ navigate: navigateFn }),
   
     // ✅ 로그인 요청 + user 상태 저장
-    login: async ({ email, password }) => {
+    login: async ({ email, password, navigate }) => {
       try {
         const res = await axiosInstance.post('/auth/login', { email, password });
         const { accessToken, refreshToken, userAccountId, nickname } = res.data.data;
@@ -41,12 +38,14 @@ const useAuthStore = create(
           url: import.meta.env.VITE_SOCKET_URL,
           token: accessToken,
           handlers: {
+            // common handler
+            navigate,
+
             // home handler
             setRoomList: useRoomStore.getState().setRoomList,
 
             // waiting handler
             user: get().user,
-            navigate: get().navigate,
             setRoom: () => {},
             setTeam: () => {},
             setIsReady: () => {},

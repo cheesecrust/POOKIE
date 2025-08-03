@@ -12,47 +12,48 @@ import backgroundSamePose from '../../../assets/background/background_samepose.g
 import backgroundSketchRelay from '../../../assets/background/background_sketchrelay.gif'
 import backgroundSilentScream from '../../../assets/background/background_silentscream.gif'
 import { emitRoomJoin } from "../../../sockets/home/emit"
-import { useRef, useState } from "react"
+import { useRef } from "react"
 import useAuthStore from "../../../store/useAuthStore"
 
-const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
-    const userRef = useRef(useAuthStore.getState().user);
-    const [usePassword, setUsePassword] = useState(false);
-    const [roomPassword, setRoomPassword] = useState("");
-    const getBackgroundImage = (gameType) => {
-      switch (gameType) {
-        case 'SAMEPOSE':
-          return backgroundSamePose;
+const RoomCard = ({ room, onPasswordRequest }) => {
+  const userRef = useRef(useAuthStore.getState().user);
+  
+  const getBackgroundImage = (gameType) => {
+    switch (gameType) {
+      case 'SAMEPOSE':
+        return backgroundSamePose;
         case 'SKETCHRELAY':
           return backgroundSketchRelay;
-        case 'SILENTSCREAM':
-          return backgroundSilentScream;
-        default:
-          return backgroundSamePose; // fallback
-      }
-    };
-
-    
-    const handleEnterRoom = () => {
-      if (!room.roomId) {
-        console.error("Room ID가 없습니다.");
-        return;
-      }
-    
-      if (room.roomPw) {
-        onPasswordRequest?.(room);
-        return;
-      }
-    
-      emitRoomJoin({
-        roomId: room.roomId,
-        gameType: room.gameType,
-        user: {
-          userId: userRef.current?.userId,
-          userNickname: userRef.current?.userNickname,
-        },
-      });
-    };
+          case 'SILENTSCREAM':
+            return backgroundSilentScream;
+            default:
+              return backgroundSamePose; // fallback
+            }
+          };
+          
+          
+          const handleEnterRoom = () => {
+            if (!room.roomId) {
+              console.error("Room ID가 없습니다.");
+              return;
+            }
+            
+            if (room.roomPw) {
+              onPasswordRequest?.(room);
+              return;
+            }
+            
+            emitRoomJoin({
+              roomId: room.roomId,
+              gameType: room.gameType,
+              user: {
+                userId: userRef.current?.userId,
+                userNickname: userRef.current?.userNickname,
+              },
+            });
+          };
+          
+  const participantCount = (room.RED?.length || 0) + (room.BLUE?.length || 0)
     
     return (
       <div
@@ -61,7 +62,7 @@ const RoomCard = ({ room, participantCount, onPasswordRequest }) => {
       >
         {/* 우측 상단 인원 수 */}
         <div className="absolute top-3 right-4 text-black font-semibold text-sm">
-          {participantCount }/ 6
+          {participantCount} / 6
         </div>
   
         {/* 좌측 하단 방 제목 */}
