@@ -3,6 +3,7 @@ import { BrowserRouter, useNavigate } from "react-router-dom";
 import { useEffect } from "react"
 import Router from "./routes/Router";
 import useAuthStore from "./store/useAuthStore";
+import BGMProvider from "./components/audio/BGMProvider";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -12,7 +13,12 @@ function AppContent() {
     loadUserFromStorage(navigate); // 새로고침 시 로그인 상태 복원 + 소켓 재연결
   }, [navigate, loadUserFromStorage]);
 
-  return <Router />;
+  return (
+    <>
+      <BGMProvider isPlaying={true} />
+      <Router />
+    </>
+  );
 }
 
 function App() {
