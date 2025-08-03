@@ -29,6 +29,7 @@ public class GameServerService {
         유저가 게임 Lobby 로 접속 시
      */
     public void handleOn(WebSocketSession session, UserDto userDto) throws IOException {
+        log.info("ON REQUEST : {}", userDto.getUserEmail());
         // 현재 사용자가 다른 방에 있다면, 기존 방에서 제서
         onlinePlayerManager.removeSessionFromRooms(session);
 
