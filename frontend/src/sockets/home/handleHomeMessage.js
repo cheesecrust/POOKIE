@@ -6,6 +6,7 @@ const handleHomeMessage = (
 ) => {
   const {
     setRoomList = () => {},
+    navigate = () => {},
   } = handlers;
   if (!data?.type) return;
 
@@ -48,6 +49,17 @@ const handleHomeMessage = (
       
       const roomList = data.payload?.roomList;
       if (roomList) updateRoomList(roomList);
+      break;
+    }
+
+    case "WAITING_JOINED": {
+      const roomId = data.room?.id
+      if (roomId) {
+        console.log("WAITING_JOINED 수신", roomId);
+        navigate(`/waiting/${roomId}`);
+      } else {
+        console.warn("roomId 없음")
+      }
       break;
     }
 

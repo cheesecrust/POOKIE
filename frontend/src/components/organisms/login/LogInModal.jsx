@@ -21,7 +21,7 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
         }
     }
     const handleLogin = async () => {
-        const res = await login({ email: email, password: password });
+        const res = await login({ email, password, navigate });
 
         if (res.success) {
             alert('로그인 성공!')

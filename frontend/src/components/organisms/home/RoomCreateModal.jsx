@@ -6,7 +6,6 @@ import Radio from "../../atoms/radio/Radio"
 import useAuthStore from "../../../store/useAuthStore";
 import { useState } from "react";
 import { emitRoomJoin } from "../../../sockets/home/emit";
-import { useNavigate } from "react-router-dom";
 
 const RoomCreateModal = ({ isOpen, onClose }) => {
     const [roomTitle, setRoomTitle] = useState("");
@@ -14,7 +13,6 @@ const RoomCreateModal = ({ isOpen, onClose }) => {
     const [usePassword, setUsePassword] = useState(false);
     const [roomPassword, setRoomPassword] = useState("");
     const user = useAuthStore.getState().user;
-    const navigate = useNavigate();
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
