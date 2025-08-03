@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
 import com.ssafy.pookie.game.user.dto.*;
+import com.ssafy.pookie.metrics.SocketMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.*;
 public class GameRoomService {
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameServerService gameServerService;
+    private final SocketMetrics socketMetrics;
     /*
         유저가 게임 대기방으로 접속시
      */
@@ -118,6 +120,7 @@ public class GameRoomService {
                     .build();
 
             log.info("Room {} was created", newRoom.getRoomId());
+            socketMetrics.recordRoomCreated(newRoom.getGameType().toString());
 
             return newRoom;
         });
@@ -145,6 +148,9 @@ public class GameRoomService {
                 }
             }
             // 2-1. 유저를 방에서 제거한다.
+            if(leaveUser != null) {
+                socketMetrics.recordRoomLeave(room.getGameType().toString(), leaveUser.getTeam().toString());
+            }
             room.removeUser(session);
             log.info("Player {} was LEAVED ROOM", session.getAttributes().get("email"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -153,6 +159,7 @@ public class GameRoomService {
             ));
             // 2-2. 방이 비어있다면, 삭제한다.
             if(room.getSessions().isEmpty()) {
+                socketMetrics.recordRoomDestroyed(room.getGameType().toString());
                 log.info("REMOVED ROOM {}", room.getRoomId());
                 onlinePlayerManager.removeRoomFromServer(roomId);
                 onlinePlayerManager.sendToMessageUser(session, Map.of(
