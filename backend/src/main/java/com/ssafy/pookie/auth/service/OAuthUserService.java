@@ -16,6 +16,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,28 +30,54 @@ public class OAuthUserService {
     private final CharacterService characterService;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * 구글 로그인 처리
+     */
     public LoginResponseDto handleGoogleLogin(OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String socialId = oAuth2User.getAttribute("sub");
         String nickname = oAuth2User.getAttribute("name");
 
+        return handleLoginCommon(email, nickname, socialId, PookieType.BASE);
+    }
+
+    /**
+     * 카카오 로그인 처리
+     */
+    public LoginResponseDto handleKakaoLogin(OAuth2User oAuth2User) {
+        Map<String, Object> kakaoAccount = (Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
+        if (kakaoAccount == null) {
+            throw new IllegalStateException("카카오 계정 정보를 가져오지 못했습니다.");
+        }
+
+        String email = (String) kakaoAccount.get("email");
+        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+        String nickname = profile != null ? (String) profile.get("nickname") : null;
+        String socialId = oAuth2User.getAttribute("id").toString();
+
+        return handleLoginCommon(email, nickname, socialId, PookieType.BASE);
+    }
+
+    /**
+     * 공통 로그인/회원가입 처리
+     */
+    private LoginResponseDto handleLoginCommon(String email, String nickname, String socialId, PookieType defaultType) {
         if (email == null || email.isBlank()) {
-            throw new IllegalStateException("구글 로그인에서 이메일 정보를 가져오지 못했습니다.");
+            throw new IllegalStateException("소셜 로그인에서 이메일 정보를 가져오지 못했습니다.");
         }
 
         if (nickname == null || nickname.isBlank()) {
-            nickname = email.contains("@") ? email.split("@")[0] : "googleUser";
+            nickname = email.contains("@") ? email.split("@")[0] : "socialUser";
         }
 
-        // Users 조회
         Users user = usersRepository.findByEmail(email).orElse(null);
         UserAccounts userAccount;
-
         if (user == null) {
-            // 신규 가입 (일반 회원가입과 동일 로직)
+            log.info("신규 소셜 회원가입 진행: email={}", email);
+
             user = Users.builder()
                     .email(email)
-                    .password(passwordEncoder.encode("test1234")) // 임의 비밀번호
+                    .password(passwordEncoder.encode("test1234")) // 소셜 로그인용 임시 비번
                     .socialId(socialId)
                     .build();
 
@@ -62,26 +90,17 @@ public class OAuthUserService {
             UserAccounts savedAccount = userAccountsRepository.save(account);
 
             // 기본 캐릭터 지급
-            Characters character = characterService.setUserPookie(savedAccount, PookieType.BASE);
+            Characters character = characterService.setUserPookie(savedAccount, defaultType);
             characterService.setPookieCatalog(savedAccount, character.getStep(), character.getType());
             characterService.changeRepPookie(savedAccount, character.getType(), character.getStep());
 
             user = savedUser;
             userAccount = savedAccount;
         } else {
-            // 기존 유저면 바로 연결
             userAccount = user.getUserAccount();
-            if (userAccount == null) {
-                throw new IllegalStateException("기존 사용자 계정(UserAccounts)이 존재하지 않습니다.");
-            }
         }
-
         // JWT 발급
-        String accessToken = jwtTokenProvider.createAccessToken(
-                userAccount.getId(),
-                user.getEmail(),
-                userAccount.getNickname()
-        );
+        String accessToken = jwtTokenProvider.createAccessToken(userAccount.getId(), user.getEmail(), userAccount.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(userAccount.getId());
 
         return LoginResponseDto.builder()
@@ -93,4 +112,3 @@ public class OAuthUserService {
                 .build();
     }
 }
-
