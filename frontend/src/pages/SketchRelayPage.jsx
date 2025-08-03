@@ -60,6 +60,8 @@ const SketchRelayPage = () => {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
+
+
   // emit 정해지면 함수 작성
 
   // 도화지 ref

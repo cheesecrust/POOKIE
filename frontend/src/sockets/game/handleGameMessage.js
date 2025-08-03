@@ -1,4 +1,4 @@
-// src/sockets/common/game/onmessage.js
+// src/sockets/common/game/handleGameMessage.js
 
 export default async function handleGameMessage(msg, handlers) {
     const { type, payload } = msg;

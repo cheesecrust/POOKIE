@@ -6,7 +6,7 @@ import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 
 const SilentScreamPage = () => {
-
+  
   useEffect(() => {
     console.log('로그인 상태 확인')
     // console.log('isLoggedIn', isLoggedIn)
