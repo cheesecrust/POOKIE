@@ -1,7 +1,10 @@
-// src/store/store.js
+// src/store/useAuthStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axiosInstance from "../lib/axiosInstance";
+import { connectSocket } from '../sockets/websocket';
+import { handleSocketMessage } from '../sockets/handler';
+import useRoomStore from './useRoomStore';
 
 const useAuthStore = create(
   persist(
@@ -12,6 +15,9 @@ const useAuthStore = create(
     
     setUser: (user) => set({ user }),
     setAccessToken: (token) => set({ accessToken: token }),
+
+    navigate: null,
+    setNavigate: (navigateFn) => set({ navigate: navigateFn }),
   
     // ✅ 로그인 요청 + user 상태 저장
     login: async ({ email, password }) => {
@@ -29,6 +35,30 @@ const useAuthStore = create(
         // refreshToken은 로컬에만!
         localStorage.setItem('refreshToken', refreshToken);
         await get().fetchUserInfo();
+
+        // 📍소켓 연결📍
+        connectSocket({
+          url: import.meta.env.VITE_SOCKET_URL,
+          token: get().accessToken,
+          onMessage: (e) => {
+            const data = JSON.parse(e.data);
+            handleSocketMessage(data, {
+              // home handler
+              setRoomList: useRoomStore.getState().setRoomList,
+
+              // waiting handler
+              user: get().user,
+              navigate: get().navigate,
+              setRoom: () => {},
+              setTeam: () => {},
+              setIsReady: () => {},
+
+              // game handler
+
+              // chat handler
+            })
+          }
+        })
   
         return { success: true };
       } catch (err) {

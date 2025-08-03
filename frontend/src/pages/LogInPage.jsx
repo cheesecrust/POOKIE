@@ -6,7 +6,7 @@ import backgroundLogIn from "../assets/background/background_login.png"
 import TitleLogo from "../assets/icon/title_logo.png"
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useAuthStore from "../store/store";
+import useAuthStore from "../store/useAuthStore";
 
 const LogInPage = () => {
     const navigate = useNavigate();

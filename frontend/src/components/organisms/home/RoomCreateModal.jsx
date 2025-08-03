@@ -3,9 +3,9 @@ import BasicModal from "../../atoms/modal/BasicModal";
 import BasicInput from "../../atoms/input/BasicInput";
 import ModalButton from "../../atoms/button/ModalButton";
 import Radio from "../../atoms/radio/Radio"
-import useAuthStore from "../../../store/store";
+import useAuthStore from "../../../store/useAuthStore";
 import { useState } from "react";
-import { emitJoinRoom } from "../../../sockets/home/emit";
+import { emitRoomJoin } from "../../../sockets/home/emit";
 import { useNavigate } from "react-router-dom";
 
 const RoomCreateModal = ({ isOpen, onClose }) => {
@@ -45,7 +45,7 @@ const RoomCreateModal = ({ isOpen, onClose }) => {
         payload.roomPw = roomPassword;
       }
       console.log(payload);
-      emitJoinRoom(payload);
+      emitRoomJoin(payload);
     };
 
 

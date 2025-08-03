@@ -2,7 +2,7 @@
 import { BrowserRouter } from "react-router-dom";
 import { useEffect } from "react"
 import Router from "./routes/Router";
-import useAuthStore from "./store/store";
+import useAuthStore from "./store/useAuthStore";
 
 function App() {
   const loadUserFromStorage = useAuthStore((state) => state.loadUserFromStorage);

@@ -7,13 +7,14 @@ import Footer from "../components/molecules/home/Footer";
 import SearchBar from "../components/molecules/home/SearchBar";
 import toggleLeft from "../assets/icon/toggle_left.png";
 import defaultCharacter from "../assets/character/pooding_milk.png";
-import useAuthStore from "../store/store";
+import useAuthStore from "../store/useAuthStore";
+import useRoomStore from "../store/useRoomStore";
 import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import characterImageMap from "../utils/characterImageMap";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { handleHomeSocketMessage } from "../sockets/home/onmessage";
-import { getSocket } from "../sockets/common/websocket";
+import { getSocket } from "../sockets/websocket";
+import handleHomeMessage from "../sockets/home/handleHomeMessage";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -21,10 +22,8 @@ const HomePage = () => {
   const { user } = useAuthStore();
   const { logout } = useAuthStore();
   const { isLoggedIn } = useAuthStore((state) => state);
-  const [, rerender] = useState(0);
+  const roomList = useRoomStore((state) => state.roomList);
   const [keyword, setKeyword] = useState("");
-  const roomListRef = useRef([]);
-  const [roomList, setRoomList] = useState([]);
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
 
@@ -40,34 +39,15 @@ const HomePage = () => {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
-    
+
+    const { setRoomList } = useRoomStore.getState();
+
     socket.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       console.log("🟢 수신된 소켓 메시지:", msg);
-      handleHomeSocketMessage(msg, {
-        onUserReceived: (userData) => {
-          useAuthStore.setState({ user: userData });
-          console.log(userData);
-        },
-        onRoomListReceived: (rooms) => {
-          console.log("roomList", rooms);
-          roomListRef.current = rooms;
-          setRoomList((prev) => {
-            const isSame = JSON.stringify(prev) === JSON.stringify(rooms);
-            return isSame ? prev : [...rooms];
-          });          
-          console.log(rooms);
-        },
-        navigateToWaiting: (room) => {
-          console.log("대기실로 이동 할거야");
-          navigate(`/waiting/${room.id}`, { state: { room } });
-          console.log("대기실로 이동함!");
-        },
-        showErrorModal: (msg) => alert(msg),
-        closeRoomModal: () => setRoomCreateModalOpen(false),
-      });
-    };
-    
+      handleHomeMessage(msg, { setRoomList });
+    }
+
     socket.onopen = () => console.log("🟢 WebSocket 연결 완료 (Home)");
     socket.onclose = (e) => {
       console.log("🔴 WebSocket 연결 종료 (Home)", {
@@ -77,15 +57,14 @@ const HomePage = () => {
         location: window.location.pathname,
       });
     };
-    socket.onerror = (e) =>
-      console.error("❌ WebSocket 에러 (Home):", e.message);
-    
+    socket.onerror = (e) => console.error("❌ WebSocket 에러 (Home):", e.message);
+
     return () => {
       socket.onmessage = null;
       socket.onopen = null;
       socket.onclose = null;
       socket.onerror = null;
-    };
+    }
   }, []);
   
   
@@ -118,7 +97,6 @@ const HomePage = () => {
       </div>
     );
   }
-
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
