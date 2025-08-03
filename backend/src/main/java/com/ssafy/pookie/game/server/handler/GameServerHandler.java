@@ -135,7 +135,7 @@ public class GameServerHandler extends TextWebSocketHandler {
         } catch(Exception e) {
             e.printStackTrace();
             onlinePlayerManager.sendToMessageUser(session, Map.of(
-                    "Type", "Error",
+                    "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));
         }
