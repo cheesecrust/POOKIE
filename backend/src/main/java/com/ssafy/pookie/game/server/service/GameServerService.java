@@ -42,7 +42,7 @@ public class GameServerService {
                 isExist.setStatus(LobbyUserDto.Status.ON);
             } else {
                 onlinePlayerManager.removeFromLobby(isExist.getUser().getSession());
-                log.warn("Duplicated user : {}", isExist.getUser().getUserAccountId());
+                log.warn("Duplicated user : {} - {}", isExist.getUser().getUserAccountId(), isExist.getUser().getUserEmail());
             }
         }
 

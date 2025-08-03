@@ -70,6 +70,7 @@ public class InGameService {
             ));
 
             deliverKeywords(room);
+            log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
@@ -151,6 +152,7 @@ public class InGameService {
 
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto gameResult) throws IOException {
+        log.info("TURN OVER REQUEST : ROOM {}", gameResult.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
             if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room))
@@ -205,6 +207,7 @@ public class InGameService {
 
     // 라운드 종료
     public void handleRoundOver(WebSocketSession session, TurnDto gameResult) throws IOException {
+        log.info("ROUND OVER REQUEST : ROOM {}", gameResult.getRoomId());
         try {
         /*
             1. 두 팀간 점수를 비교
@@ -248,6 +251,7 @@ public class InGameService {
     }
     // Submit Answer ( 정답 제출 )
     public synchronized void handleSubmitAnswer(SubmitAnswerDto request) throws IOException {
+        log.info("SUBMIT ANSWER REQUEST : ROOM {}", request.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
             if (!isMasterRequest(request.getUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
@@ -304,6 +308,7 @@ public class InGameService {
     }
 
     public void handlePass(PassRequestDto request) throws IOException {
+        log.info("PASS REQUEST : ROOM {}", request.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
             if(!onlinePlayerManager.isAuthorized(request.getRequestUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
