@@ -104,7 +104,10 @@ public class InGameService {
         // 키워드 목록 저장
         room.getGameInfo().setKeywordList(keywordList);
         for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo(MessageDto.Type.GAME_KEYWORD.toString()));
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
+        }
+        for(UserDto nor : room.getGameInfo().getNormal()) {
+            onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
         }
         log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
     }
@@ -236,38 +239,40 @@ public class InGameService {
     }
     // Submit Answer ( 정답 제출 )
     public synchronized void handleSubmitAnswer(SubmitAnswerDto request) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(!isMasterRequest(request.getUser().getSession(), room)) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "잘못된 요청입니다."
-            ));
-            return;
-        }
-        // 서로 동기화 정보가 다르다면 그냥 버린다.
-        // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
-        if(!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
-                || room.getGameInfo().getNormal().stream().filter(
-                        (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "잘못된 요청입니다."
-            ));
-            return;
-        }
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            if (!isMasterRequest(request.getUser().getSession(), room)) {
+                onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                        "type", MessageDto.Type.ERROR.toString(),
+                        "msg", "잘못된 요청입니다."
+                ));
+                return;
+            }
+            // 서로 동기화 정보가 다르다면 그냥 버린다.
+            // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
+            if (!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
+                    || room.getGameInfo().getNormal().stream().filter(
+                    (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
 
-        // 정답이 일치하는지 확인한다.
-        Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
-                .equals(request.getInputAnswer());
-        // 정답이라면, room 의 gameInfo, teamTeapScores Update
-        if(isAnswer) {
-            room.updateTempScore();
+            // 정답이 일치하는지 확인한다.
+            Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
+                    .equals(request.getInputAnswer());
+            // 정답이라면, room 의 gameInfo, teamTeapScores Update
+            if (isAnswer) {
+                room.updateTempScore();
+            }
+            onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
+                    "answer", isAnswer,
+                    "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
+                    "nowInfo", room.getGameInfo().mapGameInfoChange()
+            ));
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
-        onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
-                "answer", isAnswer,
-                "msg", room.getTurn().toString()+"팀 "+ (isAnswer ? CORRECT : WRONG)
-        ));
     }
 
     public void handlePainterChange(PainterChangeRequest request) throws IOException {
@@ -291,7 +296,10 @@ public class InGameService {
         }
 
         for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+        }
+        for(UserDto nor : room.getGameInfo().getNormal()) {
+            onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
         }
     }
 
