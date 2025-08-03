@@ -1,4 +1,5 @@
 // src/pages/LogInPage.jsx
+import ModalButton from "../components/atoms/button/ModalButton";
 import LogInModal from "../components/organisms/login/LogInModal";
 import SignUpModal from "../components/organisms/login/SignUpModal"
 import FindPasswordModal from "../components/organisms/login/FindPasswordModal";
@@ -7,15 +8,78 @@ import TitleLogo from "../assets/icon/title_logo.png"
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/useAuthStore";
+import useAudioStore from "../store/useAudioStore";
+import mainTheme from "../assets/audio/themesong1.mp3";
 
 const LogInPage = () => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuthStore((state) => state);
-    const [showLogin, setShowLogin] = useState(true);
+    const [started, setStarted] = useState(false);
+    const [showLogin, setShowLogin] = useState(false);
     const [showSignUp, setShowSignUp] = useState(false);
     const [showFindPassword, setShowFindPassword] = useState(false);
+    
+    const {
+      audio,
+      currentSrc,
+      started: storeStarted,
+      setAudio,
+      setCurrentSrc,
+      setStarted: setStoreStarted,
+    } = useAudioStore();
 
-    // 이미 로그인된 유전느 home 으로 강제 redirect
+    // ✅ 새로고침 시 자동 음악 재생
+    useEffect(() => {
+      if (storeStarted && currentSrc && !audio) {
+        const newAudio = new Audio(currentSrc);
+        newAudio.loop = true;
+        newAudio.volume = 0.3;
+
+        newAudio
+          .play()
+          .then(() => {
+            setAudio(newAudio);
+            setStoreStarted(true);
+            setStarted(true);
+          })
+          .catch((err) => {
+            console.warn("🎵 새로고침 후 음악 재생 실패:", err);
+            setStoreStarted(false);
+            setStarted(false);
+          });
+      } else if (!storeStarted) {
+        setStoreStarted(false);
+        setStarted(false);
+      }
+    }, [storeStarted, currentSrc, audio, setAudio]);
+
+    // 로그인 모달 열기 + 음악 재생
+    const handleStart = () => {
+    
+      const newAudio = new Audio(mainTheme); // themesong1
+      newAudio.loop = true;
+      newAudio.volume = 0.3;
+    
+      newAudio
+        .play()
+        .then(() => {
+          if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+          setAudio(newAudio);
+          setCurrentSrc(mainTheme);
+          setStoreStarted(true);
+          setStarted(true);
+          setShowLogin(true);    // 로그인 모달 열기
+        })
+        .catch((err) => {
+          console.warn("🎵 음악 재생 실패:", err);
+          setStarted(false);
+        });
+    };
+    
+    // 이미 로그인된 유저는는 home 으로 강제 redirect
     useEffect(() => {
         if (isLoggedIn) {
             navigate("/home", { replace: true });
@@ -37,24 +101,48 @@ const LogInPage = () => {
           alt="titlelogo"
           className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-250 animate-bounce"
         />
+
+        {!started && (
+          <div className="absolute bottom-55 left-1/2 transform -translate-x-1/2">
+            <ModalButton size="xl" onClick={handleStart}>
+               START
+            </ModalButton>
+          </div>
+        )}
   
         {/* 모달 */}
-        <LogInModal
-          isOpen={showLogin}
-          onClose={() => setShowLogin(false)}
-          onOpenSignUp={() => {setShowSignUp(true); setShowLogin(false)}}
-          onOpenFindPassword={() => {setShowFindPassword(true); setShowLogin(false)}}
-        />
-        <SignUpModal
-          isOpen={showSignUp}
-          onClose={() => setShowSignUp(false)}
-          onOpenLogIn={() => {setShowLogin(true); setShowSignUp(false)}}
-        />
-        <FindPasswordModal
-          isOpen={showFindPassword}
-          onClose={() => setShowFindPassword(false)}
-          onOpenLogIn={() => {setShowLogin(true); setShowFindPassword(false)}}
-        />
+        {started && (
+          <>
+            <LogInModal
+              isOpen={showLogin}
+              onClose={() => setShowLogin(false)}
+              onOpenSignUp={() => {
+                setShowSignUp(true);
+                setShowLogin(false);
+              }}
+              onOpenFindPassword={() => {
+                setShowFindPassword(true);
+                setShowLogin(false);
+              }}
+            />
+            <SignUpModal
+              isOpen={showSignUp}
+              onClose={() => setShowSignUp(false)}
+              onOpenLogIn={() => {
+                setShowLogin(true);
+                setShowSignUp(false);
+              }}
+            />
+            <FindPasswordModal
+              isOpen={showFindPassword}
+              onClose={() => setShowFindPassword(false)}
+              onOpenLogIn={() => {
+                setShowLogin(true);
+                setShowFindPassword(false);
+              }}
+            />
+          </>
+        )}
       </div>
     );
   };

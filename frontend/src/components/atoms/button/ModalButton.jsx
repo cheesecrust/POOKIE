@@ -1,6 +1,7 @@
 // src/components/atoms/button/ModalButton.jsx
 
 import toggleLeft from "../../../assets/icon/toggle_left.png";
+
 const ModalButton = ({
   children = "텍스트",
   onClick,
@@ -13,6 +14,7 @@ const ModalButton = ({
     sm: "text-sm px-2 py-1",
     md: "text-base px-4 py-2",
     lg: "text-lg px-6 py-3",
+    xl: "text-4xl px-12 py-8",
   };
   const sizeStyle = sizeMap[size] || sizeMap.md;
 
@@ -28,7 +30,11 @@ const ModalButton = ({
       disabled={disabled}
       className={`${baseStyle} ${sizeStyle} ${className}`}
     >
-      <img src={toggleLeft} alt="화살표" className="w-4 h-4" />
+      <img
+        src={toggleLeft}
+        alt="화살표"
+        className={size === "xl" ? "w-8 h-8" : "w-4 h-4"}
+      />
       {children}
     </button>
   );
