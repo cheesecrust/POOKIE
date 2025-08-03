@@ -11,11 +11,33 @@ export const handleSocketMessage = (msg, handlers) => {
         return;
     }
 
+    // ON 메시지 별도 처리
+    if (msg.type === "ON") {
+       import("./home/handleHomeMessage")
+       .then((mod) =>
+        mod.default?.(msg, {
+          setRoomList: handlers?.setRoomList
+        })
+       )
+       .catch((err) => {
+           console.error("[SocketRouter] ON 핸들러 로딩 실패:", err);
+       });
+       return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     const routeMap = { // 접두사로 구분
-        ROOM: () => import("./home/onmessage").then((mod) => mod.default?.(msg, handlers)), // home
-        WAITING: () => import("./waiting/onmessage").then((mod) => mod.default?.(msg, handlers)), // waiting
+        ROOM: () => import("./home/handleHomeMessage").then((mod) => mod.default?.(msg, handlers)), // home
+        WAITING: () => import("./waiting/handleWaitingMessage").then((mod) =>
+            mod.default?.(msg, {
+                user: handlers?.user,
+                room: handlers?.room,
+                setRoom: handlers?.setRoom,
+                setTeam: handlers?.setTeam,
+                setIsReady: handlers?.setIsReady,
+                navigate: handlers?.navigate
+            })), // waiting
         GAME: () => import("./game/onmessage").then((mod) => mod.default?.(msg, handlers)), // game
     };
 

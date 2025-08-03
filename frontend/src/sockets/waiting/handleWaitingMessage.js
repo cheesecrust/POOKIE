@@ -1,9 +1,15 @@
-// src/sockets/waiting/onmessage.js
+// src/sockets/waiting/handleWaitingMessage.js
 
-const handleWaitingMessage = (
-    data,
-    { user, room, setRoom, setTeam, setIsReady, navigate }
-) => {
+const handleWaitingMessage = ( data, handlers = {}) => {
+    const {
+        user = {},
+        room = {},
+        setRoom = () => {},
+        setTeam = () => {},
+        setIsReady = () => {},
+        navigate = () => {},
+    } = handlers;
+
     if (!data?.type) return;
 
     const updateClientState = (room) => {

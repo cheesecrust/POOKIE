@@ -5,8 +5,8 @@ import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState } from "react";
-import { getSocket } from "../sockets/common/websocket";
-import { handleSamePoseMessage } from "../sockets/games/samePose/onMessage";
+import { getSocket } from "../sockets/websocket";
+// import { handleSamePoseMessage } from "../sockets/games/samePose/onMessage";
 
 const SamePosePage = () => {
   const [keyword, setKeyword] = useState("");
@@ -19,15 +19,15 @@ const SamePosePage = () => {
     const handleMessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        handleSamePoseMessage(msg, {
-          onKeywordReceived: (msg) => {
-            const receivedKeyword = msg.KeywordList?.[0];
-            if (receivedKeyword) setKeyword(receivedKeyword);
-          },
-          onStartedGame: (msg) => {
-            setTurn(msg.turn);
-          },
-        });
+        // handleSamePoseMessage(msg, {
+        //   onKeywordReceived: (msg) => {
+        //     const receivedKeyword = msg.KeywordList?.[0];
+        //     if (receivedKeyword) setKeyword(receivedKeyword);
+        //   },
+        //   onStartedGame: (msg) => {
+        //     setTurn(msg.turn);
+        //   },
+        // });
       } catch (err) {
         console.error("[SamePosePage] 메시지 파싱 실패:", err);
       }

@@ -7,9 +7,9 @@ import ManagingPage from "../pages/ManagingPage";
 import MyRoomPage from "../pages/MyRoomPage";
 import SamePosePage from "../pages/SamePosePage";
 import SilentScreamPage from "../pages/SilentScreamPage";
-import SketchRelayPage from "../pages/SketchRelayPage";
+// import SketchRelayPage from "../pages/SketchRelayPage";
 import WaitingPage from "../pages/WaitingPage";
-import SketchRelayPage_VIDU from "../pages/SketchRelayPage_openvidu";
+// import SketchRelayPage_VIDU from "../pages/SketchRelayPage_openvidu";
 const Router = () => {
   return (
     <Routes>
@@ -19,8 +19,8 @@ const Router = () => {
       <Route path="/myroom" element={<MyRoomPage />} />
       <Route path="/samepose/:roomId" element={<SamePosePage />} />
       <Route path="/silentscream/:roomId" element={<SilentScreamPage />} />
-      <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} />
-      <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} />
+      {/* <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} /> */}
+      {/* <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} /> */}
       <Route path="/waiting/:roomId" element={<WaitingPage />} />
     </Routes>
   );
