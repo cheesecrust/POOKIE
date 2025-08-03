@@ -36,7 +36,6 @@ public class OnlinePlayerManager {
     public void sendToMessageUser(WebSocketSession session, Map<String, Object> msg) throws IOException {
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
     }
-
     // 현재 방에 있는 유저들에게 BraodCast
     // 메시지 전달 유형
     // 1. 해당 팀원들에게만
