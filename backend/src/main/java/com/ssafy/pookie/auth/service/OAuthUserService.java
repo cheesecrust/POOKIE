@@ -100,7 +100,7 @@ public class OAuthUserService {
             userAccount = user.getUserAccount();
         }
         // JWT 발급
-        String accessToken = jwtTokenProvider.createAccessToken(userAccount.getId(), user.getEmail(), userAccount.getNickname());
+        String accessToken = jwtTokenProvider.createSocialAccessToken(userAccount.getId(), user.getEmail(), userAccount.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(userAccount.getId());
 
         return LoginResponseDto.builder()

@@ -60,6 +60,30 @@ public class JwtTokenProvider {
     }
 
     /**
+     * 소셜 로그인 전용 Access Token 생성 (10분짜리)
+     */
+    public String createSocialAccessToken(Long userAccountId, String email, String nickname) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + 10 * 60 * 1000L); // 10분
+
+        String token = Jwts.builder()
+                .setSubject(email)
+                .claim("userAccountId", userAccountId)
+                .claim("email", email)
+                .claim("nickname", nickname)
+                .claim("type", "social_access")
+                .setIssuedAt(now)
+                .setExpiration(expiration)
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+
+        log.debug("Social Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
+                userAccountId, email, expiration);
+
+        return token;
+    }
+
+    /**
      * Refresh Token 생성
      */
     public String createRefreshToken(Long userAccountId) {
