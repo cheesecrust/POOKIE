@@ -15,7 +15,7 @@ export const handleSocketMessage = (msg, handlers) => {
 
     const routeMap = { // 접두사로 구분
         ROOM: () => import("./home/onmessage").then((mod) => mod.default?.(msg, handlers)), // home
-        WAITING: () => import("./waiting/onmessage").then((mod) => mod.default?.(msg, handlers)), // waiting
+        WAITING: () => import("./waiting/onMessage").then((mod) => mod.default?.(msg, handlers)), // waiting
         GAME: () => import("./game/onmessage").then((mod) => mod.default?.(msg, handlers)), // game
     };
 
