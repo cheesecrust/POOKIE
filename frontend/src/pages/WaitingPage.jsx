@@ -1,7 +1,7 @@
 // src/pages/WaitingPage.jsx
 
 // 방정보 받아오기 위해서서
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket } from "../sockets/websocket";
@@ -47,8 +47,7 @@ const WaitingPage = () => {
     const handleMessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        handleSocketMessage(msg, {
-          // 공통 핸들러
+        handleWaitingMessage(msg, {
           user,
           room,
           setRoom,
@@ -88,7 +87,6 @@ const WaitingPage = () => {
   // 게임 시작
   const handleStartGame = () => {
     emitStartGame({ roomId: room.id });
-    navigate(`/${room.gameType.toLowerCase()}/${room.id}`); // 게임페이지로 이동
   };
 
   // 팀 변경
@@ -110,11 +108,6 @@ const WaitingPage = () => {
       removeTargetId: kickTarget.userId,
       removeTargetNickname: kickTarget.userNickname,
       removeTargetTeam: kickTarget.team.toUpperCase(),
-      onKicked: () => {
-        if (kickTarget.userId === user.id) {
-          navigate("/home", { state: { kicked: true } });
-        }
-      },
     });
     setKickModalOpen(false);
   };
@@ -242,7 +235,12 @@ const WaitingPage = () => {
 
         <div className="basis-4/8 relative flex justify-center items-center">
           <div className="absolute bottom-0">
-            <ChatBox className="w-full" height="300px" />
+            <ChatBox
+              className="w-full"
+              height="300px"
+              roomId={room.id}
+              team={team}
+            />
           </div>
         </div>
       </section>
