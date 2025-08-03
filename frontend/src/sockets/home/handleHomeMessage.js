@@ -5,8 +5,8 @@ const handleHomeMessage = (
   handlers = {}
 ) => {
   const {
-    setRoomList = () => {},
-    navigate = () => {},
+    setRoomList = () => { },
+    navigate = () => { },
   } = handlers;
   if (!data?.type) return;
 
@@ -46,17 +46,18 @@ const handleHomeMessage = (
 
     case "ROOM_REMOVED": {
       console.log("ROOM_LSIT 갱신(삭제)", data);
-      
+
       const roomList = data.payload?.roomList;
       if (roomList) updateRoomList(roomList);
       break;
     }
 
     case "WAITING_JOINED": {
-      const roomId = data.room?.id
+      const room = data.room
+      const roomId = room?.id
       if (roomId) {
         console.log("WAITING_JOINED 수신", roomId);
-        navigate(`/waiting/${roomId}`);
+        navigate(`/waiting/${roomId}`, { state: { room } });
       } else {
         console.warn("roomId 없음")
       }
