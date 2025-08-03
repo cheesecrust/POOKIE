@@ -220,7 +220,7 @@ public class GameRoomService {
             RoomStateDto room = onlinePlayerManager.getRooms().get(teamChangeRequest.getRoomId());
             if(!onlinePlayerManager.isAuthorized(session, room)) new IllegalArgumentException("잘못된 요청입니다.");
             log.info("TEAM CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), teamChangeRequest.getUser().getUserEmail());
-            if(!teamChangeRequest.changeTeam(room)) throw new IllegalArgumentException("팀 변경 중 발생하였습니다.");
+            if(!teamChangeRequest.changeTeam(room)) throw new IllegalArgumentException("팀 변경 중 오류가 발생하였습니다.");
             log.info("{} team changed in {}", teamChangeRequest.getUser().getUserEmail(), room.getRoomId());
             onlinePlayerManager.broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_TEAM_CHANGED.toString(),
