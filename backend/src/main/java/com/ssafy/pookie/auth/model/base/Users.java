@@ -43,12 +43,4 @@ public class Users {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
-
-    public boolean canLoginWithSocial() {
-        return socialId != null;
-    }
-
-    public boolean canLoginWithEmail() {
-        return email != null && password != null;
-    }
 }
