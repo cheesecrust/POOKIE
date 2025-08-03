@@ -72,18 +72,13 @@ public class CharacterService {
                 userAccount, step, pookieType
         );
         if (catalog == null) throw new RuntimeException("그런 푸킨 없다.");
-        List<CharacterCatalog> presentCatalogs =
-                characterCatalogRepository.findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true);
 
-        if (presentCatalogs.isEmpty()) {
-            log.info("⚠️ 최초 회원가입 → BASE를 대표로 지정");
-            changeRepState(userAccount, catalog.getCharacter(), true);
-            return;
-        }
+//        CharacterCatalog presentCatalog = characterCatalogRepository
+//                .findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true)
+//                .get(0);
 
-        CharacterCatalog presentCatalog = presentCatalogs.get(0);
         changeRepState(userAccount, catalog.getCharacter(), true);
-        changeRepState(userAccount, presentCatalog.getCharacter(), false);
+//        changeRepState(userAccount, presentCatalog.getCharacter(), false);
     }
 
     public void changeRepState(UserAccounts userAccount, Characters character, boolean reqState) {

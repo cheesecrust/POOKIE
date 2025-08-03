@@ -73,14 +73,30 @@ public class GameInfoDto {
         return false;
     }
 
-    public Map<String, Object> mapGameInfo(String typeMessage) {
+    public Map<String, Object> mapGameInfoToRep(String typeMessage) {
         return Map.of(
                 "type", typeMessage,
-                "KeywordList", keywordList,
+                "keywordList", keywordList,
                 "keywordIdx", this.keywordIdx,
                 "repIdxList", this.repAccountIdxList(),
                 "repIdx", this.repIdx,
                 "norIdxList", this.norAccountIdxList()
+        );
+    }
+    public Map<String, Object> mapGameInfoToNor(String typeMessage) {
+        return Map.of(
+                "type", typeMessage,
+                "keywordIdx", this.keywordIdx,
+                "repIdxList", this.repAccountIdxList(),
+                "repIdx", this.repIdx,
+                "norIdxList", this.norAccountIdxList()
+        );
+    }
+
+    public Map<String, Object> mapGameInfoChange() {
+        return Map.of(
+                "keywordIdx", this.keywordIdx,
+                "repIdx", this.repIdx
         );
     }
 }
