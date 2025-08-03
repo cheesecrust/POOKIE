@@ -23,7 +23,7 @@ const handleWaitingMessage = (
 
     switch (data.type) {
 
-        // 방 참여
+        // // 방 참여
         case "WAITING_JOINED":
         // 팀 변경
         case "WAITING_TEAM_CHANGED":

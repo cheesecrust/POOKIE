@@ -63,7 +63,7 @@ const WaitingPage = () => {
     };
 
     socket.addEventListener("message", handleMessage);
-    return () => socket.removeEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage); // 중복 안되도록 클린업
   }, [user, room, navigate]);
 
   // 팀, 준비 관련
@@ -83,7 +83,6 @@ const WaitingPage = () => {
   }, [room, user]);
 
   // emit & navigate 로직
-
   // 방 나가기
   const handleLeaveRoom = () => emitLeaveRoom({ roomId: room.id });
 

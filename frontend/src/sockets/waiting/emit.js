@@ -29,6 +29,7 @@ export const emitLeaveRoom = ({ roomId }) => {
 	sendMessage('WAITING_USER_LEAVE', {
 		roomId,
 	});
+	if (onLeave) onLeave(); // emit후 navigate 처리
 };
 
 /**
