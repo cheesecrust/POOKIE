@@ -34,40 +34,6 @@ const HomePage = () => {
     }
   }, [isLoggedIn, navigate]);
 
-  
-  // ✅ 소켓 메시지 핸들러 설정
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const { setRoomList } = useRoomStore.getState();
-
-    socket.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      console.log("🟢 수신된 소켓 메시지:", msg);
-      handleHomeMessage(msg, { setRoomList });
-    }
-
-    socket.onopen = () => console.log("🟢 WebSocket 연결 완료 (Home)");
-    socket.onclose = (e) => {
-      console.log("🔴 WebSocket 연결 종료 (Home)", {
-        code: e.code,
-        reason: e.reason,
-        wasClean: e.wasClean,
-        location: window.location.pathname,
-      });
-    };
-    socket.onerror = (e) => console.error("❌ WebSocket 에러 (Home):", e.message);
-
-    return () => {
-      socket.onmessage = null;
-      socket.onopen = null;
-      socket.onclose = null;
-      socket.onerror = null;
-    }
-  }, []);
-  
-  
   // 강퇴 모달
   useEffect(() => {
     if (location.state?.kicked) {

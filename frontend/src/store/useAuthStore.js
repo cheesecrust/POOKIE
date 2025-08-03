@@ -39,24 +39,21 @@ const useAuthStore = create(
         // 📍소켓 연결📍
         connectSocket({
           url: import.meta.env.VITE_SOCKET_URL,
-          token: get().accessToken,
-          onMessage: (e) => {
-            const data = JSON.parse(e.data);
-            handleSocketMessage(data, {
-              // home handler
-              setRoomList: useRoomStore.getState().setRoomList,
+          token: accessToken,
+          handlers: {
+            // home handler
+            setRoomList: useRoomStore.getState().setRoomList,
 
-              // waiting handler
-              user: get().user,
-              navigate: get().navigate,
-              setRoom: () => {},
-              setTeam: () => {},
-              setIsReady: () => {},
+            // waiting handler
+            user: get().user,
+            navigate: get().navigate,
+            setRoom: () => {},
+            setTeam: () => {},
+            setIsReady: () => {},
 
-              // game handler
+            // game handler
 
-              // chat handler
-            })
+            // chat handler
           }
         })
   
