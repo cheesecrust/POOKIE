@@ -63,58 +63,58 @@ public class GameServerHandler extends TextWebSocketHandler {
             socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
                 // Room
-                case JOIN_ROOM:
+                case ROOM_JOIN:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
                     gameRoomService.handleJoin(session, join);
                     break;
-                case LEAVE_ROOM:
+                case WAITING_USER_LEAVE:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
                     gameRoomService.handleLeave(session, join.getRoomId());
                     break;
-                case USER_TEAM_CHANGE:
+                case WAITING_TEAM_CHANGE:
                     UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);
                     userTeamChangeRequestDto.setUser(user);
                     gameRoomService.handleUserTeamChange(session, userTeamChangeRequestDto);
                     break;
-                case USER_READY_CHANGE:
+                case WAITING_READY_CHANGE:
                     UserStatusChangeDto userStatusChangeDto = objectMapper.convertValue(msg.getPayload(), UserStatusChangeDto.class);
                     userStatusChangeDto.setUser(user);
                     gameRoomService.handleUserStatus(session, userStatusChangeDto);
                     break;
-                case USER_FORCED_REMOVE:
+                case WAITING_USER_REMOVE:
                     RoomMasterForcedRemovalDto roomMasterForcedRemovalDto = objectMapper.convertValue(msg.getPayload(), RoomMasterForcedRemovalDto.class);
                     roomMasterForcedRemovalDto.setRoomMaster(user);
                     gameRoomService.handleForcedRemoval(session, roomMasterForcedRemovalDto);
                     break;
-                case CHANGE_GAMETYPE:
+                case WAITING_GAMETYPE_CHANGE:
                     RoomGameTypeChangeRequestDto roomGameTypeChangeRequestDto = objectMapper.convertValue(msg.getPayload(), RoomGameTypeChangeRequestDto.class);
                     roomGameTypeChangeRequestDto.setRoomMaster(user);
                     gameRoomService.handleGameTypeChange(roomGameTypeChangeRequestDto);
                     break;
                 // Game
-                case START_GAME:
+                case WAITING_GAME_START:
                     GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
                     start.setUser(user);
                     gameTimerService.beforeStartGameTimer(session, start);
                     break;
-                case TURN_OVER:
+                case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                     gameResult.setUser(user);
                     inGameService.handleTurnChange(session, gameResult);
                     break;
-                case ROUND_OVER:
+                case GAME_ROUND_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                     gameResult.setUser(user);
                     inGameService.handleRoundOver(session, gameResult);
                     break;
-                case SUBMIT_ANSWER:
+                case GAME_ANSWER_SUBMIT:
                     SubmitAnswerDto submitAnswer = objectMapper.convertValue(msg.getPayload(), SubmitAnswerDto.class);
                     submitAnswer.setUser(user);
                     inGameService.handleSubmitAnswer(submitAnswer);
                     break;
-                case PAINTER_CHANGE:
+                case GAME_PAINTER_CHANGE:
                     PainterChangeRequest painterChangeRequest = objectMapper.convertValue(msg.getPayload(), PainterChangeRequest.class);
                     painterChangeRequest.setUser(user);
                     inGameService.handlePainterChange(painterChangeRequest);
@@ -132,7 +132,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                     gameTimerService.preTimer(timerRequest);
                     break;
                 // Draw
-                case DRAW:
+                case GAME_DRAW:
                     DrawEvent drawEvent = objectMapper.convertValue(msg.getPayload(), DrawEvent.class);
                     drawEvent.setUser(user);
                     drawService.drawEvent(drawEvent);
@@ -143,7 +143,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             e.printStackTrace();
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
-                    "Type", "Error",
+                    "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));
         }
