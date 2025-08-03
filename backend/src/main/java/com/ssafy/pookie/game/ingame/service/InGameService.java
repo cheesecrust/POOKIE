@@ -168,6 +168,7 @@ public class InGameService {
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
+                    "msg", room.getTurn()+"팀 차례입니다.",
                     "round", room.getRound(),
                     "turn", room.getTurn().toString(),
                     "tempTeamScore", room.getTempTeamScores()
@@ -204,6 +205,7 @@ public class InGameService {
 
     // 라운드 종료
     public void handleRoundOver(WebSocketSession session, TurnDto gameResult) throws IOException {
+        try {
         /*
             1. 두 팀간 점수를 비교
             2. 승 / 패 구분
@@ -211,32 +213,38 @@ public class InGameService {
             4. GameInfo Reset
             5. Turn 교환
          */
-        RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
-        // 라운드 끝, 팀별 점수 집계
-        // 클라이언트와 서버의 데이터를 교차 검증한다.
-        if(!room.validationTempScore(gameResult)) {
-            gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+            RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
+            // 라운드 끝, 팀별 점수 집계
+            // 클라이언트와 서버의 데이터를 교차 검증한다.
+            if (!room.validationTempScore(gameResult)) {
+                gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+            }
+            room.roundOver();
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
+            // 라운드별 점수 초기화
+            room.resetTempTeamScore();
+            // 라운드 증가, 턴 체인지
+            room.turnChange();
+            if (!increaseRound(session, room)) {
+                onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
+                return;
+            }
+            log.info("Room {} round over", room.getRoomId());
+            // client response message
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_NEW_ROUND.toString(),
+                    "msg", "새로운 라운드가 시작됩니다.",
+                    "turn", room.getTurn().toString(),
+                    "round", room.getRound(),
+                    "teamScore", room.getTeamScores()
+            ));
+            deliverKeywords(room);
+        } catch(IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
-        room.roundOver();
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
-        // 라운드별 점수 초기화
-        room.resetTempTeamScore();
-        // 라운드 증가, 턴 체인지
-        room.turnChange();
-        if(!increaseRound(session ,room)) {
-            onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
-            return;
-        }
-        log.info("Room {} round over", room.getRoomId());
-        // client response message
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_NEW_ROUND.toString(),
-                "msg", "새로운 라운드가 시작됩니다.",
-                "turn", room.getTurn().toString(),
-                "round", room.getRound(),
-                "teamScore", room.getTeamScores()
-        ));
-        deliverKeywords(room);
     }
     // Submit Answer ( 정답 제출 )
     public synchronized void handleSubmitAnswer(SubmitAnswerDto request) throws IOException {
