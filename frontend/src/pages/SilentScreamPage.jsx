@@ -8,14 +8,13 @@ import ChatBox from "../components/molecules/common/ChatBox";
 const SilentScreamPage = () => {
   
   // 방 id 정보
-  const {roomId} = useParams();
+  // const {roomId} = useParams();
 
   // 상태 관리 
   const [turnTeam, setTurnTeam] = useState("red");
   const [round,setRound] = useState(1);
   const [turnTimeLeft, setTurnTimeLeft] = useState(30);
-  const [drawerTimeLeft, setDrawerTimeLeft] = useState(5);
-  const [player, setPlayers] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(5);
   const [norIdxList,setNorIdxList] = useState([]);
   const [repIdxList,setRepIdxList] = useState([]);
   const [repIdx,setRepIdx] = useState(0);
