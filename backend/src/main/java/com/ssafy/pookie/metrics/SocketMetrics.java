@@ -1,9 +1,12 @@
 package com.ssafy.pookie.metrics;
 
+// Micrometer 메트릭 관련
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.css.Counter;
-
-import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,9 +43,9 @@ public class SocketMetrics {
         this.meterRegistry = meterRegistry;
 
         // 실시간 Gauge 등록
-        Gauge.builder("socket.connections.active")
-                .description("현재 활성 소켓 연결 수")
-                .register(meterRegistry, activeConnections, AtomicInteger::get);
+        meterRegistry.gauge("socket.connections.active",
+                activeConnections,
+                AtomicInteger::get);
 
         Gauge.builder("socket.message.queue.size")
                 .description("대기 중인 메시지 수")
