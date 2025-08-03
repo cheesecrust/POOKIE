@@ -1,11 +1,26 @@
 // src/pages/SilentScreamPage.jsx
 
-import { useEffect } from "react";
+import { useEffect, useParams, useState } from "react";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 
 const SilentScreamPage = () => {
+  
+  // 방 id 정보
+  // const {roomId} = useParams();
+
+  // 상태 관리 
+  const [turnTeam, setTurnTeam] = useState("red");
+  const [round,setRound] = useState(1);
+  const [turnTimeLeft, setTurnTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(5);
+  const [norIdxList,setNorIdxList] = useState([]);
+  const [repIdxList,setRepIdxList] = useState([]);
+  const [repIdx,setRepIdx] = useState(0);
+  const [keywords, setKeywords] = useState([]);
+  const [currentKeywordIdx,setCurrentKeywordIdx] = useState(null);
+  const [scores, setScores] = useState({ red: 0, blue: 0 });
 
   useEffect(() => {
     console.log('로그인 상태 확인')

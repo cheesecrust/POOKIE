@@ -1,4 +1,4 @@
-// src/sockets/common/game/onmessage.js
+// src/sockets/common/game/handleGameMessage.js
 
 export default async function handleGameMessage(msg, handlers) {
     const { type, payload } = msg;
@@ -7,10 +7,10 @@ export default async function handleGameMessage(msg, handlers) {
       // -----------------------------
       // 응답(Response) 메시지
       // -----------------------------
-      case "GAME_STARTED":
-        console.log("게임이 시작되었습니다:", payload);
-        handlers?.onGameStarted?.(payload);
-        break;
+      // case "GAME_STARTED":
+      //   console.log("게임이 시작되었습니다:", payload);
+      //   handlers?.onGameStarted?.(payload);
+      //   break;
   
       case "GAME_KEYWORD":
         console.log("제시어 정보:", payload);
