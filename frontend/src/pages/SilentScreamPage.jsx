@@ -9,9 +9,9 @@ const SilentScreamPage = () => {
 
   useEffect(() => {
     console.log('로그인 상태 확인')
-    console.log('isLoggedIn', isLoggedIn)
-    console.log('user', user)
-    console.log('accessToken', accessToken)
+    // console.log('isLoggedIn', isLoggedIn)
+    // console.log('user', user)
+    // console.log('accessToken', accessToken)
   }, []);
 
   return (
