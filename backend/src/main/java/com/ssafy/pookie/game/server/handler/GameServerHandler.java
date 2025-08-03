@@ -22,6 +22,8 @@ import com.ssafy.pookie.game.timer.service.GameTimerService;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import com.ssafy.pookie.game.user.dto.UserStatusChangeDto;
 import com.ssafy.pookie.game.user.dto.UserTeamChangeRequestDto;
+import com.ssafy.pookie.metrics.SocketMetrics;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -42,12 +44,14 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameChatService gameChatService;
     private final GameRoomService gameRoomService;
     private final InGameService inGameService;
+    private final SocketMetrics socketMetrics;
 
     private final ObjectMapper objectMapper;
     private final DrawService drawService;
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        Timer.Sample messageSample = socketMetrics.startMessageProcessing();
         try {
             MessageDto msg = objectMapper.readValue(message.getPayload(), MessageDto.class);
             msg.setSid(session.getId());
@@ -55,6 +59,8 @@ public class GameServerHandler extends TextWebSocketHandler {
             JoinDto join;
             TurnDto gameResult;
             log.debug("{} Request", msg.getType());
+            
+            socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
                 // Room
                 case JOIN_ROOM:
@@ -132,8 +138,10 @@ public class GameServerHandler extends TextWebSocketHandler {
                     drawService.drawEvent(drawEvent);
                     break;
             }
+            socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
             e.printStackTrace();
+            socketMetrics.endMessageProcessing(messageSample, "ERROR");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "Type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
@@ -146,12 +154,25 @@ public class GameServerHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
         log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
-        gameService.joinInLobby(session);
+        
+        socketMetrics.recordConnectionAttempt();
+        Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
+        
+        try {
+            gameService.joinInLobby(session);
+            socketMetrics.recordConnectionAccepted(session.getId());
+            socketMetrics.endConnectionHandling(connectionSample);
+        } catch (Exception e) {
+            socketMetrics.recordConnectionRejected("lobby_join_failed");
+            socketMetrics.endConnectionHandling(connectionSample);
+            throw e;
+        }
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("[WebSocket] Disconnected : "+ session.getId());
+        socketMetrics.recordConnectionClosed(session.getId());
         onlinePlayerManager.removeFromLobby(session);
         log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }

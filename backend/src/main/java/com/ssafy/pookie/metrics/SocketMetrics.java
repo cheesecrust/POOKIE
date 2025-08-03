@@ -1,7 +1,5 @@
 package com.ssafy.pookie.metrics;
 
-// Micrometer 메트릭 관련
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -23,6 +21,8 @@ public class SocketMetrics {
     private final AtomicInteger messageQueueSize = new AtomicInteger(0);
     private final AtomicLong totalBytesReceived = new AtomicLong(0);
     private final AtomicLong totalBytesSent = new AtomicLong(0);
+    private final AtomicInteger activeRooms = new AtomicInteger(0);
+    private final AtomicInteger totalPlayersInRooms = new AtomicInteger(0);
 
     // 연결 시작 시간 추적
     private final ConcurrentHashMap<String, LocalDateTime> connectionStartTimes = new ConcurrentHashMap<>();
@@ -38,6 +38,10 @@ public class SocketMetrics {
     private final Counter authenticationFailures;
     private final Timer messageProcessingTime;
     private final Timer connectionHandlingTime;
+    private final Counter roomsCreated;
+    private final Counter roomsDestroyed;
+    private final Counter roomJoins;
+    private final Counter roomLeaves;
 
     public SocketMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
@@ -47,17 +51,25 @@ public class SocketMetrics {
                 activeConnections,
                 AtomicInteger::get);
 
-        Gauge.builder("socket.message.queue.size")
-                .description("대기 중인 메시지 수")
-                .register(meterRegistry, messageQueueSize, AtomicInteger::get);
+        meterRegistry.gauge("socket.message.queue.size",
+                messageQueueSize,
+                AtomicInteger::get);
 
-        Gauge.builder("socket.bytes.received.total")
-                .description("총 수신 바이트 수")
-                .register(meterRegistry, totalBytesReceived, AtomicLong::get);
+        meterRegistry.gauge("socket.bytes.received.total",
+                totalBytesReceived,
+                AtomicLong::get);
 
-        Gauge.builder("socket.bytes.sent.total")
-                .description("총 송신 바이트 수")
-                .register(meterRegistry, totalBytesSent, AtomicLong::get);
+        meterRegistry.gauge("socket.bytes.sent.total",
+                totalBytesSent,
+                AtomicLong::get);
+
+        meterRegistry.gauge("game.rooms.active",
+                activeRooms,
+                AtomicInteger::get);
+
+        meterRegistry.gauge("game.players.in_rooms.total",
+                totalPlayersInRooms,
+                AtomicInteger::get);
 
         // 카운터 등록
         this.connectionAttempts = Counter.builder("socket.connection.attempts")
@@ -100,6 +112,22 @@ public class SocketMetrics {
         this.connectionHandlingTime = Timer.builder("socket.connection.handling.time")
                 .description("연결 처리 시간")
                 .register(meterRegistry);
+
+        this.roomsCreated = Counter.builder("game.rooms.created")
+                .description("생성된 방 수")
+                .register(meterRegistry);
+
+        this.roomsDestroyed = Counter.builder("game.rooms.destroyed")
+                .description("삭제된 방 수")
+                .register(meterRegistry);
+
+        this.roomJoins = Counter.builder("game.room.joins")
+                .description("방 입장 수")
+                .register(meterRegistry);
+
+        this.roomLeaves = Counter.builder("game.room.leaves")
+                .description("방 퇴장 수")
+                .register(meterRegistry);
     }
 
     // 연결 관련 메트릭 메서드들
@@ -114,7 +142,9 @@ public class SocketMetrics {
     }
 
     public void recordConnectionRejected(String reason) {
-        connectionRejected.increment(Tags.of("reason", reason));
+        meterRegistry.counter("socket.connection.rejected",
+                        Tags.of("reason", reason))
+                .increment();
     }
 
     public void recordConnectionClosed(String sessionId) {
@@ -134,21 +164,29 @@ public class SocketMetrics {
 
     // 메시지 관련 메트릭 메서드들
     public void recordMessageReceived(String messageType, int bytes) {
-        messagesReceived.increment(Tags.of("type", messageType));
+        meterRegistry.counter("socket.messages.received",
+                        Tags.of("type", messageType))
+                .increment();
         totalBytesReceived.addAndGet(bytes);
     }
 
     public void recordMessageSent(String messageType, int bytes) {
-        messagesSent.increment(Tags.of("type", messageType));
+        meterRegistry.counter("socket.messages.sent",
+                        Tags.of("type", messageType))
+                .increment();
         totalBytesSent.addAndGet(bytes);
     }
 
     public void recordMessageDropped(String reason) {
-        messagesDropped.increment(Tags.of("reason", reason));
+        meterRegistry.counter("socket.messages.dropped",
+                        Tags.of("reason", reason))
+                .increment();
     }
 
     public void recordAuthenticationFailure(String reason) {
-        authenticationFailures.increment(Tags.of("reason", reason));
+        meterRegistry.counter("socket.auth.failures",
+                        Tags.of("reason", reason))
+                .increment();
     }
 
     // 처리 시간 측정
@@ -181,5 +219,42 @@ public class SocketMetrics {
 
     public void decrementMessageQueue() {
         messageQueueSize.decrementAndGet();
+    }
+
+    // 방 관련 메트릭 메서드들
+    public void recordRoomCreated(String gameType) {
+        meterRegistry.counter("game.rooms.created",
+                        Tags.of("game_type", gameType))
+                .increment();
+        activeRooms.incrementAndGet();
+    }
+
+    public void recordRoomDestroyed(String gameType) {
+        meterRegistry.counter("game.rooms.destroyed",
+                        Tags.of("game_type", gameType))
+                .increment();
+        activeRooms.decrementAndGet();
+    }
+
+    public void recordRoomJoin(String gameType, String team) {
+        meterRegistry.counter("game.room.joins",
+                        Tags.of("game_type", gameType, "team", team))
+                .increment();
+        totalPlayersInRooms.incrementAndGet();
+    }
+
+    public void recordRoomLeave(String gameType, String team) {
+        meterRegistry.counter("game.room.leaves",
+                        Tags.of("game_type", gameType, "team", team))
+                .increment();
+        totalPlayersInRooms.decrementAndGet();
+    }
+
+    public void updateActiveRoomsCount(int count) {
+        activeRooms.set(count);
+    }
+
+    public void updateTotalPlayersInRoomsCount(int count) {
+        totalPlayersInRooms.set(count);
     }
 }
