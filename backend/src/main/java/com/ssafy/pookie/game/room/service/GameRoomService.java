@@ -265,22 +265,21 @@ public class GameRoomService {
     }
     // 유저 강퇴 ( 방장만 )
     public void handleForcedRemoval(WebSocketSession session, RoomMasterForcedRemovalDto request) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(!onlinePlayerManager.isAuthorized(session, room)) return;
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            if(!onlinePlayerManager.isAuthorized(session, room)) throw new IllegalArgumentException("권한이 없습니다.");
+            UserDto removeTarget = request.findRemoveTarget(room);
+            if(removeTarget == null || removeTarget.getSession() == session) throw new IllegalArgumentException("대상을 확인해주세요.");
 
-        // 방장인지 확인
-        if(room.getRoomMaster().getSession() != session) return;
-        UserDto removeTarget = request.findRemoveTarget(room);
-        if(removeTarget == null || removeTarget.getSession() == session) {
+            handleLeave(removeTarget.getSession(), request.getRoomId());
+            log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
+
+        } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "대상을 확인해주세요."
+                    "msg", e.getMessage()
             ));
-            return;
         }
-        log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
-
-        handleLeave(removeTarget.getSession(), request.getRoomId());
     }
 
     // GAME TYPE CHANGE
