@@ -19,7 +19,7 @@ const Router = () => {
       <Route path="/myroom" element={<MyRoomPage />} />
       <Route path="/samepose/:roomId" element={<SamePosePage />} />
       <Route path="/silentscream/:roomId" element={<SilentScreamPage />} />
-      {/* <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} /> */}
+      <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} />
       {/* <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} /> */}
       <Route path="/waiting/:roomId" element={<WaitingPage />} />
     </Routes>

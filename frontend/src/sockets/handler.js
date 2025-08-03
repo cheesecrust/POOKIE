@@ -38,7 +38,7 @@ export const handleSocketMessage = (msg, handlers) => {
                 setIsReady: handlers?.setIsReady,
                 navigate: handlers?.navigate
             })), // waiting
-        GAME: () => import("./game/onmessage").then((mod) => mod.default?.(msg, handlers)), // game
+        GAME: () => import("./game/handleGameMessage").then((mod) => mod.default?.(msg, handlers)), // game
     };
 
     const handlerFn = routeMap[typePrefix]; // 접두사있는지 확인
