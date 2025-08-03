@@ -124,6 +124,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                     PassRequestDto requestDto = objectMapper.convertValue(msg.getPayload(), PassRequestDto.class);
                     requestDto.setRequestUser(user);
                     inGameService.handlePass(requestDto);
+                    break;
                 // Chat
                 case CHAT:
                     ChatDto chatDto = objectMapper.convertValue(msg.getPayload(), ChatDto.class);

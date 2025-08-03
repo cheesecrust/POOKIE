@@ -102,6 +102,9 @@ public class GameInfoDto {
 
     // 키워드를 패스할 수 있는지 확인
     public boolean canPassKeyword(UserDto requestUser) {
-        return this.rep.contains(requestUser);
+        if(this.rep.stream().filter((user) -> user.getSession().equals(requestUser.getSession())).findFirst().orElse(null) == null) return false;
+        if(this.keywordIdx >= this.keywordList.size()) return false;
+        this.keywordIdx++;
+        return true;
     }
 }

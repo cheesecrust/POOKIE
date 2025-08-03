@@ -298,7 +298,13 @@ public class InGameService {
     public void handlePass(PassRequestDto request) throws IOException {
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-
+            if(!onlinePlayerManager.isAuthorized(request.getRequestUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(room.getGameType() != RoomStateDto.GameType.SILENTSCREAM || !room.getGameInfo().canPassKeyword(request.getRequestUser())) throw new IllegalArgumentException("PASS 도중 오류가 발생하였습니다.");
+            onlinePlayerManager.broadCastMessageToRoomUser(request.getRequestUser().getSession(), request.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_PASSED.toString(),
+                    "msg", "제시어를 패스합니다.",
+                    "nowInfo", room.getGameInfo().mapGameInfoChange()
+            ));
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(request.getRequestUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
