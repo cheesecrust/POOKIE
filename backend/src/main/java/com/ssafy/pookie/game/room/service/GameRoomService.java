@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
 import com.ssafy.pookie.game.user.dto.*;
+import com.ssafy.pookie.metrics.SocketMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.*;
 public class GameRoomService {
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameServerService gameServerService;
+    private final SocketMetrics socketMetrics;
     /*
         유저가 게임 대기방으로 접속시
      */
@@ -118,9 +120,68 @@ public class GameRoomService {
                     .build();
 
             log.info("Room {} was created", newRoom.getRoomId());
+            socketMetrics.recordRoomCreated(newRoom.getGameType().toString());
 
             return newRoom;
         });
+
+        if(create) {
+            broadCastCreateRoomEvent(room);
+            joinDto.getUser().setGrant(UserDto.Grant.MASTER);
+        }
+        if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) {
+            log.warn("Room GameType does not match");
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "GameType이 일치하지 않습니다."
+            ));
+            return;
+        }
+
+        // 비밀번호 확인
+        if((room.getRoomPw() != null || !room.getRoomPw().isEmpty()) &&
+                !room.getRoomPw().equals(joinDto.getRoomPw())) {
+            log.warn("Room Password Mismatch");
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "비밀번호가 틀렸습니다."
+            ));
+            return;
+        }
+
+        // 신규 유저의 팀 배정
+        // 팀원 수 확인
+        if(room.getSessions().size() >= 6) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", "ERROR",
+                    "msg", "인원이 가득 차 있습니다."
+            ));
+            return;
+        }
+        // 일반 플레이어 -> Default 는 Ready 상태
+        joinDto.getUser().setTeam(room.assignTeamForNewUser());
+        if(joinDto.getUser().getGrant() == UserDto.Grant.NONE) {
+            joinDto.getUser().setGrant(UserDto.Grant.PLAYER);
+        }
+        joinDto.getUser().setStatus(UserDto.Status.READY);
+        // 세션 설정
+        // 게임 설정
+        // 각 팀에 유저 배치
+        room.getUsers().computeIfAbsent(joinDto.getUser().getTeam().toString(), k -> new ArrayList<>())
+                .add(joinDto.getUser());
+
+        room.getSessions().add(session);
+        onlinePlayerManager.getLobby().get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
+        socketMetrics.recordRoomJoin(room.getGameType().toString(), joinDto.getUser().getTeam().toString());
+        log.info("User {} joined room {} ({})", joinDto.getUser().getUserNickname(), room.getRoomTitle(), joinDto.getUser().getGrant());
+
+        // Client response msg
+        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
+                Map.of(
+                        "type", "ROOM_JOINED",
+                        "msg", joinDto.getUser().getUserNickname() + "가 입장하였습니다.",
+                        "room", room.mappingRoomInfo()
+                ));
     }
 
     // User 가 Room 을 떠날 때
@@ -145,6 +206,9 @@ public class GameRoomService {
                 }
             }
             // 2-1. 유저를 방에서 제거한다.
+            if(leaveUser != null) {
+                socketMetrics.recordRoomLeave(room.getGameType().toString(), leaveUser.getTeam().toString());
+            }
             room.removeUser(session);
             log.info("Player {} was LEAVED ROOM", session.getAttributes().get("email"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -153,6 +217,7 @@ public class GameRoomService {
             ));
             // 2-2. 방이 비어있다면, 삭제한다.
             if(room.getSessions().isEmpty()) {
+                socketMetrics.recordRoomDestroyed(room.getGameType().toString());
                 log.info("REMOVED ROOM {}", room.getRoomId());
                 onlinePlayerManager.removeRoomFromServer(roomId);
                 onlinePlayerManager.sendToMessageUser(session, Map.of(
