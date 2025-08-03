@@ -1,15 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useParams } from 'react-router-dom';
+import { useState, useRef, useCallback, useEffect } from 'react'
 import background_sketchrelay from "../assets/background/background_sketchrelay.gif";
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
-import RightButton from "../components/atoms/button/RightButton";
-import PopUpModal from "../components/atoms/modal/PopUpModal";
-import KeywordModal from "../components/atoms/modal/KeywordModal";
-// import {
-//   emitGameStart,
-//   emitTurnChange,
-//   emitRoundOver,
-// } from "../sockets/sketchRelay/emit";
+import RightButton from '../components/atoms/button/RightButton';
+import PopUpModal from '../components/atoms/modal/PopUpModal';
+import KeywordModal from '../components/atoms/modal/KeywordModal';
+import {
+  emitTurnOver,
+  emitRoundOver,
+  emitAnswerSubmit,
+} from "../sockets/game/emit";
 
 // // 필요로 하는 정보 ( 소켓 이용 )
 // // 1. 누구의 턴
@@ -31,16 +32,25 @@ import KeywordModal from "../components/atoms/modal/KeywordModal";
 // // 5. 3라운드 끝났을때 총점 모달 (모달 미정)
 
 const SketchRelayPage = () => {
+  // 방 id 정보
+  const {roomId} = useParams();
   // 턴 및 라운드
-  const [turn, setTurn] = useState("red");
-  const [round, setRound] = useState(1);
+  const [turnTeam, setTurnTeam] = useState("red");
+  const [round,setRound] = useState(1);
   // 타이머
   const [turnTimeLeft, setTurnTimeLeft] = useState(30);
   const [drawerTimeLeft, setDrawerTimeLeft] = useState(5);
   // 플레이어 정보
   const [player, setPlayers] = useState([]);
-  // 제시어
-  const [keyword, setKeyword] = useState("");
+  // 정답을 맞출 수 잇는 사용자의 인덱스 정보를 담은 인덱스
+  const [norIdxList,setNorIdxList] = useState([]);
+  // 행동을 할 수 있는 사용자의 인덱스 정보를 담은 인덱스
+  const [repIdxList,setRepIdxList] = useState([]);
+  // repIdxList에서 현재 차례의 인덱스
+  const [repIdx,setRepIdx] = useState(0);
+  // 제시어 (리스트 , 현재 키워드 인덱스)
+  const [keywords, setKeywords] = useState([]);
+  const [currentKeywordIdx,setCurrentKeywordIdx] = useState(null);
   // 게임 상태
   const [scores, setScores] = useState({ red: 0, blue: 0 });
 
@@ -236,28 +246,53 @@ const SketchRelayPage = () => {
           ))}
         </div>
       </div>
-
-      {/* RoundInfo (우측 상단 고정) */}
-      <div className="absolute top-4 right-4 z-20">
-        <RoundInfo round={1} redScore={0} blueScore={0} />
+      {/* 키워드 모달 */}
+      <div className="flex flex-col gap-2">
+        {isKeywordModalOpen && <KeywordModal onClose={() => setIsKeywordModalOpen(false)} />}
+      </div>
+      {/* 칠판 영역 */}
+      <div className="w-[1200px] h-[600px] bg-white rounded-lg border-4 border-gray-300 shadow-inner">
+        <canvas 
+          ref={canvasRef} 
+          width={1200}
+          height={600}
+          className="w-[1200px] h-[600px]" 
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+        />
       </div>
 
-      {/* ChatBox (우측 하단 고정) */}
-      <div className="absolute bottom-4 left-0 z-20 ">
-        <div className="relative w-[300px] h-[300px] ">
-          <div className="absolute bottom-0 left-0 ">
-            <ChatBox width="300px" height="300px" />
-          </div>
-        </div>
-      </div>
-      {/* 테스트용 emit 버튼 */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-        {/* <button onClick={() =>{console.log("emitCreateRoom"); emitCreateRoom();} } className="bg-green-300 px-4 py-2 rounded">CREATE_ROOM</button> */}
-        {/* <button onClick={() =>{console.log("emitGameStart"); emitGameStart();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
-    <button onClick={() =>{console.log("emitTurnChange"); emitTurnChange();} } className="bg-blue-300 px-4 py-2 rounded">TURN_CHANGE</button>
-    <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button> */}
+
+    {/* 블루팀 캠 */}
+    <div className="flex gap-19 justify-center">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="w-50 h-32 bg-white rounded-lg shadow-lg" />
+      ))}
+    </div>
+  </div>
+   
+  {/* RoundInfo (우측 상단 고정) */}
+  <div className="absolute top-4 right-4 z-20">
+    <RoundInfo round={1} redScore={0} blueScore={0} />
+  </div>
+  
+  {/* ChatBox (우측 하단 고정) */}
+  <div className="absolute bottom-4 left-0 z-20 ">
+    <div className="relative w-[300px] h-[300px] "> 
+      <div className="absolute bottom-0 left-0 ">  
+        <ChatBox width="300px" height="300px"/>          
       </div>
     </div>
+  </div>
+  {/* 테스트용 emit 버튼 */}
+  <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+    <button onClick={() =>{console.log("emitTurnOver"); emitTurnOver();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
+    <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
+    <button onClick={() =>{console.log("emitAnswerSubmit"); emitAnswerSubmit();} } className="bg-blue-300 px-4 py-2 rounded">ANSWER_SUBMIT</button>
+  </div>
+  </div>
   );
 };
 
