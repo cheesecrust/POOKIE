@@ -10,11 +10,13 @@ import com.ssafy.pookie.character.repository.CharacterCatalogRepository;
 import com.ssafy.pookie.character.repository.CharactersRepository;
 import com.ssafy.pookie.character.repository.UserCharactersRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CharacterService {
@@ -70,9 +72,11 @@ public class CharacterService {
                 userAccount, step, pookieType
         );
         if (catalog == null) throw new RuntimeException("그런 푸킨 없다.");
+
 //        CharacterCatalog presentCatalog = characterCatalogRepository
 //                .findCharacterCatalogByUserAccountAndIsRepresent(userAccount, true)
 //                .get(0);
+
         changeRepState(userAccount, catalog.getCharacter(), true);
 //        changeRepState(userAccount, presentCatalog.getCharacter(), false);
     }
@@ -99,17 +103,32 @@ public class CharacterService {
      */
     public Characters setUserPookie(UserAccounts userAccount, PookieType pookieType) {
         Characters character = charactersRepository.findCharactersByType(pookieType).get(0);
+        log.info("✅ 캐릭터 조회 성공: id={}, name={}", character.getId(), character.getName());
+        log.info("✅ userAccount id={}", userAccount.getId());
 
-        UserCharacters userCharacters = UserCharacters.builder()
-                .userAccount(userAccount)
-                .character(character)
-                .exp(0)
-                .isDrop(false)
-                .build();
+        // 영속 상태 체크
+        if (userAccount.getId() == null) {
+            throw new IllegalStateException("❌ userAccount가 아직 DB에 저장되지 않았습니다.");
+        }
 
-        userCharactersRepository.save(userCharacters);
-        return character;
+        try {
+            UserCharacters userCharacters = UserCharacters.builder()
+                    .userAccount(userAccount)
+                    .character(character)
+                    .exp(0)
+                    .isDrop(false)
+                    .build();
+
+            UserCharacters saved = userCharactersRepository.save(userCharacters);
+            log.info("✅ UserCharacters 저장 완료: {}", saved.getId());
+
+            return character;
+        } catch (Exception e) {
+            log.error("❌ UserCharacters 저장 중 에러", e);
+            throw e;
+        }
     }
+
 
     public void setPookieCatalog(UserAccounts userAccount, int step, PookieType pookieType) {
         CharacterCatalog catalog = characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(

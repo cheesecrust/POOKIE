@@ -1,9 +1,6 @@
 package com.ssafy.pookie.character.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,6 +15,7 @@ public class Characters {
 
     private String name;
 
+    @Enumerated(EnumType.ORDINAL)
     private PookieType type;
 
     private int step;
