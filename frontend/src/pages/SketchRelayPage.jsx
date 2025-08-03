@@ -81,13 +81,13 @@ const SketchRelayPage = () => {
     setIsErasing(false);
   };
 
-  //   // 도화지 전체 지우기 함수
-  //   const clearCanvas = () => {
-  //     const canvas = canvasRef.current;
-  //     const ctx = ctxRef.current;
-  //     if (!canvas || !ctx) return;
-  //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  //   };
+    // 도화지 전체 지우기 함수
+    const clearCanvas = () => {
+      const canvas = canvasRef.current;
+      const ctx = ctxRef.current;
+      if (!canvas || !ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
 
   // 도화지 초기화
   useEffect(() => {
@@ -186,13 +186,13 @@ const SketchRelayPage = () => {
     [isDrawing, setDrawingStyle]
   );
 
-  //   const stopDrawing = useCallback(() => {
-  //     const ctx = ctxRef.current;
-  //     if (ctx) {
-  //       ctx.closePath();
-  //     }
-  //     setIsDrawing(false);
-  //   }, []);
+    const stopDrawing = useCallback(() => {
+      const ctx = ctxRef.current;
+      if (ctx) {
+        ctx.closePath();
+      }
+      setIsDrawing(false);
+    }, []);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -271,29 +271,31 @@ const SketchRelayPage = () => {
         <div key={i} className="w-50 h-32 bg-white rounded-lg shadow-lg" />
       ))}
     </div>
-  </div>
-   
-  {/* RoundInfo (우측 상단 고정) */}
-  <div className="absolute top-4 right-4 z-20">
-    <RoundInfo round={1} redScore={0} blueScore={0} />
-  </div>
-  
-  {/* ChatBox (우측 하단 고정) */}
-  <div className="absolute bottom-4 left-0 z-20 ">
-    <div className="relative w-[300px] h-[300px] "> 
-      <div className="absolute bottom-0 left-0 ">  
-        <ChatBox width="300px" height="300px"/>          
+        {/* RoundInfo (우측 상단 고정) */}
+        <div className="absolute top-4 right-4 z-20">
+      <RoundInfo round={1} redScore={0} blueScore={0} />
+    </div>
+    
+    {/* ChatBox (우측 하단 고정) */}
+    <div className="absolute bottom-4 left-0 z-20 ">
+      <div className="relative w-[300px] h-[300px] "> 
+        <div className="absolute bottom-0 left-0 ">  
+          <ChatBox width="300px" height="300px"/>          
+        </div>
       </div>
     </div>
+    {/* 테스트용 emit 버튼 */}
+    <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+      <button onClick={() =>{console.log("emitTurnOver"); emitTurnOver();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
+      <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
+      <button onClick={() =>{console.log("emitAnswerSubmit"); emitAnswerSubmit();} } className="bg-blue-300 px-4 py-2 rounded">ANSWER_SUBMIT</button>
+    </div>
+  
   </div>
-  {/* 테스트용 emit 버튼 */}
-  <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-    <button onClick={() =>{console.log("emitTurnOver"); emitTurnOver();} } className="bg-green-300 px-4 py-2 rounded">GAME_START</button>
-    <button onClick={() =>{console.log("emitRoundOver"); emitRoundOver();} } className="bg-red-300 px-4 py-2 rounded">ROUND_OVER</button>
-    <button onClick={() =>{console.log("emitAnswerSubmit"); emitAnswerSubmit();} } className="bg-blue-300 px-4 py-2 rounded">ANSWER_SUBMIT</button>
-  </div>
-  </div>
-  );
+   
+    )
 };
+
+
 
 export default SketchRelayPage;
