@@ -15,13 +15,16 @@ public class CustomUserDetails implements UserDetails {
     private final String email;
     private final String nickname;
     private final String role;
+    private final int coin;
+
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(Long userAccountId, String email, String nickname, String role) {
+    public CustomUserDetails(Long userAccountId, String email, String nickname, int coin,String role) {
         this.userAccountId = userAccountId;
         this.email = email;
         this.nickname = nickname;
         this.role = role;
+        this.coin = coin;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
     }
 

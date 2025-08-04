@@ -62,4 +62,12 @@ public class UserAccounts {
     public void updateOnline(boolean online) {
         this.online = online;
     }
+
+    public Boolean buyItem(int price) {
+        if (this.coin < price) return Boolean.FALSE;
+
+        this.coin -= price;
+
+        return Boolean.TRUE;
+    }
 }
