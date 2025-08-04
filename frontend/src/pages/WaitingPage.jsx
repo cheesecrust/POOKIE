@@ -2,7 +2,7 @@
 
 // 방정보 받아오기 위해서서
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState,useParams } from "react";
+import { useEffect, useState, useParams } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket, updateHandlers } from "../sockets/websocket";
 
@@ -38,21 +38,16 @@ const WaitingPage = () => {
   const [kickModalOpen, setKickModalOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState(null);
 
-
   const isHost = room?.master?.id === user?.id;
 
-<<<<<<< HEAD
-  // WaitingPage용 소켓 핸들러 등록
-=======
-  const {roomId} = useParams();
+  const { roomId } = useParams();
   const setRoomId = useGameStore((state) => state.setRoomId);
-  useEffect(()=> {
+  useEffect(() => {
     if (!roomId) return;
-    setRoomId(roomId); 
-    }, [roomId,setRoomId]);
+    setRoomId(roomId);
+  }, [roomId, setRoomId]);
 
   // WebSocket 메시지 수신 처리
->>>>>>> ba30446 (Feat: game socket)
   useEffect(() => {
     if (!user) return;
 
