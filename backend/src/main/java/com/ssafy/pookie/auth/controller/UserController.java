@@ -3,6 +3,7 @@ package com.ssafy.pookie.auth.controller;
 import com.ssafy.pookie.auth.dto.*;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pookie.auth.service.UserService;
 import com.ssafy.pookie.common.response.ApiResponse;
@@ -72,8 +73,9 @@ public class UserController {
      * 로그아웃
      */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
+    public ResponseEntity<ApiResponse<String>> logout(
             HttpServletRequest request,
+            HttpServletResponse response,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         log.info("로그아웃 요청");
         try {
@@ -82,11 +84,10 @@ public class UserController {
                 token = authHeader.substring(7);
             }
 
-            userService.logout(token);
+            String socialLogoutUrl = userService.logout(token, response);
 
             log.info("로그아웃 성공");
-
-            return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다.", null));
+            return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다.", socialLogoutUrl));
 
         } catch (Exception e) {
             log.error("로그아웃 실패: error={}", e.getMessage());
