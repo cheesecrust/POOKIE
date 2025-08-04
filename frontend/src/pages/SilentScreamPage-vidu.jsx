@@ -5,34 +5,18 @@ import backgroundSilentScream from "../assets/background/background_silentscream
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
-import { createLocalVideoTrack, createLocalAudioTrack } from "livekit-client";
+import { Room, RoomEvent, createLocalVideoTrack, createLocalAudioTrack } from "livekit-client";
+import useAuthStore from "../store/useAuthStore"
 
 const SilentScreamPage_VIDU = () => {
-  
-  // live_kit 트랙 연결
-  useEffect(() => {
-    const connectLiveKit = async () => {
-      const videoTrack = await createLocalVideoTrack();
-      const audioTrack = await createLocalAudioTrack();
-
-      await roomRef.current.localParticipant.publishTrack(videoTrack);
-      await roomRef.current.localParticipant.publishTrack(audioTrack);
-    }
-    connectLiveKit();
-
-    return () => {
-      if (roomRef.current) roomRef.current.disconnect();
-    };
-  }, []);
-
   // 상태 관리 
+  const [roomName] = useState("silentscream_roomId")
+  const [participantName] = useState(`ss_user_${Math.floor(Math.random() * 10000)}`);
   const [publisherTrack, setPublisherTrack] = useState(null);
   const roomRef = useRef(null);
   const [redTeam, setRedTeam] = useState([]);
   const [blueTeam, setBlueTeam] = useState([]);
   const [firstUser, setFirstUser] = useState(null);
-  const [roomName] = useState("silentscream_roomId")
-  const [participantName] = useState(`ss_user_${Math.floor(Math.random() * 10000)}`);
 
   const [turnTeam, setTurnTeam] = useState("red");
   const [round,setRound] = useState(1);

@@ -10,12 +10,16 @@ import SilentScreamPage from "../pages/SilentScreamPage";
 import SilentScreamPage_VIDU from "../pages/SilentScreamPage-vidu";
 import SketchRelayPage from "../pages/SketchRelayPage";
 import WaitingPage from "../pages/WaitingPage";
+import OAuthCallback from "../pages/OAuthCallback";
 // import SketchRelayPage_VIDU from "../pages/SketchRelayPage_openvidu";
 const Router = () => {
   return (
     <Routes>
       <Route path="/" element={<LogInPage />} />
+      {/* 소셜 로그인용 */}
+      <Route path="/login" element={<LogInPage />} />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/managing" element={<ManagingPage />} />
       <Route path="/myroom" element={<MyRoomPage />} />
       <Route path="/samepose/:roomId" element={<SamePosePage />} />
