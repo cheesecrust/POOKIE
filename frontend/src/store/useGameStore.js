@@ -4,6 +4,9 @@ const useGameStore = create((set) => ({
     rtctoken: null,
     roomId: null,
 
+    red: null,
+    blue: null,
+
     round: 1,
     turn: "RED",
 
@@ -29,6 +32,11 @@ const useGameStore = create((set) => ({
     win: null,
 
     setRoomId: (id) => set({roomId:id}),
+    setRtcToken: (token) => set({ rtctoken: token }),
+    setTurn: (turn) => set({ turn }),
+    setRound: (round) => set({ round }),
+    setRed: (red) => set({ red }),
+    setBlue: (blue) => set({ blue }),
 
     setGameKeyword: (data) => set({
         keywordList: data.keywordList,
