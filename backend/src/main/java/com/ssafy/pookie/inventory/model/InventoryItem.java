@@ -30,6 +30,11 @@ public class InventoryItem {
 
     private int amount;            // 수량
 
+    public void decreaseAmount(int used) {
+        if (this.amount < used) throw new IllegalArgumentException("아이템 개수가 부족합니다.");
+        this.amount -= used;
+    }
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;

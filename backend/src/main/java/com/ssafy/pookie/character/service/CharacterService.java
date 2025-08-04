@@ -151,41 +151,36 @@ public class CharacterService {
 
     @Transactional(rollbackFor = Exception.class)
     public UserCharacters feedMyPookie(Long userAccountId, int expFromItem) throws RuntimeException {
-        // 대표 캐릭터 가져오기
         Characters repCharacter = getRepPookie(userAccountId);
         UserCharacters userCharacter = userCharactersRepository
                 .findByUserAccountIdAndCharacterId(userAccountId, repCharacter.getId())
                 .orElseThrow(() -> new RuntimeException("대표 캐릭터를 찾을 수 없습니다."));
 
-        // 경험치 추가
         userCharacter.upExp(expFromItem);
 
         int currentStep = userCharacter.getCharacter().getStep();
         PookieType currentType = userCharacter.getCharacter().getType();
         int requiredExp = ExpThreshold.getRequiredExpForStep(currentStep);
 
-        // Step별 기준치 도달 여부 확인
         if (userCharacter.getExp() >= requiredExp) {
             userCharacter.resetExp();
 
-            List<Characters> candidates;
+            List<Characters> candidates = null;
 
-            if (currentStep == 1) {
-                // Step 1 -> Step 2 : type 무관
-                candidates = charactersRepository.findByStep(2);
-                if (!candidates.isEmpty()) {
-                    Characters nextChar = getRandomCharacter(candidates);
-                    userCharacter.changeCharacter(nextChar);
-                    setPookieCatalogIfNotExists(userCharacter.getUserAccount(), 2, nextChar.getType());
-                }
-            } else if (currentStep == 2) {
-                // Step 2 -> Step 3 : 같은 type
-                candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 3);
-                if (!candidates.isEmpty()) {
-                    Characters nextChar = getRandomCharacter(candidates);
-                    userCharacter.changeCharacter(nextChar);
-                    setPookieCatalogIfNotExists(userCharacter.getUserAccount(), 3, nextChar.getType());
-                }
+            if (currentStep == 0) { // Step 0 -> Step 1
+                candidates = charactersRepository.findByStep(1);
+            } else if (currentStep == 1) { // Step 1 -> Step 2
+                candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 2);
+            }
+
+            if (candidates != null && !candidates.isEmpty()) {
+                Characters nextChar = getRandomCharacter(candidates);
+                userCharacter.changeCharacter(nextChar);
+
+                CharacterCatalog catalog = setPookieCatalogIfNotExists(
+                        userCharacter.getUserAccount(), nextChar.getStep(), nextChar.getType()
+                );
+                changeRepState(userCharacter.getUserAccount(), catalog.getCharacter(), true);
             }
         }
 
@@ -197,7 +192,7 @@ public class CharacterService {
         return candidates.get(random.nextInt(candidates.size()));
     }
 
-    private void setPookieCatalogIfNotExists(UserAccounts userAccount, int step, PookieType pookieType) {
+    private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, int step, PookieType pookieType) {
         boolean exists = characterCatalogRepository
                 .existsByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType);
 
@@ -208,7 +203,11 @@ public class CharacterService {
                     .character(character)
                     .isRepresent(false)
                     .build();
-            characterCatalogRepository.save(catalog);
+            return characterCatalogRepository.save(catalog); // 영속성 컨텍스트에 등록됨
         }
+
+        return characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(
+                userAccount.getId(), step, pookieType
+        );
     }
 }

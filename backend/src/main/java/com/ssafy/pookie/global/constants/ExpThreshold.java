@@ -8,8 +8,8 @@ import java.util.Arrays;
 @Getter
 @AllArgsConstructor
 public enum ExpThreshold {
-    STEP1_TO_2(1, 100),
-    STEP2_TO_3(2, 200);
+    STEP1_TO_2(0, 100),
+    STEP2_TO_3(1, 200);
 
     private final int step;
     private final int requiredExp;
