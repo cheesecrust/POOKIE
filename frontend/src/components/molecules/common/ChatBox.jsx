@@ -2,11 +2,12 @@
 // 채팅들은 어떻게 가져올지 몰라서 일단 css만 구현
 
 // 상위 컴포넌트에서 쓰실 때 예시:
-// <div className="relative w-[?px] h-[?px] bg-[#f8f8f8]"> w와 h는 채팅창 크기와 동일하게 하시면됩니다
-//   <div className="absolute bottom-0 left-0 right-0">
-//     <ChatBox width="?px" height="?px"/>           채팅창 원하는 크기의 w,h 값을 넣으시면됩니다. ? 은 다 동일한 값 넣어서 이용하시면됩니다.
-//   </div>
-// </div>
+{
+  /* <div className="absolute bottom-0">
+<ChatBox className="w-full" height="300px" roomId={room.id} team={team}/>
+</div>
+</div> */
+}
 
 // 함수 선언 필수
 // ChatInput 컴포넌트에 넘겨줄줄 함수들은 추후 소켓 서버 연동 후 구현 해야할 것 같습니다:
@@ -18,18 +19,52 @@
 //   // socket.emit("chat", text);
 //   // setMessages((prev) => [...prev, { sender: "me", content: text }]);
 // };
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { getSocket } from "../../../sockets/websocket";
+import { emitChatMessage } from "../../../sockets/chat/emit";
+import {
+  handleChatMessage,
+  handleSystemMessage,
+} from "../../../sockets/chat/onMessage";
+import useAuthStore from "../../../store/useAuthStore";
+
 import ChatInput from "../../atoms/input/ChatInput";
 import RightButton from "../../atoms/button/RightButton";
 
-const ChatBox = ({ width, height }) => {
+const ChatBox = ({ width, height, roomId, team }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [chatTarget, setChatTarget] = useState("전체 채팅");
   const [chatText, setChatText] = useState("");
+  const [messages, setMessages] = useState([]);
+  const socketRef = useRef(null);
+  const { user } = useAuthStore();
+  const scrollRef = useRef(null);
 
   const ChatboxWidth = `w-[${width}]`;
   const ChatboxHeight = isOpen ? `h-[${height}]` : "h-[50px]";
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    socketRef.current = socket;
+
+    const handleMessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === "CHAT") {
+        handleChatMessage(data, setMessages);
+      } else if (data.msg) {
+        handleSystemMessage(data, setMessages);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSelect = (target) => {
     setChatTarget(target);
@@ -39,10 +74,19 @@ const ChatBox = ({ width, height }) => {
   const handleSendMessage = () => {
     if (!chatText.trim()) return;
 
-    // ✅ 실제 메시지 전송 로직은 여기에서 처리
-    console.log(`[${chatTarget}] 메시지 전송:`, chatText);
+    // const roomId = "ROOM_ID"; // ✅ 추후 props 또는 상태에서 받아와야 함
+    const targetTeam = chatTarget === "팀 채팅" ? team : "ALL";
 
-    // 전송 후 input 초기화
+    emitChatMessage({
+      roomId,
+      team: targetTeam,
+      message: chatText,
+      user: {
+        userId: user.id,
+        userNickname: user.nickname,
+      },
+    });
+
     setChatText("");
   };
 
@@ -57,8 +101,29 @@ const ChatBox = ({ width, height }) => {
       {isOpen && (
         <>
           <div className="font-bold text-sm mb-1">CHAT</div>
-          <div className="flex-1 overflow-y-auto text-xs mb-2 rounded bg-white p-1">
-            {/* 채팅 메시지 로그 영역 (추후 연결) */}
+          <div className="flex-1 overflow-y-auto text-xs mb-2 rounded bg-white p-1 space-y-1">
+            {messages.map((msg, idx) => (
+              <div key={idx}>
+                {msg.type === "chat" ? (
+                  <span
+                    className={`break-words ${
+                      msg.team === "RED"
+                        ? "text-red-500 font-semibold"
+                        : msg.team === "BLUE"
+                          ? "text-blue-500 font-semibold"
+                          : ""
+                    }`}
+                  >
+                    [{msg.from}]: {msg.message}
+                  </span>
+                ) : (
+                  <span className="text-gray-500 italic break-words">
+                    💬 {msg.message}
+                  </span>
+                )}
+              </div>
+            ))}
+            <div ref={scrollRef} />
           </div>
         </>
       )}

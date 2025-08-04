@@ -1,4 +1,4 @@
-// src/components/organisms/login/RoomPasswordModal.jsx
+// src/components/organisms/home/RoomPasswordModal.jsx
 import BasicModal from "../../atoms/modal/BasicModal";
 import BasicInput from "../../atoms/input/BasicInput";
 import ModalButton from "../../atoms/button/ModalButton";

@@ -30,7 +30,7 @@ const FriendMessageModal = ({onClose}) => {
   // 전체 페이지 상태 관리
   const [totalPages, setTotalPages] = useState(1)
   // 현재 페이지 상태 관리
-  const [currentPage, setCurrentPage] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
   // 친구 찾기 모달 상태 관리
   const [isFindModalOpen, setIsFindModalOpen] = useState(false)
 
@@ -61,7 +61,13 @@ const FriendMessageModal = ({onClose}) => {
 
   // currentPage 바뀔 때마다 다시 FriendList 요청
   useEffect(() => {
-    fetchFriends(currentPage);
+    fetchFriends(currentPage-1);
+  }, [currentPage]);
+  useEffect(() => {
+    fetchReceivedMessages(currentPage-1);
+  }, [currentPage]);
+  useEffect(() => {
+    fetchSentMessages(currentPage-1);
   }, [currentPage]);
 
   // 친구 목록 api 요청    
@@ -79,6 +85,7 @@ const FriendMessageModal = ({onClose}) => {
       setFriends(content);
       setTotalPages(totalPages);
       console.log("친구 목록:",content);
+      console.log("친구api",res.data.data);
     } catch (err) {
       console.log("친구 목록 불러오기 실패:",err);
     }
