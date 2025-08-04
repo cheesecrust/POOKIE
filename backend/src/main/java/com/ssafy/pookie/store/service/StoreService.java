@@ -1,5 +1,7 @@
 package com.ssafy.pookie.store.service;
 
+import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.inventory.model.InventoryItem;
 import com.ssafy.pookie.inventory.repository.InventoryItemRepository;
 import com.ssafy.pookie.store.dto.PurchaseItemRequestDto;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class StoreService {
 
     private final StoreItemRepository storeItemRepository;
+    private final UserAccountsRepository userAccountsRepository;
     private final InventoryItemRepository inventoryItemRepository;
 
     // 전체 조회
@@ -40,6 +43,20 @@ public class StoreService {
     public PurchaseItemResponseDto purchaseItem(Long itemId, PurchaseItemRequestDto purchaseItemRequestDto) {
         StoreItem item = storeItemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품을 찾을 수 없습니다."));
+
+        UserAccounts userAccounts = userAccountsRepository.findById(purchaseItemRequestDto.getUserAccountIdx())
+                .orElseThrow(() -> new IllegalArgumentException("해당 계정은 찾을 수 없습니다."));
+
+        if (userAccounts.getCoin() < item.getPrice()) {
+            throw new IllegalStateException("코인이 부족하여 구매할 수 없습니다.");
+        }
+
+        Boolean canBought = userAccounts.buyItem(item.getPrice());
+        if (!canBought) {
+           throw new IllegalStateException("코인이 부족하여 구매할 수 없습니다.");
+        }
+
+        userAccountsRepository.save(userAccounts);
 
         // 인벤토리에 추가
         InventoryItem inventoryItem = inventoryItemRepository
