@@ -127,7 +127,7 @@ public class GameRoomService {
     }
 
     // User 가 Room 을 떠날 때
-    public void handleLeave(WebSocketSession session, String roomId) throws IOException {
+    public void handleLeave(WebSocketSession session, String roomId, Boolean forced) throws IOException {
         try {
             // 1. 현재 방을 가져온다.
             RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
@@ -155,7 +155,8 @@ public class GameRoomService {
             log.info("Player {} was LEAVED ROOM", session.getAttributes().get("userEmail"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
-                    "msg", "Lobby 로 돌아갑니다."
+                    "msg", "Lobby 로 돌아갑니다.",
+                    "reason", forced ? "KICKED" : "LEAVED"
             ));
             // 2-2. 방이 비어있다면, 삭제한다.
             if(room.getSessions().isEmpty()) {
@@ -262,7 +263,7 @@ public class GameRoomService {
             UserDto removeTarget = request.findRemoveTarget(room);
             if(removeTarget == null || removeTarget.getSession() == session) throw new IllegalArgumentException("대상을 확인해주세요.");
 
-            handleLeave(removeTarget.getSession(), request.getRoomId());
+            handleLeave(removeTarget.getSession(), request.getRoomId(), true);
             log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
 
         } catch(IllegalArgumentException e) {
