@@ -39,30 +39,7 @@ const WaitingPage = () => {
 
   const isHost = room?.master?.id === user?.id;
 
-  // WebSocket 메시지 수신 처리
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !user) return;
-
-    const handleMessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        handleWaitingMessage(msg, {
-          user,
-          room,
-          setRoom,
-          setTeam,
-          setIsReady,
-          navigate,
-        });
-      } catch (err) {
-        console.error("[WaitingPage] WebSocket 메시지 파싱 실패", err);
-      }
-    };
-
-    socket.addEventListener("message", handleMessage);
-    return () => socket.removeEventListener("message", handleMessage); // 중복 안되도록 클린업
-  }, [user, room, navigate]);
+  // WebSocket 메시지는 이미 handler.js에서 처리되므로 별도 리스너 불필요
 
   // 팀, 준비 관련
   useEffect(() => {

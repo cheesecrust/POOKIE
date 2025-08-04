@@ -3,6 +3,7 @@
 import { handleSocketMessage } from "./handler";
 
 let socket = null;
+let isConnecting = false;
 
 /**
  * WebSocket 연결
@@ -22,11 +23,25 @@ export const connectSocket = ({
   onClose,
   onError,
 }) => {
+  // 이미 연결 중이거나 연결되어 있으면 무시
+  if (isConnecting || (socket && socket.readyState === WebSocket.OPEN)) {
+    console.log("[WebSocket] 이미 연결 중이거나 연결되어 있음");
+    return;
+  }
+
+  // 기존 소켓이 있으면 먼저 닫기
+  if (socket && socket.readyState !== WebSocket.CLOSED) {
+    console.log("[WebSocket] 기존 소켓 연결 종료");
+    socket.close();
+  }
+
+  isConnecting = true;
   const fullUrl = `${url}?token=${token}`;
   socket = new WebSocket(fullUrl);
 
   socket.onopen = (e) => {
     console.log("[WebSocket OPEN]", e);
+    isConnecting = false;
     onOpen?.(e);
   };
 
@@ -48,11 +63,13 @@ export const connectSocket = ({
 
   socket.onerror = (e) => {
     console.error("[WebSocket ERROR]", e);
+    isConnecting = false;
     onError?.(e);
   };
 
   socket.onclose = (e) => {
     console.log("[WebSocket CLOSE]", e);
+    isConnecting = false;
     onClose?.(e);
   };
 };
@@ -79,6 +96,7 @@ export const closeSocket = () => {
     socket.close();
     socket = null;
   }
+  isConnecting = false;
 };
 
 /**
