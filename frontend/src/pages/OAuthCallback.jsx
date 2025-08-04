@@ -11,10 +11,10 @@ const OAuthCallback = () => {
     useEffect(() => {
         try {
             const params = new URLSearchParams(window.location.search);
-            const accessToken = params.get('accessToken');
-            const email = params.get('email');
-            const nickname = params.get('nickname');
-            const userAccountId = params.get('userAccountId');
+            const accessToken = decodeURIComponent(params.get('accessToken'));
+            const email = decodeURIComponent(params.get('email'));
+            const nickname = decodeURIComponent(params.get('nickname'));
+            const userAccountId = decodeURIComponent(params.get('userAccountId'));
 
             console.log('🔐 accessToken:', accessToken);
             console.log('📧 email:', email);
@@ -25,7 +25,7 @@ const OAuthCallback = () => {
                 localStorage.setItem('accessToken', accessToken);
                 store.setAccessToken(accessToken);
                 store.setUser({ email, nickname, userAccountId });
-                store.setLoggedIn(true);
+                store.setState({ isLoggedIn: true }); 
                 navigate('/home');
             } else {
                 navigate('/login');
