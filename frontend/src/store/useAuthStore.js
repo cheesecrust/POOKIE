@@ -43,16 +43,6 @@ const useAuthStore = create(
 
             // home handler
             setRoomList: useRoomStore.getState().setRoomList,
-
-            // waiting handler
-            user: get().user,
-            setRoom: () => {},
-            setTeam: () => {},
-            setIsReady: () => {},
-
-            // game handler
-
-            // chat handler
           }
         })
   
@@ -141,6 +131,7 @@ const useAuthStore = create(
 
         await get().fetchUserInfo();
 
+        console.log("socket 재연결 호출");
         // 📍소켓 재연결📍
         connectSocket({
           url: import.meta.env.VITE_SOCKET_URL,
@@ -151,16 +142,6 @@ const useAuthStore = create(
 
             // home handler
             setRoomList: useRoomStore.getState().setRoomList,
-
-            // waiting handler
-            user: get().user,
-            setRoom: () => {},
-            setTeam: () => {},
-            setIsReady: () => {},
-
-            // game handler
-
-            // chat handler
           }
         });
       } catch (err) {

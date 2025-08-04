@@ -4,7 +4,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
-import { getSocket } from "../sockets/websocket";
+import { getSocket, updateHandlers } from "../sockets/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
@@ -39,7 +39,31 @@ const WaitingPage = () => {
 
   const isHost = room?.master?.id === user?.id;
 
-  // WebSocket 메시지는 이미 handler.js에서 처리되므로 별도 리스너 불필요
+  // WaitingPage용 소켓 핸들러 등록
+  useEffect(() => {
+    if (!user) return;
+
+    // waiting 관련 핸들러 업데이트
+    updateHandlers({
+      user,
+      room,
+      setRoom,
+      setTeam,
+      setIsReady,
+      navigate,
+    });
+
+    return () => {
+      // 컴포넌트 언마운트 시 핸들러 정리
+      updateHandlers({
+        user: null,
+        room: null,
+        setRoom: () => {},
+        setTeam: () => {},
+        setIsReady: () => {},
+      });
+    };
+  }, [user, room, navigate]);
 
   // 팀, 준비 관련
   useEffect(() => {

@@ -4,6 +4,7 @@ import { handleSocketMessage } from "./handler";
 
 let socket = null;
 let isConnecting = false;
+let currentHandlers = {};
 
 /**
  * WebSocket 연결
@@ -55,7 +56,14 @@ export const connectSocket = ({
       }
 
       console.log(`[WebSocket MESSAGE] type: ${msg.type}`, msg);
-      await handleSocketMessage(msg, handlers);  // 공통 핸들러를 담당하는 함수  handlers.js에 있는 함수
+      
+      // ROOM 관련 메시지 특별 로깅
+      if (msg.type.startsWith('ROOM_')) {
+        console.log(`🏠 ROOM 메시지 수신:`, msg.type, msg);
+      }
+      // 현재 핸들러와 초기 핸들러를 병합
+      const mergedHandlers = { ...handlers, ...currentHandlers };
+      await handleSocketMessage(msg, mergedHandlers);
     } catch (err) {
       console.error("[WebSocket MESSAGE ERROR]", err);
     }
@@ -97,6 +105,13 @@ export const closeSocket = () => {
     socket = null;
   }
   isConnecting = false;
+};
+
+/**
+ * 현재 핸들러 업데이트
+ */
+export const updateHandlers = (newHandlers) => {
+  currentHandlers = { ...currentHandlers, ...newHandlers };
 };
 
 /**

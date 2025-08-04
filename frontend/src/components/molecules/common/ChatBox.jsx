@@ -74,7 +74,6 @@ const ChatBox = ({ width, height, roomId, team }) => {
   const handleSendMessage = () => {
     if (!chatText.trim()) return;
 
-    // const roomId = "ROOM_ID"; // ✅ 추후 props 또는 상태에서 받아와야 함
     const targetTeam = chatTarget === "팀 채팅" ? team : "ALL";
 
     emitChatMessage({
@@ -102,7 +101,22 @@ const ChatBox = ({ width, height, roomId, team }) => {
         <>
           <div className="font-bold text-sm mb-1">CHAT</div>
           <div className="flex-1 overflow-y-auto text-xs mb-2 rounded bg-white p-1 space-y-1">
-            {messages.map((msg, idx) => (
+            {messages
+              .filter((msg) => {
+                // 시스템 메시지는 항상 표시
+                if (msg.type === "system") return true;
+                
+                // 전체 채팅 모드일 때는 모든 메시지 표시
+                if (chatTarget === "전체 채팅") return true;
+                
+                // 팀 채팅 모드일 때는 같은 팀 메시지와 전체 메시지만 표시
+                if (chatTarget === "팀 채팅") {
+                  return msg.team === "ALL" || msg.team === team;
+                }
+                
+                return true;
+              })
+              .map((msg, idx) => (
               <div key={idx}>
                 {msg.type === "chat" ? (
                   <span
@@ -172,7 +186,11 @@ const ChatBox = ({ width, height, roomId, team }) => {
               handleSendMessage();
             }
           }}
-          placeholder={`${chatTarget}`}
+          placeholder={
+            chatTarget === "팀 채팅" 
+              ? `${team} 팀에게 메시지...` 
+              : "모든 플레이어에게 메시지..."
+          }
         />
 
         {/* 열고 닫기 버튼 */}
