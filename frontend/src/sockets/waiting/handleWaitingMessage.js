@@ -7,6 +7,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setRoom = () => { },
         setTeam = () => { },
         setIsReady = () => { },
+        navigate = () => { },
     } = handlers;
 
     if (!data?.type) return;
