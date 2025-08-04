@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.ingame.service;
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
+import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
@@ -69,6 +70,7 @@ public class InGameService {
             ));
 
             deliverKeywords(room);
+            log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
@@ -104,7 +106,10 @@ public class InGameService {
         // 키워드 목록 저장
         room.getGameInfo().setKeywordList(keywordList);
         for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo(MessageDto.Type.GAME_KEYWORD.toString()));
+            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
+        }
+        for(UserDto nor : room.getGameInfo().getNormal()) {
+            onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
         }
         log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
     }
@@ -147,6 +152,7 @@ public class InGameService {
 
     // 턴이 종료되었을 때
     public void handleTurnChange(WebSocketSession session, TurnDto gameResult) throws IOException {
+        log.info("TURN OVER REQUEST : ROOM {}", gameResult.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
             if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room))
@@ -164,6 +170,7 @@ public class InGameService {
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
+                    "msg", room.getTurn()+"팀 차례입니다.",
                     "round", room.getRound(),
                     "turn", room.getTurn().toString(),
                     "tempTeamScore", room.getTempTeamScores()
@@ -200,6 +207,8 @@ public class InGameService {
 
     // 라운드 종료
     public void handleRoundOver(WebSocketSession session, TurnDto gameResult) throws IOException {
+        log.info("ROUND OVER REQUEST : ROOM {}", gameResult.getRoomId());
+        try {
         /*
             1. 두 팀간 점수를 비교
             2. 승 / 패 구분
@@ -207,91 +216,113 @@ public class InGameService {
             4. GameInfo Reset
             5. Turn 교환
          */
-        RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
-        // 라운드 끝, 팀별 점수 집계
-        // 클라이언트와 서버의 데이터를 교차 검증한다.
-        if(!room.validationTempScore(gameResult)) {
-            gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+            RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
+            // 라운드 끝, 팀별 점수 집계
+            // 클라이언트와 서버의 데이터를 교차 검증한다.
+            if (!room.validationTempScore(gameResult)) {
+                gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
+            }
+            room.roundOver();
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
+            // 라운드별 점수 초기화
+            room.resetTempTeamScore();
+            // 라운드 증가, 턴 체인지
+            room.turnChange();
+            if (!increaseRound(session, room)) {
+                onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
+                return;
+            }
+            log.info("Room {} round over", room.getRoomId());
+            // client response message
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_NEW_ROUND.toString(),
+                    "msg", "새로운 라운드가 시작됩니다.",
+                    "turn", room.getTurn().toString(),
+                    "round", room.getRound(),
+                    "teamScore", room.getTeamScores()
+            ));
+            deliverKeywords(room);
+        } catch(IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
-        room.roundOver();
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
-        // 라운드별 점수 초기화
-        room.resetTempTeamScore();
-        // 라운드 증가, 턴 체인지
-        room.turnChange();
-        if(!increaseRound(session ,room)) {
-            onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
-            return;
-        }
-        log.info("Room {} round over", room.getRoomId());
-        // client response message
-        onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_NEW_ROUND.toString(),
-                "msg", "새로운 라운드가 시작됩니다.",
-                "turn", room.getTurn().toString(),
-                "round", room.getRound(),
-                "teamScore", room.getTeamScores()
-        ));
-        deliverKeywords(room);
     }
     // Submit Answer ( 정답 제출 )
     public synchronized void handleSubmitAnswer(SubmitAnswerDto request) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(!isMasterRequest(request.getUser().getSession(), room)) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "잘못된 요청입니다."
-            ));
-            return;
-        }
-        // 서로 동기화 정보가 다르다면 그냥 버린다.
-        // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
-        if(!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
-                || room.getGameInfo().getNormal().stream().filter(
-                        (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "잘못된 요청입니다."
-            ));
-            return;
-        }
+        log.info("SUBMIT ANSWER REQUEST : ROOM {}", request.getRoomId());
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            if (!isMasterRequest(request.getUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            // 서로 동기화 정보가 다르다면 그냥 버린다.
+            // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
+            if (!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
+                    || room.getGameInfo().getNormal().stream().filter(
+                    (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
 
-        // 정답이 일치하는지 확인한다.
-        Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
-                .equals(request.getInputAnswer());
-        // 정답이라면, room 의 gameInfo, teamTeapScores Update
-        if(isAnswer) {
-            room.updateTempScore();
+            // 정답이 일치하는지 확인한다.
+            Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
+                    .equals(request.getInputAnswer());
+            // 정답이라면, room 의 gameInfo, teamTeapScores Update
+            if (isAnswer) {
+                room.updateTempScore();
+            }
+            onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
+                    "answer", isAnswer,
+                    "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
+                    "nowInfo", room.getGameInfo().mapGameInfoChange()
+            ));
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
-        onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
-                "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
-                "answer", isAnswer,
-                "msg", room.getTurn().toString()+"팀 "+ (isAnswer ? CORRECT : WRONG)
-        ));
     }
 
     public void handlePainterChange(PainterChangeRequest request) throws IOException {
-        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-        if(!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room)
-        && isMasterRequest(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "잘못된 요청입니다."
-            ));
-            return;
-        }
-        log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
-        if(!room.getGameInfo().changePainter()) {
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", "다음 차례가 없습니다."
-            ));
-            log.warn("다음 차례가 없습니다.");
-            return;
-        }
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room)
+                    && isMasterRequest(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
+            log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
+            if (!room.getGameInfo().changePainter()) {
+                log.warn("다음 차례가 없습니다.");
+                throw new IllegalArgumentException("다음 차례가 없습니다.");
+            }
 
-        for(UserDto rep : room.getGameInfo().getRep()) {
-            onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfo(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            for (UserDto rep : room.getGameInfo().getRep()) {
+                onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            }
+            for (UserDto nor : room.getGameInfo().getNormal()) {
+                onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            }
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
+        }
+    }
+
+    public void handlePass(PassRequestDto request) throws IOException {
+        log.info("PASS REQUEST : ROOM {}", request.getRoomId());
+        try {
+            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+            if(!onlinePlayerManager.isAuthorized(request.getRequestUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(room.getGameType() != RoomStateDto.GameType.SILENTSCREAM || !room.getGameInfo().canPassKeyword(request.getRequestUser())) throw new IllegalArgumentException("PASS 도중 오류가 발생하였습니다.");
+            onlinePlayerManager.broadCastMessageToRoomUser(request.getRequestUser().getSession(), request.getRoomId(), null, Map.of(
+                    "type", MessageDto.Type.GAME_PASSED.toString(),
+                    "msg", "제시어를 패스합니다.",
+                    "nowInfo", room.getGameInfo().mapGameInfoChange()
+            ));
+        } catch (IllegalArgumentException e) {
+            onlinePlayerManager.sendToMessageUser(request.getRequestUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", e.getMessage()
+            ));
         }
     }
 

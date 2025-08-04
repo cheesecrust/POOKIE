@@ -73,7 +73,7 @@ public class GameInfoDto {
         return false;
     }
 
-    public Map<String, Object> mapGameInfo(String typeMessage) {
+    public Map<String, Object> mapGameInfoToRep(String typeMessage) {
         return Map.of(
                 "type", typeMessage,
                 "keywordList", keywordList,
@@ -82,5 +82,29 @@ public class GameInfoDto {
                 "repIdx", this.repIdx,
                 "norIdxList", this.norAccountIdxList()
         );
+    }
+    public Map<String, Object> mapGameInfoToNor(String typeMessage) {
+        return Map.of(
+                "type", typeMessage,
+                "keywordIdx", this.keywordIdx,
+                "repIdxList", this.repAccountIdxList(),
+                "repIdx", this.repIdx,
+                "norIdxList", this.norAccountIdxList()
+        );
+    }
+
+    public Map<String, Object> mapGameInfoChange() {
+        return Map.of(
+                "keywordIdx", this.keywordIdx,
+                "repIdx", this.repIdx
+        );
+    }
+
+    // 키워드를 패스할 수 있는지 확인
+    public boolean canPassKeyword(UserDto requestUser) {
+        if(this.rep.stream().filter((user) -> user.getSession().equals(requestUser.getSession())).findFirst().orElse(null) == null) return false;
+        if(this.keywordIdx >= this.keywordList.size()) return false;
+        this.keywordIdx++;
+        return true;
     }
 }
