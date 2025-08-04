@@ -9,12 +9,14 @@ import com.ssafy.pookie.character.model.UserCharacters;
 import com.ssafy.pookie.character.repository.CharacterCatalogRepository;
 import com.ssafy.pookie.character.repository.CharactersRepository;
 import com.ssafy.pookie.character.repository.UserCharactersRepository;
+import com.ssafy.pookie.global.constants.ExpThreshold;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Random;
 
 @Slf4j
 @Service
@@ -145,5 +147,67 @@ public class CharacterService {
                 .isRepresent(false)
                 .build();
         characterCatalogRepository.save(catalog);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public UserCharacters feedMyPookie(Long userAccountId, int expFromItem) throws RuntimeException {
+        Characters repCharacter = getRepPookie(userAccountId);
+        UserCharacters userCharacter = userCharactersRepository
+                .findByUserAccountIdAndCharacterId(userAccountId, repCharacter.getId())
+                .orElseThrow(() -> new RuntimeException("대표 캐릭터를 찾을 수 없습니다."));
+
+        userCharacter.upExp(expFromItem);
+
+        int currentStep = userCharacter.getCharacter().getStep();
+        PookieType currentType = userCharacter.getCharacter().getType();
+        int requiredExp = ExpThreshold.getRequiredExpForStep(currentStep);
+
+        if (userCharacter.getExp() >= requiredExp) {
+            userCharacter.resetExp();
+
+            List<Characters> candidates = null;
+
+            if (currentStep == 0) { // Step 0 -> Step 1
+                candidates = charactersRepository.findByStep(1);
+            } else if (currentStep == 1) { // Step 1 -> Step 2
+                candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 2);
+            }
+
+            if (candidates != null && !candidates.isEmpty()) {
+                Characters nextChar = getRandomCharacter(candidates);
+                userCharacter.changeCharacter(nextChar);
+
+                CharacterCatalog catalog = setPookieCatalogIfNotExists(
+                        userCharacter.getUserAccount(), nextChar.getStep(), nextChar.getType()
+                );
+                changeRepState(userCharacter.getUserAccount(), catalog.getCharacter(), true);
+            }
+        }
+
+        return userCharactersRepository.save(userCharacter);
+    }
+
+    private Characters getRandomCharacter(List<Characters> candidates) {
+        Random random = new Random();
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
+    private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, int step, PookieType pookieType) {
+        boolean exists = characterCatalogRepository
+                .existsByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType);
+
+        if (!exists) {
+            Characters character = charactersRepository.findCharactersByTypeAndStep(pookieType, step).get(0);
+            CharacterCatalog catalog = CharacterCatalog.builder()
+                    .userAccount(userAccount)
+                    .character(character)
+                    .isRepresent(false)
+                    .build();
+            return characterCatalogRepository.save(catalog); // 영속성 컨텍스트에 등록됨
+        }
+
+        return characterCatalogRepository.findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(
+                userAccount.getId(), step, pookieType
+        );
     }
 }

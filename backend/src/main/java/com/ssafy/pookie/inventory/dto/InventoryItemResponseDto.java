@@ -15,6 +15,7 @@ public class InventoryItemResponseDto {
     private Long itemIdx;
     private String itemName;
     private String image;
+    private int exp;
     private int amount;
 
     public static InventoryItemResponseDto fromEntity(InventoryItem inventoryItem) {
@@ -25,6 +26,8 @@ public class InventoryItemResponseDto {
                 .userAccountIdx(inventoryItem.getUserAccountIdx())
                 .amount(inventoryItem.getAmount())
                 .image(storeItem.getImage())
+                .exp(storeItem.getExp())
+                .itemIdx(storeItem.getIdx())
                 .itemName(storeItem.getName())
                 .build();
     }

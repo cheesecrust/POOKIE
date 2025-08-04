@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface CharactersRepository extends JpaRepository<Characters, Integer> {
     List<Characters> findCharactersByType(PookieType type);
-
+    List<Characters> findByStep(int step);
     List<Characters> findCharactersByTypeAndStep(PookieType type, int step);
 }
