@@ -29,7 +29,7 @@ public class GameRoomService {
         유저가 게임 대기방으로 접속시
      */
     public void handleJoin(WebSocketSession session, JoinDto joinDto) throws IOException {
-        log.info("JOIN REQUEST : ROOM {} FROM {}", joinDto.getRoomTitle(), joinDto.getUser().getUserEmail());
+        log.info("JOIN REQUEST : ROOM {} FROM {}", joinDto.getRoomTitle()==null ? joinDto.getRoomId() : joinDto.getRoomTitle(), joinDto.getUser().getUserEmail());
         try {
             // 1. 해당 유저가 정상적으로 로그인을 완료 한 뒤, 대기방으로 이동하는지 확인
             // 비정상적이 유저라면, 대기방 입장 불가 -> 연결 끊음
@@ -131,7 +131,7 @@ public class GameRoomService {
         try {
             // 1. 현재 방을 가져온다.
             RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
-            log.info("LEAVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), session.getAttributes().get("email"));
+            log.info("LEAVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), session.getAttributes().get("userEmail"));
             // 1-1. 현재 방이 존재하고, 해당 방에 요청한 사람이 있는지 확인
             if (!onlinePlayerManager.isAuthorized(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
 
@@ -152,7 +152,7 @@ public class GameRoomService {
                 socketMetrics.recordRoomLeave(room.getGameType().toString(), leaveUser.getTeam().toString());
             }
             room.removeUser(session);
-            log.info("Player {} was LEAVED ROOM", session.getAttributes().get("email"));
+            log.info("Player {} was LEAVED ROOM", session.getAttributes().get("userEmail"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
                     "msg", "Lobby 로 돌아갑니다."
@@ -220,7 +220,7 @@ public class GameRoomService {
             RoomStateDto room = onlinePlayerManager.getRooms().get(teamChangeRequest.getRoomId());
             if(!onlinePlayerManager.isAuthorized(session, room)) new IllegalArgumentException("잘못된 요청입니다.");
             log.info("TEAM CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), teamChangeRequest.getUser().getUserEmail());
-            if(!teamChangeRequest.changeTeam(room)) throw new IllegalArgumentException("팀 변경 중 발생하였습니다.");
+            if(!teamChangeRequest.changeTeam(room)) throw new IllegalArgumentException("팀 변경 중 오류가 발생하였습니다.");
             log.info("{} team changed in {}", teamChangeRequest.getUser().getUserEmail(), room.getRoomId());
             onlinePlayerManager.broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_TEAM_CHANGED.toString(),

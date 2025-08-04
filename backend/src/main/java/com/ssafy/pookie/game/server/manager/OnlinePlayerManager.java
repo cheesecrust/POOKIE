@@ -62,6 +62,8 @@ public class OnlinePlayerManager {
         권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
+        log.info("Request Session : {}", session);
+        log.info("Request Room : {}", room);
         return room != null && room.isIncluded(session);
     }
 
