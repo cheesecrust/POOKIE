@@ -47,6 +47,7 @@ public class JwtTokenProvider {
                 .claim("userAccountId", userAccountId)                    // 사용자 ID
                 .claim("email", email)                      // 이메일
                 .claim("nickname", nickname)
+                .claim("provider", "local")                 // 로그인 타입
                 .claim("type", "access")                    // 토큰 타입
                 .setIssuedAt(now)                          // 발급 시간
                 .setExpiration(expiration)                 // 만료 시간
@@ -55,6 +56,53 @@ public class JwtTokenProvider {
 
         log.debug("Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
                 userAccountId, email, expiration);
+
+        return token;
+    }
+
+    /**
+     * 소셜 로그인 전용 Access Token 생성 (10분짜리)
+     */
+    public String createSocialAccessToken(Long userAccountId, String email, String nickname, String provider) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + 10 * 60 * 1000L); // 10분
+
+        String token = Jwts.builder()
+                .setSubject(email)
+                .claim("userAccountId", userAccountId)
+                .claim("email", email)
+                .claim("nickname", nickname)
+                .claim("provider", provider)   // 소셜 제공자 (google, kakao 등)
+                .claim("type", "access")
+                .setIssuedAt(now)
+                .setExpiration(expiration)
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+
+        log.debug("Social Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
+                userAccountId, email, expiration);
+
+        return token;
+    }
+
+    /**
+     * 소셜 로그인 전용 Refresh Token 생성
+     */
+    public String createSocialRefreshToken(Long userAccountId, String provider) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + refreshTokenExpiration);
+
+        String token = Jwts.builder()
+                .setSubject(userAccountId.toString())             // 주체 (사용자 ID)
+                .claim("userAccountId", userAccountId)                   // 사용자 ID
+                .claim("provider", provider)                // 로그인 타입
+                .claim("type", "refresh")                  // 토큰 타입
+                .setIssuedAt(now)                         // 발급 시간
+                .setExpiration(expiration)                // 만료 시간
+                .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
+                .compact();
+
+        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
@@ -69,13 +117,14 @@ public class JwtTokenProvider {
         String token = Jwts.builder()
                 .setSubject(userAccountId.toString())             // 주체 (사용자 ID)
                 .claim("userAccountId", userAccountId)                   // 사용자 ID
+                .claim("provider", "local")                 // 로그인 타입
                 .claim("type", "refresh")                  // 토큰 타입
                 .setIssuedAt(now)                         // 발급 시간
                 .setExpiration(expiration)                // 만료 시간
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
+        log.debug("Social Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
@@ -122,5 +171,10 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String refreshToken) {
         return true;
+    }
+    
+    public String getProviderFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("provider", String.class);
     }
 }
