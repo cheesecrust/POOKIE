@@ -48,7 +48,7 @@ const GameTypeToggleButton = ({ gameType, onToggle, isHost }) => {
 
       {/* 게임 타입 선택 드롭롭 */}
       {isOpen && isHost && (
-        <div className="absolute left-0 mt-2 w-full bg-[#FDE1F0] rounded-md shadow z-10 opacity-70">
+        <div className="absolute left-0 mt-2 w-full bg-[#FDE1F0] rounded-md shadow z-10 opacity-80">
           {gameTypes.map((type, index) => (
             <div
               key={type}
