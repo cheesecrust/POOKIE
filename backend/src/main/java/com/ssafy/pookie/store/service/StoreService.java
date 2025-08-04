@@ -40,11 +40,11 @@ public class StoreService {
 
     // 상품 구매
     @Transactional
-    public PurchaseItemResponseDto purchaseItem(Long itemId, PurchaseItemRequestDto purchaseItemRequestDto) {
-        StoreItem item = storeItemRepository.findById(itemId)
+    public PurchaseItemResponseDto purchaseItem(Long userAccountId, Long itemIdx) {
+        StoreItem item = storeItemRepository.findById(itemIdx)
                 .orElseThrow(() -> new IllegalArgumentException("해당 상품을 찾을 수 없습니다."));
 
-        UserAccounts userAccounts = userAccountsRepository.findById(purchaseItemRequestDto.getUserAccountIdx())
+        UserAccounts userAccounts = userAccountsRepository.findById(userAccountId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 계정은 찾을 수 없습니다."));
 
         if (userAccounts.getCoin() < item.getPrice()) {
@@ -60,9 +60,9 @@ public class StoreService {
 
         // 인벤토리에 추가
         InventoryItem inventoryItem = inventoryItemRepository
-                .findByUserAccountIdxAndStoreItem_Idx(purchaseItemRequestDto.getUserAccountIdx(), item.getIdx())
+                .findByUserAccountIdxAndStoreItem_Idx(userAccountId, item.getIdx())
                 .orElse(InventoryItem.builder()
-                        .userAccountIdx(purchaseItemRequestDto.getUserAccountIdx())
+                        .userAccountIdx(userAccountId)
                         .storeItem(item)
                         .amount(0)
                         .build());

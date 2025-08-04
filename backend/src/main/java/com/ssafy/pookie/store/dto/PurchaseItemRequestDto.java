@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class PurchaseItemRequestDto {
-    private Long userAccountIdx;  // 구매자 ID
     private Long itemIdx;         // 구매할 아이템 ID
 }

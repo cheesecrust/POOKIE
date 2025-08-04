@@ -1,5 +1,6 @@
 package com.ssafy.pookie.store.controller;
 
+import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import com.ssafy.pookie.store.dto.PurchaseItemRequestDto;
 import com.ssafy.pookie.store.dto.PurchaseItemResponseDto;
 import com.ssafy.pookie.store.dto.StoreItemResponseDto;
@@ -7,6 +8,7 @@ import com.ssafy.pookie.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,8 +33,9 @@ public class StoreController {
         return ResponseEntity.ok(storeService.getItemById(itemId));
     }
 
-    @PostMapping("/items/{itemId}")
-    public ResponseEntity<PurchaseItemResponseDto> purchaseItem(@PathVariable Long itemId, @RequestBody PurchaseItemRequestDto requestDto) {
-        return ResponseEntity.ok(storeService.purchaseItem(itemId, requestDto));
+    @PostMapping("/items")
+    public ResponseEntity<PurchaseItemResponseDto> purchaseItem(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                @RequestBody PurchaseItemRequestDto requestDto) {
+        return ResponseEntity.ok(storeService.purchaseItem(userDetails.getUserAccountId(), requestDto.getItemIdx()));
     }
 }
