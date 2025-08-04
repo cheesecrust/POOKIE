@@ -25,16 +25,30 @@ export const handleSocketMessage = (msg, handlers) => {
         return;
     }
 
-    // 예외 처리: WAITING_JOINED → home, GAME_STARTED → waiting
+    // 예외 처리: WAITING_JOINED는 방 생성/입장 성공시 home에서 처리, GAME_STARTED → waiting
     if (msg.type === "WAITING_JOINED") {
+        // HomePage에서 방 생성/입장 후 대기실 이동을 위해 home 핸들러 사용
         import("./home/handleHomeMessage")
-            .then((mod) => mod.default?.(msg,
-                {
-                    setRoomList: handlers?.setRoomList,
-                    navigate: handlers?.navigate,
-                }))
+            .then((mod) => mod.default?.(msg, {
+                setRoomList: handlers?.setRoomList,
+                navigate: handlers?.navigate,
+            }))
             .catch((err) => {
-                console.error("[SocketRouter] WAITING_JOINED 핸들러 로딩 실패:", err);
+                console.error("[SocketRouter] WAITING_JOINED(home) 핸들러 로딩 실패:", err);
+            });
+        
+        // 동시에 대기실에 있는 다른 사용자들에게도 알림
+        import("./waiting/handleWaitingMessage")
+            .then((mod) => mod.default?.(msg, {
+                user: handlers?.user,
+                room: handlers?.room,
+                setRoom: handlers?.setRoom,
+                setTeam: handlers?.setTeam,
+                setIsReady: handlers?.setIsReady,
+                navigate: handlers?.navigate,
+            }))
+            .catch((err) => {
+                console.error("[SocketRouter] WAITING_JOINED(waiting) 핸들러 로딩 실패:", err);
             });
         return;
     }
@@ -60,7 +74,10 @@ export const handleSocketMessage = (msg, handlers) => {
     const typePrefix = msg.type.split("_")[0];
 
     const routeMap = { // 접두사로 구분
-        ROOM: () => import("./home/handleHomeMessage").then((mod) => mod.default?.(msg, handlers)), // home
+        ROOM: () => {
+            console.log(`🏠 ROOM 메시지 라우팅:`, msg.type, "핸들러:", handlers);
+            return import("./home/handleHomeMessage").then((mod) => mod.default?.(msg, handlers));
+        }, // home
         WAITING: () => import("./waiting/handleWaitingMessage").then((mod) =>
             mod.default?.(msg, {
                 user: handlers?.user,
@@ -68,6 +85,7 @@ export const handleSocketMessage = (msg, handlers) => {
                 setRoom: handlers?.setRoom,
                 setTeam: handlers?.setTeam,
                 setIsReady: handlers?.setIsReady,
+                navigate: handlers?.navigate,
             })), // waiting
         GAME: () => import("./game/handleGameMessage").then((mod) => mod.default?.(msg, handlers)), // game
     };

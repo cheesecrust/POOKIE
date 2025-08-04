@@ -1,180 +1,216 @@
 // src/store/useAuthStore.js
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axiosInstance from "../lib/axiosInstance";
 import { connectSocket } from '../sockets/websocket';
-import { handleSocketMessage } from '../sockets/handler';
 import useRoomStore from './useRoomStore';
+import useGameStore from './useGameStore';
 
 const useAuthStore = create(
   persist(
     (set, get) => ({
-    accessToken: null,
-    user: null,
-    isLoggedIn: false,
-    
-    setUser: (user) => set({ user }),
-    setAccessToken: (token) => set({ accessToken: token }),
-  
-    // ✅ 로그인 요청 + user 상태 저장
-    login: async ({ email, password, navigate }) => {
-      try {
-        const res = await axiosInstance.post('/auth/login', { email, password });
-        const { accessToken, refreshToken, userAccountId, nickname } = res.data.data;
-  
-        // 저장
-        set({
-          accessToken,
-          user: { id: userAccountId, nickname },
-          isLoggedIn: true,
-        });
-  
-        // refreshToken은 로컬에만!
-        localStorage.setItem('refreshToken', refreshToken);
-        await get().fetchUserInfo();
+      accessToken: null,
+      user: null,
+      isLoggedIn: false,
 
-        // 📍소켓 연결📍
-        connectSocket({
-          url: import.meta.env.VITE_SOCKET_URL,
-          token: accessToken,
-          handlers: {
-            // common handler
-            navigate,
+      setUser: (user) => set({ user }),
+      setAccessToken: (token) => set({ accessToken: token }),
 
-            // home handler
-            setRoomList: useRoomStore.getState().setRoomList,
+      // ✅ 로그인 요청 + user 상태 저장
+      login: async ({ email, password, navigate }) => {
+        try {
+          const res = await axiosInstance.post('/auth/login', { email, password });
+          const { accessToken, userAccountId, nickname } = res.data.data;
 
-            // waiting handler
-            user: get().user,
-            setRoom: () => {},
-            setTeam: () => {},
-            setIsReady: () => {},
+          // 저장
+          set({
+            accessToken,
+            user: { id: userAccountId, nickname },
+            isLoggedIn: true,
+          });
 
-            // game handler
+          await get().fetchUserInfo();
 
-            // chat handler
+          // 📍소켓 연결📍
+          connectSocket({
+            url: import.meta.env.VITE_SOCKET_URL,
+            token: accessToken,
+            handlers: {
+              // common handler
+              navigate,
+
+              // home handler
+              setRoomList: useRoomStore.getState().setRoomList,
+
+              // waiting handler
+              user: get().user,
+              setRoom: () => { },
+              setTeam: () => { },
+              setIsReady: () => { },
+
+              // game handler
+              onGameStarted: (data) => {
+                useGameStore.getState().setGameStarted(data);
+              },
+              onGameKeyword: (data) => {
+                useGameStore.getState().setGameKeyword(data);
+              },
+              onGameAnswerSubmitted: (data) => {
+                useGameStore.getState().setGameAnswerSubmitted(data);
+              },
+              onGameTurnOvered: (data) => {
+                useGameStore.getState().setGameTurnOvered(data);
+              },
+              onGameRoundOvered: (data) => {
+                useGameStore.getState().setGameRoundOvered(data);
+              },
+              onGameNewRound: (data) => {
+                useGameStore.getState().setGameNewRound(data);
+              },
+              // chat handler
+            }
+          })
+
+          return { success: true };
+        } catch (err) {
+          const message = err.response?.data?.message || '로그인 실패';
+          return { success: false, message };
+        }
+      },
+
+      // 🚪 로그아웃 처리
+      logout: async (navigate) => {
+        const { closeSocket } = await import('../sockets/websocket');
+
+        try {
+          const res = await axiosInstance.post('/auth/logout');
+          const { data } = res.data;
+
+          // 카카오 로그아웃 리다이렉트 URL 존재 시
+          if (data) {
+            await closeSocket();
+            set({ accessToken: null, isLoggedIn: false, user: null });
+            localStorage.removeItem('accessToken');
+            window.location.href = data;
+            return;
           }
-        })
-  
-        return { success: true };
-      } catch (err) {
-        const message = err.response?.data?.message || '로그인 실패';
-        return { success: false, message };
-      }
-    },
-  
-    // 🚪 로그아웃 처리
-    logout: async () => {
-      try {
-        await axiosInstance.post('/auth/logout');
-      } catch (e) {
-        console.warn('서버 로그아웃 실패 (무시)');
-      }
-  
-      // 상태 초기화
-      localStorage.removeItem('refreshToken');
-      set({
-        accessToken: null,
-        isLoggedIn: false,
-        user: null,
-      });
-    },
-
-
-    // 유저 정보 불러오기: auth/info
-    fetchUserInfo: async () => {
-      try {
-        const res = await axiosInstance.get('/auth/info');
-        const user = res.data.data;
-        set({ user });
-        console.log('유저 정보 불러오기 성공:', user);
-      } catch (err) {
-        console.error('유저 정보 불러오기 실패:', err);
-        set({ user:null, isLoggedIn: false });
-      }
-    },
-
-    // ✅ 회원가입 + 자동 로그인 처리
-    signup: async ({ email, password, nickname }) => {
-      try {
-        // 1. 회원가입 요청
-        await axiosInstance.post('/auth/signup', {
-          email,
-          password,
-          nickname,
-        });
-
-        // 2. 자동 로그인 시도
-        const loginRes = await get().login({ email, password });
-        if (!loginRes.success) {
-          return { success: false, message: "회원가입은 성공했지만 로그인 실패: " + loginRes.message };
+        } catch (e) {
+          console.warn('서버 로그아웃 실패 (무시)');
         }
 
-        return { success: true };
-      } catch (err) {
-        const message = err.response?.data?.message || '회원가입 실패';
-        return { success: false, message };
-      }
-    },
+        // 일반 로그아웃 처리
+        await closeSocket();
+        set({ accessToken: null, isLoggedIn: false, user: null });
+        localStorage.removeItem('accessToken');
+        if (navigate) navigate('/home');
+      },
 
-  
-    // 🌱 새로고침 후 로그인 상태 복원
-    loadUserFromStorage: async (navigate = null) => {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) return;
 
-      try {
-        const res = await axiosInstance.post('/auth/refresh', null, {
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        });
+      // 유저 정보 불러오기: auth/info
+      fetchUserInfo: async () => {
+        try {
+          const res = await axiosInstance.get('/auth/info');
+          const user = res.data.data;
+          set({ user });
+          console.log('유저 정보 불러오기 성공:', user);
+        } catch (err) {
+          console.error('유저 정보 불러오기 실패:', err);
+          set({ user: null, isLoggedIn: false });
+        }
+      },
 
-        const { accessToken } = res.data.data;
+      // ✅ 회원가입 + 자동 로그인 처리
+      signup: async ({ email, password, nickname }) => {
+        try {
+          // 1. 회원가입 요청
+          await axiosInstance.post('/auth/signup', {
+            email,
+            password,
+            nickname,
+          });
 
-        set({
-          accessToken,
-          isLoggedIn: true,
-        });
-
-        await get().fetchUserInfo();
-
-        // 📍소켓 재연결📍
-        connectSocket({
-          url: import.meta.env.VITE_SOCKET_URL,
-          token: accessToken,
-          handlers: {
-            // common handler
-            navigate,
-
-            // home handler
-            setRoomList: useRoomStore.getState().setRoomList,
-
-            // waiting handler
-            user: get().user,
-            setRoom: () => {},
-            setTeam: () => {},
-            setIsReady: () => {},
-
-            // game handler
-
-            // chat handler
+          // 2. 자동 로그인 시도
+          const loginRes = await get().login({ email, password });
+          if (!loginRes.success) {
+            return { success: false, message: "회원가입은 성공했지만 로그인 실패: " + loginRes.message };
           }
-        });
-      } catch (err) {
-        console.error('리프레시 토큰 재발급 실패');
-        localStorage.removeItem('refreshToken');
-        set({ accessToken: null, isLoggedIn: false });
-      }
-    },
-  }),
-  {
-    name: 'auth',
-    getStorage: () => localStorage,
-    partialize: (state) => ({
-      accessToken: state.accessToken,
-      user: state.user,
-      isLoggedIn: state.isLoggedIn,
+
+          return { success: true };
+        } catch (err) {
+          const message = err.response?.data?.message || '회원가입 실패';
+          return { success: false, message };
+        }
+      },
+
+
+      // 🌱 새로고침 후 로그인 상태 복원
+      loadUserFromStorage: async (navigate = null) => {
+        const accessToken = get().accessToken;
+        const isLoggedIn = get().isLoggedIn;
+
+        if (!accessToken || isLoggedIn) return;
+
+        try {
+          await get().fetchUserInfo();
+          set({ isLoggedIn: true });
+
+          console.log("socket 재연결 호출");
+          // 📍소켓 재연결📍
+          connectSocket({
+            url: import.meta.env.VITE_SOCKET_URL,
+            token: accessToken,
+            handlers: {
+              // common handler
+              navigate,
+
+              // home handler
+              setRoomList: useRoomStore.getState().setRoomList,
+
+              // waiting handler
+              user: get().user,
+              setRoom: () => { },
+              setTeam: () => { },
+              setIsReady: () => { },
+
+              // game handler
+              onGameStarted: (data) => {
+                useGameStore.getState().setGameStarted(data);
+              },
+              onGameKeyword: (data) => {
+                useGameStore.getState().setGameKeyword(data);
+              },
+              onGameAnswerSubmitted: (data) => {
+                useGameStore.getState().setGameAnswerSubmitted(data);
+              },
+              onGameTurnOvered: (data) => {
+                useGameStore.getState().setGameTurnOvered(data);
+              },
+              onGameRoundOvered: (data) => {
+                useGameStore.getState().setGameRoundOvered(data);
+              },
+              onGameNewRound: (data) => {
+                useGameStore.getState().setGameNewRound(data);
+              },
+
+              // chat handler
+            }
+          });
+        } catch (err) {
+          console.error('자동 로그인 실패 (accessToken 만료)');
+          set({ accessToken: null, isLoggedIn: false });
+        }
+      },
     }),
-  }
-));
-  
+    {
+      name: 'auth',
+      getStorage: () => localStorage,
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        user: state.user,
+        isLoggedIn: state.isLoggedIn,
+      }),
+    }
+  ));
+
 export default useAuthStore;

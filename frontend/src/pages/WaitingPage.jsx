@@ -1,10 +1,10 @@
 // src/pages/WaitingPage.jsx
 
 // 방정보 받아오기 위해서서
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
-import { getSocket } from "../sockets/websocket";
+import { getSocket, updateHandlers } from "../sockets/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
@@ -16,6 +16,7 @@ import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggleButton";
 import useAuthStore from "../store/useAuthStore";
+import useGameStore from "../store/useGameStore";
 import {
   emitTeamChange,
   emitReadyChange,
@@ -37,46 +38,54 @@ const WaitingPage = () => {
   const [kickModalOpen, setKickModalOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState(null);
 
-  const isHost = room?.master?.id === user?.id;
+  const isHost = room?.master?.id === user?.userAccountId;
+
+  const { roomId } = useParams();
+  const setRoomId = useGameStore((state) => state.setRoomId);
+  useEffect(() => {
+    if (!roomId) return;
+    setRoomId(roomId);
+  }, [roomId, setRoomId]);
 
   // WebSocket 메시지 수신 처리
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !user) return;
+    if (!user) return;
 
-    const handleMessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        handleWaitingMessage(msg, {
-          user,
-          room,
-          setRoom,
-          setTeam,
-          setIsReady,
-          navigate,
-        });
-      } catch (err) {
-        console.error("[WaitingPage] WebSocket 메시지 파싱 실패", err);
-      }
+    // waiting 관련 핸들러 업데이트
+    updateHandlers({
+      user,
+      room,
+      setRoom,
+      setTeam,
+      setIsReady,
+      navigate,
+    });
+
+    return () => {
+      // 컴포넌트 언마운트 시 핸들러 정리
+      updateHandlers({
+        user: null,
+        room: null,
+        setRoom: () => {},
+        setTeam: () => {},
+        setIsReady: () => {},
+      });
     };
-
-    socket.addEventListener("message", handleMessage);
-    return () => socket.removeEventListener("message", handleMessage); // 중복 안되도록 클린업
   }, [user, room, navigate]);
 
   // 팀, 준비 관련
   useEffect(() => {
     if (!room || !user) return;
 
-    const myTeam = room.RED.some((u) => u.id === user.id)
+    const myTeam = room.RED.some((u) => u.id === user.userAccountId)
       ? "RED"
-      : room.BLUE.some((u) => u.id === user.id)
+      : room.BLUE.some((u) => u.id === user.userAccountId)
         ? "BLUE"
         : null;
 
     setTeam(myTeam);
 
-    const me = room[myTeam]?.find((u) => u.id === user.id);
+    const me = room[myTeam]?.find((u) => u.id === user.userAccountId);
     setIsReady(me?.status === "READY");
   }, [room, user]);
 
