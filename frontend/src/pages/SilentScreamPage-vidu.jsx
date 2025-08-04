@@ -246,3 +246,4 @@
 
 // export default SilentScreamPage_VIDU;
 
+export default SilentScreamPage_VIDU;
