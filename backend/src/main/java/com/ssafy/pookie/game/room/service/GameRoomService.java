@@ -95,6 +95,7 @@ public class GameRoomService {
                             "msg", joinDto.getUser().getUserNickname() + "가 입장하였습니다.",
                             "room", room.mappingRoomInfo()
                     ));
+            // TODO : 입장 정보를 lobby 의 roomlist 에 업데이트 해줘야함
 
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -304,20 +305,7 @@ public class GameRoomService {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
-                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
-                            "type", MessageDto.Type.ROOM_CREATED.toString(),
-                            "room", Map.of(
-                                    "roomId", room.getRoomId(),
-                                    "roomTitle", room.getRoomTitle(),
-                                    "gameType", room.getGameType(),
-                                    "roomMaster", room.getRoomMaster().getUserNickname(),
-                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
-                                    "teamInfo", Map.of(
-                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
-                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
-                                    )
-                            )));
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

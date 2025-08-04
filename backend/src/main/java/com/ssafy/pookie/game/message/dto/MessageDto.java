@@ -9,7 +9,7 @@ public class MessageDto {
         // request
         ROOM_JOIN,
         // response
-        ROOM_LIST, ROOM_CREATED, ROOM_REMOVED,
+        ROOM_LIST, ROOM_CREATED, ROOM_REMOVED, ROOM_UPDATE,
 
         // Room event ( WAITING ROOM )
         // request
