@@ -1,7 +1,7 @@
 // src/pages/WaitingPage.jsx
 
 // 방정보 받아오기 위해서서
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket, updateHandlers } from "../sockets/websocket";
@@ -16,6 +16,7 @@ import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggleButton";
 import useAuthStore from "../store/useAuthStore";
+import useGameStore from "../store/useGameStore";
 import {
   emitTeamChange,
   emitReadyChange,
@@ -37,9 +38,16 @@ const WaitingPage = () => {
   const [kickModalOpen, setKickModalOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState(null);
 
-  const isHost = room?.master?.id === user?.id;
+  const isHost = room?.master?.id === user?.userAccountId;
 
-  // WaitingPage용 소켓 핸들러 등록
+  const { roomId } = useParams();
+  const setRoomId = useGameStore((state) => state.setRoomId);
+  useEffect(() => {
+    if (!roomId) return;
+    setRoomId(roomId);
+  }, [roomId, setRoomId]);
+
+  // WebSocket 메시지 수신 처리
   useEffect(() => {
     if (!user) return;
 
@@ -69,15 +77,15 @@ const WaitingPage = () => {
   useEffect(() => {
     if (!room || !user) return;
 
-    const myTeam = room.RED.some((u) => u.id === user.id)
+    const myTeam = room.RED.some((u) => u.id === user.userAccountId)
       ? "RED"
-      : room.BLUE.some((u) => u.id === user.id)
+      : room.BLUE.some((u) => u.id === user.userAccountId)
         ? "BLUE"
         : null;
 
     setTeam(myTeam);
 
-    const me = room[myTeam]?.find((u) => u.id === user.id);
+    const me = room[myTeam]?.find((u) => u.id === user.userAccountId);
     setIsReady(me?.status === "READY");
   }, [room, user]);
 

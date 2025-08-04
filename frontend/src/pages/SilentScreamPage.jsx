@@ -4,12 +4,16 @@ import { useEffect, useParams, useState } from "react";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
+import PopUpModal from "../components/atoms/modal/PopUpModal";
+import KeywordModal from "../components/atoms/modal/KeywordModal";
+import SubmitModal from "../components/molecules/games/SubmitModal";
+
+import useAuthStore from "../store/useAuthStore.js";
+import useGameStore from '../store/useGameStore'
 
 const SilentScreamPage = () => {
-  
-  // 방 id 정보
-  // const {roomId} = useParams();
 
+  const {user} = useAuthStore();
   // 상태 관리 
   const [turnTeam, setTurnTeam] = useState("red");
   const [round,setRound] = useState(1);
@@ -22,14 +26,31 @@ const SilentScreamPage = () => {
   const [currentKeywordIdx,setCurrentKeywordIdx] = useState(null);
   const [scores, setScores] = useState({ red: 0, blue: 0 });
 
+  // 모달 상태 관리
+  const [isPopupModalOpen, setIsPopupModalOpen] = useState(false);
+  const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
+
+  // const {roomId} = useParams();
+  // const setRoomId = useGameStore((state) => state.setRoomId);
+  // useEffect(()=> {
+  //   if (!roomId) return;
+  //   setRoomId(roomId); 
+  //   }, [roomId,setRoomId]);
 
   useEffect(() => {
-    console.log('로그인 상태 확인')
-    // console.log('isLoggedIn', isLoggedIn)
-    // console.log('user', user)
-    // console.log('accessToken', accessToken)
-  }, []);
+    // 페이지 로드 시 게임 시작 모달 오픈
+    setIsGamestartModalOpen(true);
 
+    // 3초 후 게임 시작 모달 닫음
+    const timer = setTimeout(() => {
+      setIsGamestartModalOpen(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+  
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지는 absolute로 완전 뒤로 보내야 함 */}
@@ -116,6 +137,13 @@ const SilentScreamPage = () => {
         </div>
 
       </div>
+          {/*  GAME START 모달 */}
+  <PopUpModal 
+    isOpen={isGamestartModalOpen} 
+    onClose={() => setIsGamestartModalOpen(false)}
+  >
+    <p className="text-6xl font-bold font-pixel">GAME START</p>
+  </PopUpModal>
     </div>
 
   );

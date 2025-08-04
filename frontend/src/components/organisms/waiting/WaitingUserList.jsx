@@ -42,8 +42,8 @@ const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick }) => {
           {u ? (
             <WaitingUserCard
               user={u}
-              isMe={u.userId === user?.id}
-              isMyRoomMaster={roomMasterId === user?.id}
+              isMe={u.userId === user?.userAccountId}
+              isMyRoomMaster={roomMasterId === user?.userAccountId}
               onRightClickKick={onRightClickKick}
             />
           ) : (
