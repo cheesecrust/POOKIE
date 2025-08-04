@@ -52,9 +52,12 @@ const SilentScreamPage_VIDU = () => {
 
             // 캠 시작
             const videoTrack = await createLocalVideoTrack();
+            const audioTrack = await createLocalAudioTrack();
             await newRoom.localParticipant.publishTrack(videoTrack);
+            await newRoom.localParticipant.publishTrack(audioTrack);
             setPublisherTrack({
-                track: videoTrack,
+                videoTrack,
+                audioTrack,
                 identity: participantName,
                 nickname: myNickname,
             });
@@ -146,7 +149,7 @@ const SilentScreamPage_VIDU = () => {
         });
 
         if (!res.ok) {
-          throw new Error("open vidu 토큰 요청 실패");
+          throw new Error("Livekit 토큰 요청 실패");
         }
 
         const tokenObj = await res.json();
@@ -172,26 +175,32 @@ const SilentScreamPage_VIDU = () => {
         {/* 🔴 현재팀 캠 */}
         <div className="relative w-full h-[350px]">
           {/* user1 - 왼쪽 크게 */}
+          {redTeam[0] && (
           <div className="absolute top-10 left-5 w-180 h-125 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={redTeam[0].track} />
             <p className="text-start text-4xl px-5 py-110">
-             user1
+             {redTeam[0].nickname || "user1"}
             </p>
           </div>
-
+          )}
           {/* user2 */}
+          {redTeam[1] && (
           <div className="absolute top-10 left-195 w-90 h-60 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={redTeam[1].track} />
             <p className="text-start text-2xl px-5 py-50">
-              user2
+             {redTeam[1].nickname || "user2"}
             </p>
           </div>
-
+          )}
           {/* user3 */}
+          {redTeam[2] && (
           <div className="absolute top-75 left-195 w-90 h-60 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={redTeam[2].track} />
             <p className="text-start text-2xl px-5 py-50">
-              user3
+             {redTeam[2].nickname || "user3"}
             </p>
           </div>
-
+          )}
         </div>
 
 
@@ -202,25 +211,34 @@ const SilentScreamPage_VIDU = () => {
             BLUE TEAM
           </div>
           {/* user4 */}
+          {blueTeam[0] && (
           <div className="absolute bottom-0 right-170 w-75 h-60 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={blueTeam[0].track} />
             <p className="text-start text-2xl px-5 py-50">
-              user4
+             {blueTeam[0].nickname || "user4"}
             </p>
           </div>
+          )}
 
           {/* user5 */}
+          {blueTeam[1] && (
           <div className="absolute bottom-0 right-90 w-75 h-60 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={blueTeam[1].track} />
             <p className="text-start text-2xl px-5 py-50">
-              user5
+             {blueTeam[1].nickname || "user5"}
             </p>
           </div>
+          )}
 
           {/* user6 */}
+          {blueTeam[2] && (
           <div className="absolute bottom-0 right-10 w-75 h-60 bg-white rounded-lg shadow-lg">
+            <LiveKitVideo videoTrack={blueTeam[2].track} />
             <p className="text-start text-2xl px-5 py-50">
-              user6
+             {blueTeam[2].nickname || "user6"}
             </p>
           </div>
+          )}
 
         </div>
 
