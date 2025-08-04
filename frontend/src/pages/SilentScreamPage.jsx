@@ -22,6 +22,7 @@ const SilentScreamPage = () => {
   const [currentKeywordIdx,setCurrentKeywordIdx] = useState(null);
   const [scores, setScores] = useState({ red: 0, blue: 0 });
 
+
   useEffect(() => {
     console.log('로그인 상태 확인')
     // console.log('isLoggedIn', isLoggedIn)
