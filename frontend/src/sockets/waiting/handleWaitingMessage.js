@@ -33,7 +33,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
             console.log("🟢 새 사용자 입장:", data.user?.nickname, "| 방 상태 업데이트");
             updateClientState(data.room);
             break;
-            
+
         // 팀 변경
         case "WAITING_TEAM_CHANGED":
 
@@ -48,13 +48,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
             break;
 
         case "WAITING_USER_LEAVED": {
-            // 지금 유저가 본인이면 -> 홈으로 이동
-            if (data.user?.id === user.id) {
-                const isKicked = data.reason === "KICKED"; // <- 서버가 reason을 같이 보내줘야 함
-                navigate("/home", { state: { kicked: isKicked ?? false } });
-            } else {
-                updateClientState(data.room); // 나 외의 다른 유저가 나간 경우
-            }
+            navigate("/home");
             break;
         }
 
@@ -68,7 +62,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
             const { rtc_token, turn, msg } = data;
 
             console.log("🟢 게임 시작 메시지 수신:", data);
-
+            // 전역으로 넣어달라 하십니다
             navigate(`/${room.gameType.toLowerCase()}/${room.id}`, {
                 state: {
                     rtcToken: rtc_token,
