@@ -3,30 +3,32 @@ import {create} from 'zustand';
 const useGameStore = create((set) => ({
     rtctoken: null,
     roomId: null,
+
     round: 1,
     turn: "RED",
+
     timeleft: null,
     turnTimeLeft: null,
+
     keywordList: [],
     keywordIdx: null,
+
     norIdxList: [],
     repIdxList: [],
     repIdx: null,
-    inputanswer: null,
-    teamScore: { red: 0, blue: 0 },
     answer: null,
     nowInfo: null,
+
     tempTeamScore: null,
+
+    // gameResult 랑 teamScore 같은듯?
+    teamScore: null,
     gameResult: null,
     roundResult: null,
 
-    setRoomId: (id) => set({roomId:id}),
+    win: null,
 
-    setGameStarted: (data) => set({
-        rtctoken: data.rtctoken,
-        round: data.round,
-        turn: data.turn,
-    }),
+    setRoomId: (id) => set({roomId:id}),
 
     setGameKeyword: (data) => set({
         keywordList: data.keywordList,
@@ -39,6 +41,8 @@ const useGameStore = create((set) => ({
     setGameAnswerSubmitted: (data) => set({
         nowInfo: data.nowInfo,
         answer: data.answer,
+        keywordIdx: data.nowInfo.keywordIdx,
+        repIdx: data.nowInfo.repIdx,
     }),
 
     setGameTurnOvered: (data) => set({
@@ -51,6 +55,7 @@ const useGameStore = create((set) => ({
         round: data.round,
         gameResult: data.gameResult,
         roundResult: data.roundResult,
+        win: data.win,
     }),
 
     setGameNewRound: (data) => set({
@@ -58,7 +63,12 @@ const useGameStore = create((set) => ({
         round: data.round,
         teamScore: data.teamScore,
     }),
-    
+
+    setGamePassed: (data) => set({
+        nowInfo: data.nowInfo,
+        keywordIdx: data.nowInfo.keywordIdx,
+        repIdx: data.nowInfo.repIdx,
+    }),
     
 
 
