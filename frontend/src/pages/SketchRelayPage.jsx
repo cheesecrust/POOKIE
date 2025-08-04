@@ -6,6 +6,7 @@ import ChatBox from "../components/molecules/common/ChatBox";
 import RightButton from '../components/atoms/button/RightButton';
 import PopUpModal from '../components/atoms/modal/PopUpModal';
 import KeywordModal from '../components/atoms/modal/KeywordModal';
+import SubmitModal from '../components/molecules/games/SubmitModal';
 import {
   emitTurnOver,
   emitRoundOver,
@@ -51,7 +52,7 @@ const SketchRelayPage = () => {
   // 모달 상태 (게임시작, 턴체인지, 정답입력, 결과확인)
   const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
-  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(true);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
   useEffect(() => {
@@ -247,12 +248,7 @@ const SketchRelayPage = () => {
       </div>
 
 
-    {/* 블루팀 캠 */}
-    <div className="flex gap-19 justify-center">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="w-50 h-32 bg-white rounded-lg shadow-lg" />
-      ))}
-    </div>
+ 
         {/* RoundInfo (우측 상단 고정) */}
         <div className="absolute top-4 right-4 z-20">
       <RoundInfo round={1} redScore={0} blueScore={0} />
@@ -274,6 +270,12 @@ const SketchRelayPage = () => {
       <button onClick={() =>{console.log("emitAnswerSubmit"); emitAnswerSubmit();} } className="bg-blue-300 px-4 py-2 rounded">ANSWER_SUBMIT</button>
     </div>
     
+    {/* 정답 입력 모달 */}
+    <SubmitModal 
+      isOpen={isSubmitModalOpen} 
+      onClose={() => setIsSubmitModalOpen(false)}
+    />
+    
     {/*  GAME START 모달 */}
   <PopUpModal 
     isOpen={isGamestartModalOpen} 
@@ -281,6 +283,7 @@ const SketchRelayPage = () => {
   >
     <p className="text-6xl font-bold font-pixel">GAME START</p>
   </PopUpModal>
+  
   </div>
    
 )
