@@ -56,7 +56,7 @@ export const emitGameTypeChange = ({ roomId, requestGameType }) => {
  * 게임 시작 요청 emit (방장만 가능)
  */
 export const emitStartGame = ({ roomId }) => {
-	sendMessage('WAITING_START_GAME', {
+	sendMessage('WAITING_GAME_START', {
 		roomId,
 	});
 };

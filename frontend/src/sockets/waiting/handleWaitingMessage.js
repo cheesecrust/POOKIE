@@ -18,7 +18,9 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setRoom: setGlobalRoom,
         setRtcToken,
         setTurn,
-        setGameMsg,
+        setRound,
+        setRed,
+        setBlue,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -69,16 +71,18 @@ const handleWaitingMessage = (data, handlers = {}) => {
         }
 
         case "GAME_STARTED": {
-            const { rtc_token, turn, msg, room: latestRoom } = data;
-
+            const { rtc_token, turn, round } = data;
+            console.log(data)
             console.log("🟢 게임 시작 메시지 수신:", data);
             // 전역으로 넣어달라 하십니다
-            setGlobalRoom(latestRoom);
             setRtcToken(rtc_token);
             setTurn(turn);
-            setGameMsg(msg);
+            setRound(round);
+            setRed(room.RED);
+            setBlue(room.BLUE);
 
-            navigate(`/${latestRoom.gameType.toLowerCase()}/${latestRoom.id}`);
+            console.log("🟢 룸정보:", room);
+            navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             break;
         }
 
