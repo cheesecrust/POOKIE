@@ -2,7 +2,7 @@
 
 const UserReady = () => {
   return (
-    <div className="absolute bottom-0 w-full h-1/5 bg-[#F4A8A8] text-black text-center py-1 text-lg z-10">
+    <div className="absolute bottom-0 w-full h-1/5 bg-rose-300 text-black text-center py-1 text-lg z-10">
       READY
     </div>
   );

@@ -29,7 +29,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-48 h-56 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
+        className={`relative w-48 h-56 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
       >
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
@@ -58,8 +58,8 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
 
       {/* 닉네임 */}
       <div
-        className={`mt-1 w-[120px] text-sm font-bold ${
-          isMe ? "bg-cyan-200" : "bg-white"
+        className={`mt-2 truncate w-[120px] text-sm font-bold ${
+          isMe ? "bg-cyan-200" : "bg-red-50"
         } rounded px-2 py-1 text-center`}
       >
         {user.userNickname}

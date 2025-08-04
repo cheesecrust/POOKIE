@@ -11,6 +11,9 @@ import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
+import bgSamePose from '../assets/background/background_samepose.gif'
+import bgSilentScream from '../assets/background/background_silentscream.gif'
+import bgSketchRelay from '../assets/background/background_sketchrelay.gif'
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
@@ -42,6 +45,20 @@ const WaitingPage = () => {
 
   const { roomId } = useParams();
   const setRoomId = useGameStore((state) => state.setRoomId);
+  
+  const getBackgroundImageByGameType = (type) => {
+    switch (type) {
+      case "SAMEPOSE":
+        return bgSamePose;
+      case "SILENTSCREAM":
+        return bgSilentScream;
+      case "SKETCHRELAY":
+        return bgSketchRelay;
+      default:
+        return bgImage; // 기본 배경
+    }
+  };
+  
   useEffect(() => {
     if (!roomId) return;
     setRoomId(roomId);
@@ -168,8 +185,7 @@ const WaitingPage = () => {
       <section
         className="basis-3/4 flex flex-col"
         style={{
-          backgroundImage: `url(${bgImage})`,
-          backgroundSize: "cover",
+          backgroundImage: `url(${getBackgroundImageByGameType(room?.gameType)})`,          backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
