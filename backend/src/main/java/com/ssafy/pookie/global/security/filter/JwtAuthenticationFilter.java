@@ -81,9 +81,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String nickname = userAccount.getNickname();
             String role = "USER"; // TODO: DB에서 조회
-
+            int coin = userAccount.getCoin();
             // CustomUserDetails 생성
-            CustomUserDetails userDetails = new CustomUserDetails(userAccountId, email, nickname, role);
+            CustomUserDetails userDetails = new CustomUserDetails(userAccountId, email, nickname, coin, role);
 
             // 인증 객체 생성
             UsernamePasswordAuthenticationToken authentication =

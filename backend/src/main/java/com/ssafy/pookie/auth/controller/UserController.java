@@ -152,6 +152,7 @@ public class UserController {
                 .userAccountId(userDetails.getUserAccountId())
                 .email(userDetails.getEmail())
                 .nickname(userDetails.getNickname())
+                .coin(userDetails.getCoin())
                 .repCharacter(userCharacter)
                 .build();
 
