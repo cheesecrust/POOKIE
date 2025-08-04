@@ -24,19 +24,21 @@ public class ChatDto {
     }
 
     public void sendChat(WebSocketSession session, RoomStateDto room) throws IOException {
+        // 전체 채팅
         if(this.getTeam() == null || this.getTeam().toString().isEmpty() || this.getTeam() == UserDto.Team.NONE) {
             for(WebSocketSession s : room.getSessions()) {
-                if(s == session) continue;
+//                if(s == session) continue;        // 자기 자신 제외 로직
                 s.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(mappingMessage())));
             }
         } else {
             room.getUsers().get(this.team.toString()).stream().forEach((user) -> {
-                if (user.getTeam() == this.team && user.getSession() != session) {
+//                if (user.getTeam() == this.team && user.getSession() != session) {
+                if (user.getTeam() == this.team) {
                     try {
                         user.getSession()
                                 .sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(mappingMessage())));
                     } catch (IOException e) {
-                        e.printStackTrace(); // 또는 log.error 등 처리
+                        throw new IllegalArgumentException("채팅 전송 도중 오류가 발생하였습니다.");
                     }
                 }
             });
