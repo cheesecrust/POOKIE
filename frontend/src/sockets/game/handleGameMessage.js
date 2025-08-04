@@ -37,6 +37,16 @@ export default async function handleGameMessage(msg, handlers) {
         console.log("그림 그리는 사람 변경:", payload);
         handlers?.onGamePainterChanged?.(payload);
         break;
+      
+      // case "TIMER_PREPARE_START":
+      //   console.log("prepare start:", payload);
+      //   handlers?.onTimerPrepareStart?.(payload);
+      //   break;
+
+      // case "TIMER":
+      //   console.log("prepare end:", payload);
+      //   handlers?.onTimerPrepareEnd?.(payload);
+      //   break;
 
       default:
         console.warn("[GAME] 처리되지 않은 메시지:", msg);

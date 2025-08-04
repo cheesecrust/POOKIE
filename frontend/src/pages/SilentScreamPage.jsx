@@ -12,7 +12,7 @@ import RightButton from "../components/atoms/button/RightButton.jsx"
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore'
-import { emitGamePass, emitAnswerSubmit } from "../sockets/game/emit.js";
+import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
 
@@ -51,10 +51,13 @@ const SilentScreamPage = () => {
   const [score, setScore] = useState(0); // current turn 팀 점수
 
   // 모달 상태 관리
-  const [isPopupModalOpen, setIsPopupModalOpen] = useState(false);
+  const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
+
+  // 추가 상태
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // const {roomId} = useParams();
   // const setRoomId = useGameStore((state) => state.setRoomId);
@@ -63,17 +66,38 @@ const SilentScreamPage = () => {
   //   setRoomId(roomId); 
   //   }, [roomId,setRoomId]);
 
+
+
+  // 1️ 첫 페이지 로딩
   useEffect(() => {
-    // 페이지 로드 시 게임 시작 모달 오픈
     setIsGamestartModalOpen(true);
 
-    // 3초 후 게임 시작 모달 닫음
-    const timer = setTimeout(() => {
+    const timer1 = setTimeout(() => {
       setIsGamestartModalOpen(false);
+      setIsTurnModalOpen(true);
+
+      const timer2 = setTimeout(() => {
+        setIsTurnModalOpen(false);
+        setIsFirstLoad(false); // 첫 진입 끝남
+      }, 3000);
+
+      return () => clearTimeout(timer2);
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(timer1);
   }, []);
+
+  // 턴 바뀔 때
+  useEffect(() => {
+    if (!isFirstLoad && !isGamestartModalOpen) {
+      setIsTurnModalOpen(true);
+      const timer = setTimeout(() => {
+        setIsTurnModalOpen(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [turn]);
 
     // repIdxList와 내 id가 매칭되고 keywordIdx가 변경되면 제시어 모달 띄우기
   useEffect(() => {
@@ -83,12 +107,9 @@ const SilentScreamPage = () => {
     }
   }, [keywordIdx]);
 
-  // 제시어 제출 모달 띄우기
-  useEffect(() => {
-    if (norIdxList?.includes(myIdx)) {
-      setIsSubmitModalOpen(true);
-    }
-  }, []);
+  
+
+ 
   
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -103,7 +124,7 @@ const SilentScreamPage = () => {
       <div className="relative z-10 w-full h-full flex flex-col items-center px-10">
         {/* 현재 팀 턴 */}
         <div className="text-center text-3xl font-bold">
-          RED TEAM TURN
+          {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
         </div>
 
         {/* 🔴 현재팀 캠 */}
@@ -205,6 +226,14 @@ const SilentScreamPage = () => {
         children={keyword}
       >
       </KeywordModal>
+
+      {/* 턴 모달 */}
+      <PopUpModal 
+        isOpen={isTurnModalOpen} 
+        onClose={() => setIsTurnModalOpen(false)}
+      >
+        <p className="text-6xl font-bold font-pixel">{turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}</p>
+      </PopUpModal>
     </div>
 
   );
