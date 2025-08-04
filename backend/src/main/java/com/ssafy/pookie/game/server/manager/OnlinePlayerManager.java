@@ -112,7 +112,6 @@ public class OnlinePlayerManager {
      */
     public void removeFromLobby(WebSocketSession session) throws IOException {
         removeSessionFromRooms(session);
-
         Long userAccountId = (Long) session.getAttributes().get("userAccountId");
         getLobby().remove(userAccountId);
 
@@ -134,6 +133,17 @@ public class OnlinePlayerManager {
                 room.removeUser(session);
                 if(room.getSessions().isEmpty()) {
                     removeRoomFromServer(room.getRoomId());
+                } else {
+                    room.getSessions().forEach((s) -> {
+                        try {
+                            sendToMessageUser(s, Map.of(
+                                    "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
+                                    "msg", session.getAttributes()
+                            ));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                 }
             }
         });
