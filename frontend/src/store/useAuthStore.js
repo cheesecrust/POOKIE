@@ -1,9 +1,9 @@
 // src/store/useAuthStore.js
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axiosInstance from "../lib/axiosInstance";
 import { connectSocket } from '../sockets/websocket';
-import { handleSocketMessage } from '../sockets/handler';
 import useRoomStore from './useRoomStore';
 
 const useAuthStore = create(
@@ -20,7 +20,7 @@ const useAuthStore = create(
     login: async ({ email, password, navigate }) => {
       try {
         const res = await axiosInstance.post('/auth/login', { email, password });
-        const { accessToken, refreshToken, userAccountId, nickname } = res.data.data;
+        const { accessToken, userAccountId, nickname } = res.data.data;
   
         // 저장
         set({
@@ -29,8 +29,6 @@ const useAuthStore = create(
           isLoggedIn: true,
         });
   
-        // refreshToken은 로컬에만!
-        localStorage.setItem('refreshToken', refreshToken);
         await get().fetchUserInfo();
 
         // 📍소켓 연결📍
@@ -64,24 +62,30 @@ const useAuthStore = create(
     },
   
     // 🚪 로그아웃 처리
-    logout: async () => {
+    logout: async (navigate) => {
+      const { closeSocket } = await import('../sockets/websocket');
+
       try {
-        await axiosInstance.post('/auth/logout');
+        const res = await axiosInstance.get('/auth/logout');
+        const { data } = res.data;
+
+        // 카카오 로그아웃 리다이렉트 URL 존재 시
+        if (data) {
+          await closeSocket();
+          set({ accessToken: null, isLoggedIn: false, user: null });
+          localStorage.removeItem('accessToken');
+          window.location.href = data;
+          return;
+        }
       } catch (e) {
         console.warn('서버 로그아웃 실패 (무시)');
       }
-  
-      // 소켓 연결 해제
-      const { closeSocket } = await import('../sockets/websocket');
-      closeSocket();
 
-      // 상태 초기화
-      localStorage.removeItem('refreshToken');
-      set({
-        accessToken: null,
-        isLoggedIn: false,
-        user: null,
-      });
+      // 일반 로그아웃 처리
+      await closeSocket();
+      set({ accessToken: null, isLoggedIn: false, user: null });
+      localStorage.removeItem('accessToken');
+      if (navigate) navigate('/home');
     },
 
 
@@ -124,22 +128,14 @@ const useAuthStore = create(
   
     // 🌱 새로고침 후 로그인 상태 복원
     loadUserFromStorage: async (navigate = null) => {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) return;
+      const accessToken = get().accessToken;
+      const isLoggedIn = get().isLoggedIn;
+
+      if (!accessToken || isLoggedIn) return;
 
       try {
-        const res = await axiosInstance.post('/auth/refresh', null, {
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        });
-
-        const { accessToken } = res.data.data;
-
-        set({
-          accessToken,
-          isLoggedIn: true,
-        });
-
         await get().fetchUserInfo();
+        set({ isLoggedIn: true });
 
         // 📍소켓 재연결📍
         connectSocket({
@@ -164,8 +160,7 @@ const useAuthStore = create(
           }
         });
       } catch (err) {
-        console.error('리프레시 토큰 재발급 실패');
-        localStorage.removeItem('refreshToken');
+        console.error('자동 로그인 실패 (accessToken 만료)');
         set({ accessToken: null, isLoggedIn: false });
       }
     },

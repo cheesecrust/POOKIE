@@ -8,10 +8,13 @@ import BGMProvider from "./components/audio/BGMProvider";
 function AppContent() {
   const navigate = useNavigate();
   const loadUserFromStorage = useAuthStore((state) => state.loadUserFromStorage);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
-    loadUserFromStorage(navigate); // 새로고침 시 로그인 상태 복원 + 소켓 재연결
-  }, [navigate, loadUserFromStorage]);
+    if (accessToken) {
+      loadUserFromStorage(navigate); // 새로고침 시 로그인 상태 복원 + 소켓 재연결
+    }
+  }, [navigate, loadUserFromStorage, accessToken]);
 
   return (
     <>
