@@ -6,6 +6,8 @@
 import google from "../../../assets/icon/google.png";
 import kakao from "../../../assets/icon/kakao.png";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 const socialStyles = {
   google: {
     iconSrc: `${google}`,
@@ -14,6 +16,7 @@ const socialStyles = {
     textColor: "text-black",
     border: "border border-black",
     label: "구글 회원가입",
+    href: `${BASE_URL}/oauth2/authorization/google`
   },
   kakao: {
     iconSrc: `${kakao}`,
@@ -22,10 +25,11 @@ const socialStyles = {
     textColor: "text-black",
     border: "border border-black",
     label: "카카오 회원가입",
+    href: `${BASE_URL}/oauth2/authorization/kakao`
   },
 };
 
-const SocialButton = ({ provider = "google", onClick, className = "" }) => {
+const SocialButton = ({ provider = "google", className = "" }) => {
   const style = socialStyles[provider];
 
   if (!style) {
@@ -35,7 +39,7 @@ const SocialButton = ({ provider = "google", onClick, className = "" }) => {
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => window.location.href = style.href}
       className={`
         flex items-center justify-center gap-2
         ${style.bgColor} ${style.textColor} ${style.border}

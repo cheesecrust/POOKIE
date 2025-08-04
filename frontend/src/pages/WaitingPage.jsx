@@ -4,7 +4,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
-import { getSocket } from "../sockets/websocket";
+import { getSocket, updateHandlers } from "../sockets/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
@@ -39,29 +39,30 @@ const WaitingPage = () => {
 
   const isHost = room?.master?.id === user?.id;
 
-  // WebSocket 메시지 수신 처리
+  // WaitingPage용 소켓 핸들러 등록
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !user) return;
+    if (!user) return;
 
-    const handleMessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        handleWaitingMessage(msg, {
-          user,
-          room,
-          setRoom,
-          setTeam,
-          setIsReady,
-          navigate,
-        });
-      } catch (err) {
-        console.error("[WaitingPage] WebSocket 메시지 파싱 실패", err);
-      }
+    // waiting 관련 핸들러 업데이트
+    updateHandlers({
+      user,
+      room,
+      setRoom,
+      setTeam,
+      setIsReady,
+      navigate,
+    });
+
+    return () => {
+      // 컴포넌트 언마운트 시 핸들러 정리
+      updateHandlers({
+        user: null,
+        room: null,
+        setRoom: () => {},
+        setTeam: () => {},
+        setIsReady: () => {},
+      });
     };
-
-    socket.addEventListener("message", handleMessage);
-    return () => socket.removeEventListener("message", handleMessage); // 중복 안되도록 클린업
   }, [user, room, navigate]);
 
   // 팀, 준비 관련
