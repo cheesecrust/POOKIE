@@ -19,6 +19,8 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
 
     CharacterCatalog findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int characterStep, PookieType characterType);
 
+    boolean existsByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
+
     CharacterCatalog findCharacterCatalogByUserAccountAndCharacterStepAndCharacterType(UserAccounts userAccountId, int characterStep, PookieType characterType);
 
     List<CharacterCatalog> findCharacterCatalogByUserAccountAndCharacter(UserAccounts userAccount, Characters character);
