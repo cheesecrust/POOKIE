@@ -54,23 +54,18 @@ const RoomList = ({ roomList, keyword }) => {
   };
 
   // ✅ 비밀번호 입력 요청
-  const handlePasswordRequest = (room) => {
+  const handlePasswordRequest = (room, onConfirm) => {
     console.log("🔐 비밀번호 입력 요청 - roomId:", room.roomId);
-    setSecureRoom(room);
+    setSecureRoom({ ...room, onConfirm }); // 콜백 포함
     setRoomPasswordModalOpen(true);
   };
 
   // ✅ 비밀번호 제출 시 emit
   const handlePasswordSubmit = (roomPw) => {
-    console.log("🚪 비밀번호 제출 → emitRoomJoin", {
-      roomId: secureRoom.roomId,
-      roomPw,
-    });
-    emitRoomJoin({
-      roomId: secureRoom.roomId,
-      gameType: secureRoom.gameType,
-      roomPw,
-    });
+    if (!secureRoom) return;
+    
+    // 콜백 처리
+    secureRoom.onConfirm?.(roomPw);
     setRoomPasswordModalOpen(false);
     setSecureRoom(null);
   };
@@ -95,7 +90,7 @@ const RoomList = ({ roomList, keyword }) => {
               <RoomCard
                 key={room.roomId}
                 room={room}
-                participantCount={room.teamInfo?.total}
+                participantCount={room.teamInfo?.TOTAL}
                 onPasswordRequest={handlePasswordRequest}
               />
             ))}

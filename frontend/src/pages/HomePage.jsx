@@ -11,6 +11,7 @@ import useAuthStore from "../store/useAuthStore";
 import useRoomStore from "../store/useRoomStore";
 import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import characterImageMap from "../utils/characterImageMap";
+import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSocket, updateHandlers } from "../sockets/websocket";
@@ -100,6 +101,8 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
+      <FriendMessageWrapper />
+      
       {/* 상단 고정 헤더 */}
       <Header />
 
