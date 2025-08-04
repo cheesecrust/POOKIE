@@ -29,7 +29,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-44 h-56 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
+        className={`relative w-48 h-56 border-4 ${borderColor} bg-white flex flex-col items-center justify-center p-2`}
       >
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
@@ -38,7 +38,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
         <img
           src={user.reqImg || pookiepookie}
           alt="character"
-          className="w-20 h-20 object-contain mb-1"
+          className="w-24 h-24 object-contain mb-1"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = pookiepookie;
@@ -48,7 +48,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
         {/* 방장 뱃지 */}
         {user.isHost && (
           <div className="absolute top-1">
-            <img src={crown} alt="방장" className="w-10 h-10" />
+            <img src={crown} alt="방장" className="w-16 h-16" />
           </div>
         )}
 
