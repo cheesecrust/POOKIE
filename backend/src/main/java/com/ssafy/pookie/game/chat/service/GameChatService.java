@@ -19,9 +19,13 @@ public class GameChatService {
     private final OnlinePlayerManager onlinePlayerManager;
     // Chat
     public void handleChat(WebSocketSession session, ChatDto chatDto) throws IOException {
+        log.info("CHAT REQUEST : ROOM {}", chatDto.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(chatDto.getRoomId());
-            if(!onlinePlayerManager.isAuthorized(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(!onlinePlayerManager.isAuthorized(session, room)) {
+                log.info("CHAT ERROR");
+                throw new IllegalArgumentException("잘못된 요청입니다.");
+            }
             chatDto.sendChat(session, room);
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
