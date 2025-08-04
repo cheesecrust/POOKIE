@@ -84,7 +84,7 @@ const useAuthStore = create(
         const { closeSocket } = await import('../sockets/websocket');
 
         try {
-          const res = await axiosInstance.get('/auth/logout');
+          const res = await axiosInstance.post('/auth/logout');
           const { data } = res.data;
 
           // 카카오 로그아웃 리다이렉트 URL 존재 시
