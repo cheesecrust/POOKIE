@@ -48,7 +48,6 @@ const WaitingPage = () => {
   }, [roomId, setRoomId]);
 
   // WebSocket 메시지 수신 처리
-  // WaitingPage용 소켓 핸들러 등록
   useEffect(() => {
     if (!user) return;
 

@@ -68,8 +68,6 @@ const useAuthStore = create(
               onGameNewRound: (data) => {
                 useGameStore.getState().setGameNewRound(data);
               },
-
-
               // chat handler
             }
           })
