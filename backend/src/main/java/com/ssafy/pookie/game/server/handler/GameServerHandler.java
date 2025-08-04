@@ -72,7 +72,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case WAITING_USER_LEAVE:
                     join = objectMapper.convertValue(msg.getPayload(), JoinDto.class);
                     join.setUser(user);
-                    gameRoomService.handleLeave(session, join.getRoomId());
+                    gameRoomService.handleLeave(session, join.getRoomId(), false);
                     break;
                 case WAITING_TEAM_CHANGE:
                     UserTeamChangeRequestDto userTeamChangeRequestDto = objectMapper.convertValue(msg.getPayload(), UserTeamChangeRequestDto.class);

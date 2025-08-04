@@ -17,6 +17,6 @@ public class RoomMasterForcedRemovalDto {
                .stream().filter((user) ->
                     user.getUserAccountId().equals(this.removeTargetId)
                            && user.getUserNickname().equals(this.removeTargetNickname)
-               ).findFirst().orElse(null);
+               ).findAny().orElse(null);
     }
 }
