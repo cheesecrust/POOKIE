@@ -53,16 +53,21 @@ const handleHomeMessage = (
     }
 
     case "WAITING_JOINED": {
-      const room = data.room
-      const roomId = room?.id
+      const room = data.room;
+      const roomId = room?.id;
+
+      console.log("WAITING_JOINED 수신", roomId);
       if (roomId) {
-        console.log("WAITING_JOINED 수신", roomId);
+        console.log("✅ navigate 존재 여부", typeof navigate);
+        console.log("👉 navigate 직전 실행");
+        console.log(room)
         navigate(`/waiting/${roomId}`, { state: { room } });
       } else {
-        console.warn("roomId 없음")
+        console.warn("❌ roomId 없음");
       }
       break;
     }
+
 
     case "ERROR": {
       console.error("❌ 서버 오류:", data.msg);
