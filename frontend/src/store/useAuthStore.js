@@ -5,6 +5,7 @@ import axiosInstance from "../lib/axiosInstance";
 import { connectSocket } from '../sockets/websocket';
 import { handleSocketMessage } from '../sockets/handler';
 import useRoomStore from './useRoomStore';
+import useGameStore from './useGameStore';
 
 const useAuthStore = create(
   persist(
@@ -51,6 +52,25 @@ const useAuthStore = create(
             setIsReady: () => {},
 
             // game handler
+            onGameStarted: (data) => {
+                useGameStore.getState().setGameStarted(data);
+            },
+            onGameKeyword: (data) => {
+              useGameStore.getState().setGameKeyword(data);
+            },
+            onGameAnswerSubmitted: (data) => {
+              useGameStore.getState().setGameAnswerSubmitted(data);
+            },
+            onGameTurnOvered: (data) => {
+              useGameStore.getState().setGameTurnOvered(data);
+            },
+            onGameRoundOvered: (data) => {
+              useGameStore.getState().setGameRoundOvered(data);
+            },
+            onGameNewRound: (data) => {
+              useGameStore.getState().setGameNewRound(data);
+            },
+
 
             // chat handler
           }
@@ -155,6 +175,24 @@ const useAuthStore = create(
             setIsReady: () => {},
 
             // game handler
+            onGameStarted: (data) => {
+              useGameStore.getState().setGameStarted(data);
+            },
+            onGameKeyword: (data) => {
+              useGameStore.getState().setGameKeyword(data);
+            },
+            onGameAnswerSubmitted: (data) => {
+              useGameStore.getState().setGameAnswerSubmitted(data);
+            },
+            onGameTurnOvered: (data) => {
+              useGameStore.getState().setGameTurnOvered(data);
+            },
+            onGameRoundOvered: (data) => {
+              useGameStore.getState().setGameRoundOvered(data);
+            },
+            onGameNewRound: (data) => {
+              useGameStore.getState().setGameNewRound(data);
+            },
 
             // chat handler
           }
