@@ -3,8 +3,8 @@
 // 방정보 받아오기 위해서서
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { handleWaitingMessage } from "../sockets/waiting/onMessage";
-import { getSocket } from "../sockets/common/websocket";
+import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
+import { getSocket } from "../sockets/websocket";
 
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
@@ -15,7 +15,7 @@ import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggleButton";
-import useAuthStore from "../store/store";
+import useAuthStore from "../store/useAuthStore";
 import {
   emitTeamChange,
   emitReadyChange,
@@ -29,8 +29,8 @@ const WaitingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [room, setRoom] = useState(location.state?.room);
-
   const user = useAuthStore((state) => state.user);
+
   const [team, setTeam] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -44,11 +44,12 @@ const WaitingPage = () => {
     const socket = getSocket();
     if (!socket || !user) return;
 
-    const handleRawMessage = (e) => {
+    const handleMessage = (e) => {
       try {
-        const data = JSON.parse(e.data);
-        handleWaitingMessage(data, {
+        const msg = JSON.parse(e.data);
+        handleWaitingMessage(msg, {
           user,
+          room,
           setRoom,
           setTeam,
           setIsReady,
@@ -59,9 +60,9 @@ const WaitingPage = () => {
       }
     };
 
-    socket.addEventListener("message", handleRawMessage);
-    return () => socket.removeEventListener("message", handleRawMessage);
-  }, [user, navigate]);
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage); // 중복 안되도록 클린업
+  }, [user, room, navigate]);
 
   // 팀, 준비 관련
   useEffect(() => {
@@ -79,10 +80,9 @@ const WaitingPage = () => {
     setIsReady(me?.status === "READY");
   }, [room, user]);
 
+  // emit & navigate 로직
   // 방 나가기
-  const handleLeaveRoom = () => {
-    emitLeaveRoom({ roomId: room.id });
-  };
+  const handleLeaveRoom = () => emitLeaveRoom({ roomId: room.id });
 
   // 게임 시작
   const handleStartGame = () => {
@@ -101,9 +101,8 @@ const WaitingPage = () => {
     setIsReady(!isReady);
   };
 
-  // 강퇴
+  // 강퇴 (네)누르면
   const handleKickConfirm = () => {
-    console.log("[🔴 강퇴 요청] 대상:", kickTarget);
     emitForceRemove({
       roomId: room.id,
       removeTargetId: kickTarget.userId,
@@ -116,10 +115,7 @@ const WaitingPage = () => {
   // 게임 타입 변경
   const handleGameTypeChange = (selectedType) => {
     if (selectedType !== room?.gameType) {
-      emitGameTypeChange({
-        roomId: room.id,
-        requestGameType: selectedType,
-      });
+      emitGameTypeChange({ roomId: room.id, requestGameType: selectedType });
     }
   };
 
@@ -127,7 +123,7 @@ const WaitingPage = () => {
   const MAX_USERS = 6;
   const userSlots = room
     ? (() => {
-        // 1. RED와 BLUE를 그대로 합침 (순서 보존)
+        // RED와 BLUE를 그대로 합침 (순서 보존)
         const allUsers = [...room.RED, ...room.BLUE];
 
         //  그대로 순서대로 카드 정보 생성
@@ -140,7 +136,7 @@ const WaitingPage = () => {
           repImg: u.repImg,
         }));
 
-        // 3. 빈 슬롯 채우기
+        // 빈 슬롯 채우기
         while (combinedUsers.length < MAX_USERS) {
           combinedUsers.push(null);
         }
@@ -159,6 +155,7 @@ const WaitingPage = () => {
   // UI
   return (
     <div className="flex flex-row h-screen">
+      {/* 유저와 설정 관련 */}
       <section
         className="basis-3/4 flex flex-col"
         style={{
@@ -177,6 +174,8 @@ const WaitingPage = () => {
               {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
             </h1>
             <p className=" text-sm">게임 선택:</p>
+
+            {/* 게임 타입 토글 버튼 */}
             <GameTypeToggleButton
               gameType={room?.gameType}
               onToggle={handleGameTypeChange}
@@ -219,6 +218,7 @@ const WaitingPage = () => {
         </div>
       </section>
 
+      {/* 채팅과 카메라 */}
       <section className="basis-1/4 flex flex-col bg-rose-300">
         <div className="basis-1/8 m-4 flex justify-end items-center">
           <ModalButton
@@ -235,7 +235,12 @@ const WaitingPage = () => {
 
         <div className="basis-4/8 relative flex justify-center items-center">
           <div className="absolute bottom-0">
-            <ChatBox className="w-full" height="300px" />
+            <ChatBox
+              className="w-full"
+              height="300px"
+              roomId={room.id}
+              team={team}
+            />
           </div>
         </div>
       </section>

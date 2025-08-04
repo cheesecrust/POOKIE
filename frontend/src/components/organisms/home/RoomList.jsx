@@ -3,8 +3,8 @@ import RoomCard from "../../molecules/home/RoomCard";
 import RoomPasswordModal from "../../organisms/home/RoomPasswordModal";
 import GameTab from "../../molecules/home/GameTab";
 import Pagination from "../../molecules/home/Pagination";
-import { useState, useMemo } from "react";
-import { emitJoinRoom } from "../../../sockets/home/emit";
+import { useState, useMemo, useEffect } from "react";
+import { emitRoomJoin } from "../../../sockets/home/emit";
 
 const RoomList = ({ roomList, keyword }) => {
   const [secureRoom, setSecureRoom] = useState(null);
@@ -13,45 +13,66 @@ const RoomList = ({ roomList, keyword }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
 
-  // 비밀번호 모달
-  const handlePasswordRequest = (room) => {
-    setSecureRoom(room);
-    setRoomPasswordModalOpen(true);
-  }
-
-  const handlePasswordSubmit = (roomPw) => {
-    emitJoinRoom({
-      roomId: secureRoom.roomId,
-      gameType: secureRoom.gameType,
-      roomPw: roomPw,
-    });
-    setRoomPasswordModalOpen(false);
-    setSecureRoom(null);
-  }
-
-
-  // 필터링된 방 리스트
+  // ✅ 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
+    if (!Array.isArray(roomList)) return [];
     if (keyword) {
-      return roomList.filter((room) => room.roomTitle.toLowerCase().includes(keyword.toLowerCase()));
+      return roomList.filter((room) =>
+        room.roomTitle.toLowerCase().includes(keyword.toLowerCase())
+      );
     }
     if (activeTab === "all") return roomList;
     if (activeTab === "waiting") {
       return roomList.filter((room) => room.teamInfo?.total < 6);
     }
-    return roomList.filter((room) => room.gameType?.toLowerCase() === activeTab);
-  }, [roomList, activeTab, keyword]);
+    return roomList.filter(
+      (room) => room.gameType?.toLowerCase() === activeTab
+    );
+  }, [roomList, keyword, activeTab]);
+
+  // ✅ 페이징된 방 리스트
+  const paginatedRooms = useMemo(() => {
+    return filteredRooms.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredRooms, currentPage]);
 
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
-  const paginatedRooms = filteredRooms.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
+  // ✅ 탭 변경
   const handleTabChange = (tab) => {
+    console.log("🔁 탭 변경:", tab);
     setActiveTab(tab);
     setCurrentPage(1);
   };
+
+  // ✅ 비밀번호 입력 요청
+  const handlePasswordRequest = (room) => {
+    console.log("🔐 비밀번호 입력 요청 - roomId:", room.roomId);
+    setSecureRoom(room);
+    setRoomPasswordModalOpen(true);
+  };
+
+  // ✅ 비밀번호 제출 시 emit
+  const handlePasswordSubmit = (roomPw) => {
+    console.log("🚪 비밀번호 제출 → emitRoomJoin", {
+      roomId: secureRoom.roomId,
+      roomPw,
+    });
+    emitRoomJoin({
+      roomId: secureRoom.roomId,
+      gameType: secureRoom.gameType,
+      roomPw,
+    });
+    setRoomPasswordModalOpen(false);
+    setSecureRoom(null);
+  };
+
+  // ✅ roomList undefined 방어
+  if (!Array.isArray(roomList)) {
+    return <p className="text-center mt-8 text-gray-500">방 정보를 불러오는 중입니다...</p>;
+  }
 
   return (
     <div className="flex flex-col items-center">

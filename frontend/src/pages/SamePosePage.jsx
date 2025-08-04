@@ -1,12 +1,42 @@
 // src/pages/SamePosePage.jsx
 
-import KeywordModal from "../components/atoms/modal/KeywordModal";
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
+import { useEffect, useState } from "react";
+import { getSocket } from "../sockets/websocket";
+// import { handleSamePoseMessage } from "../sockets/samePose/onMessage";
 
 const SamePosePage = () => {
+  const [keyword, setKeyword] = useState("");
+  const [turn, setTurn] = useState(""); // 턴 RED인지 BLUE인지지
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleMessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        // handleSamePoseMessage(msg, {
+        //   onKeywordReceived: (msg) => {
+        //     const receivedKeyword = msg.KeywordList?.[0];
+        //     if (receivedKeyword) setKeyword(receivedKeyword);
+        //   },
+        //   onStartedGame: (msg) => {
+        //     setTurn(msg.turn);
+        //   },
+        // });
+      } catch (err) {
+        console.error("[SamePosePage] 메시지 파싱 실패:", err);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, []);
+
   return (
     <div
       className="flex flex-col h-screen bg-cover bg-center"
@@ -14,7 +44,6 @@ const SamePosePage = () => {
     >
       <section className="basis-3/8 flex flex-col p-4">
         {/* socket에서 턴 정보 받아오기 */}
-        <div className="text-center text-2xl font-bold">RED TEAM TURN</div>
 
         {/* 본문 전체 */}
         <div className="flex flex-row flex-1 items-center justify-between px-6">
@@ -27,14 +56,19 @@ const SamePosePage = () => {
           </div>
 
           {/* 중앙 제시어 카드 */}
-          <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[180px] ">
-            <div className=" font-bold flex flex-row">
-              <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
-              제시어
-            </div>
-            <div className="text-2xl font-semibold text-black mt-2">
-              {/* 제시어 받아다 써야함 */}
-              야구 방망이
+          <div>
+            {/* 턴 정보 */}
+            <div className="text-center text-2xl">{`${turn} TEAM TURN`}</div>
+            {/* 제시어 카드 */}
+            <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[180px] gap-5 ">
+              <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
+                <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
+                <p>제시어</p>
+              </div>
+              <p className="text-2xl font-semibold text-black mt-2">
+                {/* 제시어 받아다 써야함 */}
+                {keyword || "상대 팀 진행 중..."}
+              </p>
             </div>
           </div>
 
