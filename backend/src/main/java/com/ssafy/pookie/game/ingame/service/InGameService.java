@@ -111,6 +111,10 @@ public class InGameService {
         for(UserDto nor : room.getGameInfo().getNormal()) {
             onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
         }
+        RoomStateDto.Turn opposite = room.getTurn() == RoomStateDto.Turn.RED ? RoomStateDto.Turn.BLUE : RoomStateDto.Turn.RED;
+        for(UserDto opp : room.getUsers().get(opposite.toString())) {
+            onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
+        }
         log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
     }
     // 현재 팀의 대표자 뽑기 ( 발화자 )
@@ -298,6 +302,10 @@ public class InGameService {
             }
             for (UserDto nor : room.getGameInfo().getNormal()) {
                 onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            }
+            RoomStateDto.Turn opposite = room.getTurn() == RoomStateDto.Turn.RED ? RoomStateDto.Turn.BLUE : RoomStateDto.Turn.RED;
+            for(UserDto opp : room.getUsers().get(opposite.toString())) {
+                onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
             }
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
