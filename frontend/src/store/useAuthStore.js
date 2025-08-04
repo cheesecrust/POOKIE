@@ -71,6 +71,10 @@ const useAuthStore = create(
         console.warn('서버 로그아웃 실패 (무시)');
       }
   
+      // 소켓 연결 해제
+      const { closeSocket } = await import('../sockets/websocket');
+      closeSocket();
+
       // 상태 초기화
       localStorage.removeItem('refreshToken');
       set({
