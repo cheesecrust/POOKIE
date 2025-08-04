@@ -12,6 +12,8 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import java.io.IOException;
 
@@ -58,9 +60,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         // Access Token은 프론트엔드로 redirect 시 쿼리 파라미터로 전달
         String redirectUrl = String.format(
                 "https://i13a604.p.ssafy.io/oauth/callback?accessToken=%s&email=%s&nickname=%s",
-                loginResponse.getAccessToken(),
-                loginResponse.getEmail(),
-                loginResponse.getNickname()
+                URLEncoder.encode(loginResponse.getAccessToken(), StandardCharsets.UTF_8),
+                URLEncoder.encode(loginResponse.getEmail(), StandardCharsets.UTF_8),
+                URLEncoder.encode(loginResponse.getNickname(), StandardCharsets.UTF_8)
         );
 
         log.info("✅ 리다이렉트 URL: {}", redirectUrl);
