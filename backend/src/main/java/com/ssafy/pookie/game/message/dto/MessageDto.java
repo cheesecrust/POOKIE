@@ -5,10 +5,38 @@ import lombok.Data;
 @Data
 public class MessageDto {
     public enum Type { ON,
-        JOIN_ROOM, LEAVE_ROOM, USER_TEAM_CHANGE, USER_READY_CHANGE, USER_FORCED_REMOVE, CHANGE_GAMETYPE,
-        START_GAME, TURN_OVER, SUBMIT_ANSWER, ROUND_OVER, PAINTER_CHANGE,
-        CHAT, DRAW,
-        TIMER_START, GAME_OVER, OFF };
+        // lobby event ( HOME )
+        // request
+        ROOM_JOIN,
+        // response
+        ROOM_LIST, ROOM_CREATED, ROOM_REMOVED,
+
+        // Room event ( WAITING ROOM )
+        // request
+        WAITING_TEAM_CHANGE, WAITING_READY_CHANGE, WAITING_GAMETYPE_CHANGE,
+        WAITING_GAME_START, WAITING_USER_REMOVE, WAITING_USER_LEAVE,
+        // response
+        WAITING_JOINED, WAITING_TEAM_CHANGED, WAITING_READY_CHANGED, WAITING_GAMETYPE_CHANGED,
+        WAITING_USER_REMOVED, WAITING_USER_LEAVED, WAITING_GAME_OVER,
+
+        // INGAME
+        // request
+        GAME_TURN_OVER, GAME_ROUND_OVER, GAME_ANSWER_SUBMIT, GAME_PAINTER_CHANGE,
+        GAME_DRAW, GAME_PASS,
+        // response
+        GAME_STARTED, GAME_KEYWORD, GAME_TURN_OVERED, GAME_ROUND_OVERED,
+        GAME_NEW_ROUND, GAME_ANSWER_SUBMITTED, GAME_PAINTER_CHANGED, GAME_PASSED,
+
+        // TIMER
+        // request
+        TIMER_START,
+        // CHAT
+        // request
+        CHAT,
+
+        // ERROR
+        ERROR
+    };
 
     private Type type;
     private String sid;

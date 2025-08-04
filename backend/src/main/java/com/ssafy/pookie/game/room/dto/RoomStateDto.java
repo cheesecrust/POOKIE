@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
+import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.timer.dto.GameTimerDto;
+import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.*;
@@ -167,7 +170,7 @@ public class RoomStateDto {
 
     public Map<String, Object> roundResult() {
         Map<String, Object> result = Map.of(
-                "type", "ROUND_OVER",
+                "type", MessageDto.Type.GAME_ROUND_OVERED.toString(),
                 "round", this.round,
                 "win", this.win,
                 "roundResult", Map.of(

@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.server.manager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
@@ -35,7 +36,6 @@ public class OnlinePlayerManager {
     public void sendToMessageUser(WebSocketSession session, Map<String, Object> msg) throws IOException {
         session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
     }
-
     // 현재 방에 있는 유저들에게 BraodCast
     // 메시지 전달 유형
     // 1. 해당 팀원들에게만
@@ -62,6 +62,8 @@ public class OnlinePlayerManager {
         권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
+        log.info("Request Session : {}", session);
+        log.info("Request Room : {}", room);
         return room != null && room.isIncluded(session);
     }
 
@@ -130,7 +132,7 @@ public class OnlinePlayerManager {
         this.rooms.values().stream().forEach((room) -> {
             if(room.getSessions().contains(session)) {
                 room.removeUser(session);
-                if(room.getSessions().size() == 0) {
+                if(room.getSessions().isEmpty()) {
                     removeRoomFromServer(room.getRoomId());
                 }
             }
@@ -144,7 +146,7 @@ public class OnlinePlayerManager {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
                     sendToMessageUser(user.getUser().getSession(), Map.of(
-                            "type", "REMOVED_ROOM",
+                            "type", MessageDto.Type.ROOM_REMOVED.toString(),
                             "room", Map.of(
                                     "roomId", room.getRoomId(),
                                     "roomTitle", room.getRoomTitle(),

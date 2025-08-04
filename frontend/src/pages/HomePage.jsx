@@ -11,9 +11,10 @@ import useAuthStore from "../store/useAuthStore";
 import useRoomStore from "../store/useRoomStore";
 import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
 import characterImageMap from "../utils/characterImageMap";
+import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getSocket } from "../sockets/websocket";
+import { getSocket, updateHandlers } from "../sockets/websocket";
 import handleHomeMessage from "../sockets/home/handleHomeMessage";
 
 const HomePage = () => {
@@ -23,6 +24,12 @@ const HomePage = () => {
   const { logout } = useAuthStore();
   const { isLoggedIn } = useAuthStore((state) => state);
   const roomList = useRoomStore((state) => state.roomList);
+  
+  // roomList 변경 디버깅
+  useEffect(() => {
+    console.log("🏠 HomePage roomList 변경됨:", roomList?.length || 0, "개 방");
+    console.log("🏠 roomList 데이터:", roomList);
+  }, [roomList]);
   const [keyword, setKeyword] = useState("");
   const [roomCreateModalOpen, setRoomCreateModalOpen] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
@@ -47,6 +54,34 @@ const HomePage = () => {
       return () => clearTimeout(timer); // 클린업
     }
   }, [location.state]);
+
+  // HomePage용 소켓 핸들러 등록
+  useEffect(() => {
+    if (!user) return;
+
+    // home 관련 핸들러 업데이트 - 매번 최신 함수 참조 사용
+    const setRoomListFunc = () => useRoomStore.getState().setRoomList;
+    console.log("🏠 HomePage 핸들러 등록:", {
+      setRoomList: typeof setRoomListFunc(),
+      navigate: typeof navigate
+    });
+    
+    updateHandlers({
+      setRoomList: (roomList) => {
+        console.log("🏠 HomePage에서 setRoomList 래퍼 호출됨");
+        useRoomStore.getState().setRoomList(roomList);
+      },
+      navigate,
+    });
+
+    return () => {
+      // 컴포넌트 언마운트 시 핸들러 정리
+      updateHandlers({
+        setRoomList: () => {},
+        navigate: () => {},
+      });
+    };
+  }, [user, navigate]);
   
   // 🔍 검색 함수 (백엔드 연동 시 수정 예정)
   const handleSearch = (keyword) => {
@@ -66,6 +101,8 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
+      <FriendMessageWrapper />
+      
       {/* 상단 고정 헤더 */}
       <Header />
 

@@ -41,10 +41,22 @@ const RoomCard = ({ room, onPasswordRequest }) => {
             }
             
             if (room.roomPw) {
-              onPasswordRequest?.(room);
+              // 비밀번호가 있는 경우
+              onPasswordRequest?.(room, (roomPw) => {
+                emitRoomJoin({
+                  roomId: room.roomId,
+                  gameType: room.gameType,
+                  roomPw,
+                  user: {
+                    userId: userRef.current?.userId,
+                    userNickname: userRef.current?.userNickname,
+                  },
+                });
+              });
               return;
             }
             
+            // 없는 경우
             emitRoomJoin({
               roomId: room.roomId,
               gameType: room.gameType,

@@ -13,10 +13,10 @@ public class RoomMasterForcedRemovalDto {
     private UserDto roomMaster;
 
     public UserDto findRemoveTarget(RoomStateDto room) {
-       return room.getUsers().get(removeTargetTeam.toString())
-               .stream().filter((user) -> {
-                   return user.getUserAccountId().equals(removeTargetId)
-                           && user.getUserNickname().equals(removeTargetNickname);
-               }).findFirst().orElse(null);
+       return room.getUsers().get(this.removeTargetTeam.toString())
+               .stream().filter((user) ->
+                    user.getUserAccountId().equals(this.removeTargetId)
+                           && user.getUserNickname().equals(this.removeTargetNickname)
+               ).findFirst().orElse(null);
     }
 }

@@ -5,6 +5,7 @@ import { sendMessage } from "../websocket";
  * 로비 입장 emit
 */
 export const emitHome = () => {
+    console.log("📤 emitHome() 호출 - ON 메시지 전송");
     sendMessage("ON", {});
 };
 

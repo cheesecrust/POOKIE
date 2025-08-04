@@ -1,6 +1,7 @@
 package com.ssafy.pookie.global.security.config;
 
 import com.ssafy.pookie.global.security.filter.JwtAuthenticationFilter;
+import com.ssafy.pookie.global.security.handler.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,11 +25,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -96,7 +93,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 없이 접근 가능한 URL
                         .requestMatchers(
-                                "/auth/**",           // 인증 관련 API
+                                "/auth/**",           // 인증 관련 API,
+                                "/oauth/**",               // 인증 관련 API 2 (일반 회원가입과 분리 url)
+                                "/oauth2/**",          // oauth2 관련
                                 "/public/**",         // 공개 API
                                 "/health",                // 헬스체크
                                 "/actuator/**",           // 액추에이터
@@ -109,7 +108,6 @@ public class SecurityConfig {
                                 "/game/init",
                                 "/game/**"
                         ).permitAll()
-
                         // 관리자만 접근 가능한 URL
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
@@ -118,6 +116,9 @@ public class SecurityConfig {
 
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oAuth2LoginSuccessHandler) // 성공 시 JWT 발급
                 )
 
                 // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 이전에 추가
