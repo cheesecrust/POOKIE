@@ -13,6 +13,12 @@ const RoomList = ({ roomList, keyword }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
 
+  // roomList prop 변경 디버깅
+  useEffect(() => {
+    console.log("📋 RoomList roomList prop 변경됨:", roomList?.length || 0, "개 방");
+    console.log("📋 RoomList roomList 데이터:", roomList);
+  }, [roomList]);
+
   // ✅ 필터링된 방 리스트
   const filteredRooms = useMemo(() => {
     if (!Array.isArray(roomList)) return [];
