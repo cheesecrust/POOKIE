@@ -10,5 +10,6 @@ public class UserResponseDto {
     private Long userAccountId;
     private String nickname;
     private String email;
+    private int coin;
     private Characters repCharacter;
 }
