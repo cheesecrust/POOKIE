@@ -118,3 +118,25 @@ export const updateHandlers = (newHandlers) => {
  * 소켓 인스턴스 반환
  */
 export const getSocket = () => socket;
+
+/**
+ * 소켓 연결 상태 확인
+ */
+export const isSocketConnected = () => {
+  return socket && socket.readyState === WebSocket.OPEN;
+};
+
+/**
+ * 소켓 연결 상태 확인 (모든 상태 포함)
+ */
+export const getSocketState = () => {
+  if (!socket) return 'NONE';
+  
+  switch (socket.readyState) {
+    case WebSocket.CONNECTING: return 'CONNECTING';
+    case WebSocket.OPEN: return 'OPEN';
+    case WebSocket.CLOSING: return 'CLOSING';
+    case WebSocket.CLOSED: return 'CLOSED';
+    default: return 'UNKNOWN';
+  }
+};

@@ -14,14 +14,14 @@ import characterImageMap from "../utils/characterImageMap";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getSocket, updateHandlers } from "../sockets/websocket";
+import { getSocket, updateHandlers, isSocketConnected, getSocketState } from "../sockets/websocket";
 import handleHomeMessage from "../sockets/home/handleHomeMessage";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
-  const { logout } = useAuthStore();
+  const { logout, loadUserFromStorage } = useAuthStore();
   const { isLoggedIn } = useAuthStore((state) => state);
   const roomList = useRoomStore((state) => state.roomList);
   
@@ -40,6 +40,24 @@ const HomePage = () => {
       navigate("/", { replace: true });
     }
   }, [isLoggedIn, navigate]);
+
+  // 소켓 연결 상태 확인 및 재연결
+  useEffect(() => {
+    if (!user || !isLoggedIn) return;
+
+    const socketState = getSocketState();
+    console.log("🔌 현재 소켓 상태:", socketState);
+
+    // 소켓이 연결되지 않은 경우 재연결 시도
+    if (!isSocketConnected()) {
+      console.log("🔄 소켓이 연결되지 않음. 재연결 시도...");
+      
+      // loadUserFromStorage를 호출하여 소켓 재연결
+      loadUserFromStorage(navigate);
+    } else {
+      console.log("✅ 소켓이 이미 연결됨");
+    }
+  }, [user, isLoggedIn, navigate, loadUserFromStorage]);
 
   // 강퇴 모달
   useEffect(() => {
