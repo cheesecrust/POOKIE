@@ -187,15 +187,24 @@ const SilentScreamPage = () => {
           <RoundInfo round={1} redScore={0} blueScore={0} />
         </div>
         
-        {/* 발화자일 경우 제시어 패스 버튼 */}
-        {repIdxList.includes(myIdx) && <div className="absolute top-80 right-40 z-20 scale-300">
-          <PassButton onClick={() => emitGamePass({roomId})} />
-        </div>}
+        <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
+          {/* 발화자용 PASS 버튼 */}
+          {repIdxList.includes(myIdx) && (
+            <PassButton onClick={() => emitGamePass({ roomId })} />
+          )}
 
-        {/* 제시어 제출 버튼 */}
-        {norIdxList.includes(myIdx) && <div className="absolute top-80 right-40 z-20 scale-300">
-          <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
-        </div>}
+          {/* 정답 제출 버튼 */}
+          {norIdxList.includes(myIdx) && (
+            <RightButton onClick={() => setIsSubmitModalOpen(true)} />
+          )}
+
+          {/* 🔽 모든 유저에게 보이는 진행도 */}
+          {keywordList.length > 0 && (
+            <span className="mt-2 text-xl font-semibold text-yellow-300 drop-shadow">
+              {keywordIdx + 1} / {keywordList.length}
+            </span>
+          )}
+        </div>
         
 
         {/* ChatBox (우측 하단 고정) */}
