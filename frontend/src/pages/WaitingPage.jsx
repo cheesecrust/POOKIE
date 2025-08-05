@@ -11,9 +11,9 @@ import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
-import bgSamePose from '../assets/background/background_samepose.gif'
-import bgSilentScream from '../assets/background/background_silentscream.gif'
-import bgSketchRelay from '../assets/background/background_sketchrelay.gif'
+import bgSamePose from "../assets/background/background_samepose.gif";
+import bgSilentScream from "../assets/background/background_silentscream.gif";
+import bgSketchRelay from "../assets/background/background_sketchrelay.gif";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
@@ -45,7 +45,7 @@ const WaitingPage = () => {
 
   const { roomId } = useParams();
   const setRoomId = useGameStore((state) => state.setRoomId);
-  
+
   const getBackgroundImageByGameType = (type) => {
     switch (type) {
       case "SAMEPOSE":
@@ -58,7 +58,7 @@ const WaitingPage = () => {
         return bgImage; // 기본 배경
     }
   };
-  
+
   useEffect(() => {
     if (!roomId) return;
     setRoomId(roomId);
@@ -185,30 +185,36 @@ const WaitingPage = () => {
       <section
         className="basis-3/4 flex flex-col"
         style={{
-          backgroundImage: `url(${getBackgroundImageByGameType(room?.gameType)})`,          backgroundSize: "cover",
+          backgroundImage: `url(${getBackgroundImageByGameType(room?.gameType)})`,
+          backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
       >
         <div className="basis-1/5 flex flex-row justify-between items-center">
-          <div className="flex flex-row gap-6 p-2 justify-around items-center">
-            <h1 className="p-4 text-3xl w-[200px]">
+          <div className="basis-3/5 flex flex-row gap-6 p-2 items-center">
+            <h1
+              className="flex-grow p-4 text-center font-bold whitespace-nowrap overflow-hidden text-[clamp(1.2rem,3vw,2rem)]"
+              title={room?.title}
+            >
               {room?.title ?? "room_title"}
             </h1>
             <h1 className="p-4 text-xl">
               {(room?.RED?.length ?? 0) + (room?.BLUE?.length ?? 0)}/6 명
             </h1>
-            <p className=" text-sm">게임 선택:</p>
+            <div className="flex flex-row gap-2 items-center">
+              <p className=" text-sm">게임 선택:</p>
 
-            {/* 게임 타입 토글 버튼 */}
-            <GameTypeToggleButton
-              gameType={room?.gameType}
-              onToggle={handleGameTypeChange}
-              isHost={isHost}
-            />
+              {/* 게임 타입 토글 버튼 */}
+              <GameTypeToggleButton
+                gameType={room?.gameType}
+                onToggle={handleGameTypeChange}
+                isHost={isHost}
+              />
+            </div>
           </div>
 
-          <div className="flex flex-row gap-4 p-2 items-center">
+          <div className="basis-2/5 flex flex-row gap-4 p-2 items-center justify-end">
             <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
             {isHost ? (
               <ModalButton
@@ -216,7 +222,7 @@ const WaitingPage = () => {
                 disabled={!isStartEnabled}
                 className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
               >
-                START
+                START !
               </ModalButton>
             ) : (
               <ModalButton
