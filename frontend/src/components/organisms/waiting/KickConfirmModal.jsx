@@ -5,8 +5,6 @@ import BasicModal from "../../atoms/modal/BasicModal";
 import ModalButton from "../../atoms/button/ModalButton";
 
 const KickConfirmModal = ({ isOpen, kickTarget, onConfirm, onCancel }) => {
-  console.log("📌 KickConfirmModal targetUser:", kickTarget);
-
   return (
     <BasicModal
       isOpen={isOpen}
