@@ -41,11 +41,19 @@ export const emitGamePass = ({roomId}) => {
 });
 };
 
-// 그림 그리기 (추후 구현)
-export const emitPainterChange = (data) => {
-  sendMessage("GAME_PAINTER_CHANGE", data);
-};
-
-export const emitDraw = (data) => {
-  sendMessage("GAME_DRAW", data);
+// 그림 그리기 이벤트
+export const emitDrawEvent = ({ roomId, drawType, data }) => {
+  sendMessage("GAME_DRAW_EVENT", {
+    roomId,
+    drawType, // "draw", "clear", "start", "end"
+    data: {
+      x: data.x,
+      y: data.y,
+      prevX: data.prevX,
+      prevY: data.prevY,
+      color: data.color || "black",
+      brushSize: data.brushSize || 3,
+      tool: data.tool || "pen"
+    }
+  });
 };
