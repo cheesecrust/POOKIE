@@ -261,6 +261,8 @@ public class InGameService {
             if (!isMasterRequest(request.getUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
             // 서로 동기화 정보가 다르다면 그냥 버린다.
             // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
+            log.info("USER : {} {} {}", request.getUser().getUserEmail(), request.getUser().getTeam(), request.getInputAnswer());
+            log.info("NOW : {} {}", room.getTurn(), room.getGameInfo().getKeywordList().get(request.getKeywordIdx()));
             if (!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
                     || room.getGameInfo().getNormal().stream().filter(
                     (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
