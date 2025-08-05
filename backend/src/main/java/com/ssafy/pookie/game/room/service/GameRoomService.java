@@ -290,6 +290,7 @@ public class GameRoomService {
                     "msg", "게임이 변경되었습니다.",
                     "room", room.mappingRoomInfo()
             ));
+            onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(gameTypeChangeRequest.getRoomMaster().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
