@@ -278,4 +278,10 @@ public class RoomStateDto {
         this.users.get("RED").forEach((user) -> user.setTeam(UserDto.Team.NONE));
         this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.NONE));
     }
+
+    // 게임 도중 누군가 나가면 게임을 종료한다.
+    private void forcedGameOver() {
+        String win = this.teamScores.get("RED") > this.teamScores.get("BLUE") ? "RED" : this.teamScores.get("RED") == this.teamScores.get("BLUE") ? "DRAW" : "BLUE";
+
+    }
 }

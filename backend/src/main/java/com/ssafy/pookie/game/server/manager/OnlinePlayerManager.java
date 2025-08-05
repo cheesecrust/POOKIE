@@ -3,6 +3,7 @@ package com.ssafy.pookie.game.server.manager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
@@ -141,11 +142,31 @@ public class OnlinePlayerManager {
                                     "msg", session.getAttributes(),
                                     "room", room.mappingRoomInfo()
                             ));
-                            sendUpdateRoomStateToUserOn(room);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     });
+                    // 게임중이라면 종료
+                    if(room.getStatus().equals(RoomStateDto.Status.START)) {
+                            room.getSessions().forEach((s) -> {
+                                try {
+                                    sendToMessageUser(s, Map.of(
+                                            "type", "INTERRUPT",
+                                            "msg", session.getAttributes().get("nickname") + "가 게임을 나갔습니다.\n 게임이 종료됩니다."
+                                    ));
+                                    sendToMessageUser(s, Map.of(
+                                            "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
+                                            "room", room.mappingRoomInfo(),
+                                            "gameResult", room.gameOver()
+                                    ));
+                                    room.resetAfterGameOver();
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                    }
+
+                    sendUpdateRoomStateToUserOn(room);
                 }
             }
         });
