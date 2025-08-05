@@ -1,4 +1,5 @@
 import {create} from 'zustand';
+import {emitTimerStart} from '../sockets/game/emit';
 
 const useGameStore = create((set) => ({
 
@@ -26,12 +27,42 @@ const useGameStore = create((set) => ({
     tempTeamScore: null,
 
     // gameResult 랑 teamScore 같은듯?
-    score: null, // 현재 라운드 팀 점수 
-    teamScore: null,
+    score: 0, // 현재 라운드 팀 점수 
+    teamScore: {RED:0,BLUE:0},
     gameResult: null,
     roundResult: null,
 
     win: null,
+
+    isGamestartModalOpen: false,
+    isTurnModalOpen: false,
+
+
+    openGamestartModal: () => set({ isGamestartModalOpen: true }),
+    closeGamestartModal: () => set({ isGamestartModalOpen: false }),
+    openTurnModal: () => set({ isTurnModalOpen: true }),
+    closeTurnModal: () => set({ isTurnModalOpen: false }),
+    
+    handleTimerPrepareSequence: (roomId) => {
+        // 1) 게임 스타트 모달 ON
+        set({ isGamestartModalOpen: true });
+    
+        setTimeout(() => {
+          // 2) 게임 스타트 모달 OFF, 턴 모달 ON
+          set({ isGamestartModalOpen: false, isTurnModalOpen: true });
+    
+          setTimeout(() => {
+            // 3) 턴 모달 OFF, 서버에 타이머 시작 요청
+            set({ isTurnModalOpen: false });
+            emitTimerStart({ roomId }); //  실제 타이머 시작
+          }, 2000);
+    
+        }, 2000);
+      },
+
+    setTimerPrepareStart: () => set({ }),
+    setTimerPrepareEnd: () => set({ }),
+    setGameTimerStart: () => set({  }),
 
     setRoomId: (id) => set({roomId:id}),
     setRtcToken: (token) => set({ rtctoken: token }),
@@ -57,7 +88,7 @@ const useGameStore = create((set) => ({
         nowInfo: data.nowInfo,
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
-        score: data.answer ? (state.score ?? 0) + 1 : state.score,
+        score: data.answer ? (state.score + 1) : state.score,
     })),
 
     setGameTurnOvered: (data) => set({
