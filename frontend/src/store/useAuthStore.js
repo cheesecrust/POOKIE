@@ -50,9 +50,7 @@ const useAuthStore = create(
               setIsReady: () => { },
 
               // game handler
-              onGameStarted: (data) => {
-                useGameStore.getState().setGameStarted(data);
-              },
+
               onGameKeyword: (data) => {
                 useGameStore.getState().setGameKeyword(data);
               },
@@ -70,6 +68,9 @@ const useAuthStore = create(
               },
               onGamePassed: (data) => {
                 useGameStore.getState().setGamePassed(data);
+              },
+              onTimer: (data) => {
+                useGameStore.getState().setTime(data);
               },
               // chat handler
             }
@@ -205,6 +206,9 @@ const useAuthStore = create(
               },
               onGamePassed: (data) => {
                 useGameStore.getState().setGamePassed(data);
+              },
+              onTimer: (data) => {
+                useGameStore.getState().setTime(data);
               },
                 // chat handler
               }
