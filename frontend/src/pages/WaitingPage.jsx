@@ -44,10 +44,7 @@ const WaitingPage = () => {
   const isHost = room?.master?.id === user?.userAccountId;
 
   const { roomId } = useParams();
-  const { setRoomId, resetGameState } = useGameStore((state) => ({ 
-    setRoomId: state.setRoomId,
-    resetGameState: state.resetGameState
-  }));
+  const setRoomId = useGameStore((state) => state.setRoomId);
 
   const getBackgroundImageByGameType = (type) => {
     switch (type) {
@@ -61,42 +58,6 @@ const WaitingPage = () => {
         return bgImage; // 기본 배경
     }
   };
-
-  // 브라우저 새로고침 감지 및 로비로 리다이렉트
-  useEffect(() => {
-    const isActualBrowserRefresh = () => {
-      // Performance Navigation API로 새로고침 감지
-      let isReloadType = false;
-      if (performance.navigation && performance.navigation.type === performance.navigation.TYPE_RELOAD) {
-        isReloadType = true;
-      }
-      
-      const navigationEntries = performance.getEntriesByType('navigation');
-      if (!isReloadType && navigationEntries.length > 0) {
-        const navEntry = navigationEntries[0];
-        isReloadType = navEntry.type === 'reload';
-      }
-      
-      // sessionStorage로 정상 입장 여부 확인
-      const isNormalEntry = sessionStorage.getItem('waitingPageNormalEntry') === 'true';
-      
-      return isReloadType && !isNormalEntry;
-    };
-
-    if (isActualBrowserRefresh()) {
-      console.log("🔄 브라우저 새로고침 감지 - 상태 초기화 후 로비로 이동");
-      
-      // 게임 상태 완전 초기화
-      resetGameState();
-      
-      // 로비로 이동
-      navigate('/home', { replace: true });
-      return;
-    }
-
-    // 정상 입장 표시 제거 (한 번만 사용)
-    sessionStorage.removeItem('waitingPageNormalEntry');
-  }, [navigate]);
 
   useEffect(() => {
     if (!roomId) return;
