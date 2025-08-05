@@ -77,7 +77,30 @@ const useGameStore = create((set) => ({
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
     }),
-    
+
+    // 게임 상태 완전 초기화
+    resetGameState: () => set({
+        rtctoken: null,
+        roomId: null,
+        red: null,
+        blue: null,
+        round: 1,
+        turn: "RED",
+        timeleft: null,
+        turnTimeLeft: null,
+        keywordList: [],
+        keywordIdx: null,
+        norIdxList: [],
+        repIdxList: [],
+        repIdx: null,
+        answer: null,
+        nowInfo: null,
+        tempTeamScore: null,
+        teamScore: null,
+        gameResult: null,
+        roundResult: null,
+        win: null,
+    }),
 
 
 }))
