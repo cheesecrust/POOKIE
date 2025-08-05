@@ -42,6 +42,15 @@ public class UserCharacters {
     private LocalDateTime updatedAt;
 
     public void upExp(int addedExp) {
+        if (addedExp < 0) return;
         this.exp += addedExp;
+    }
+
+    public void resetExp() {
+        this.exp = 0;
+    }
+
+    public void changeCharacter(Characters newCharacter) {
+        this.character = newCharacter;
     }
 }

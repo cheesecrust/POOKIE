@@ -131,8 +131,14 @@ const handleHomeMessage = (
     }
 
     // 추가적인 방 관련 메시지들 처리
-    case "ROOM_CREATE": 
-    case "ROOM_UPDATE":
+    case "ROOM_UPDATE": {
+      const updatedRoom = data.room;
+      const idx = currentRoomList.findIndex(room => room.roomId == updatedRoom.roomId);
+      if (idx !== -1) {
+        currentRoomList[idx] = updatedRoom;
+      }
+      break;
+    }
     case "ROOM_CHANGE": {
       console.log("🟢 추가 방 관련 메시지:", data.type, data);
       const roomList = data.payload?.roomList || data.roomList || data.rooms;
@@ -152,6 +158,10 @@ const handleHomeMessage = (
         console.log("✅ navigate 존재 여부", typeof navigate);
         console.log("👉 navigate 직전 실행");
         console.log(room)
+        
+        // 정상 입장 플래그 설정
+        sessionStorage.setItem('waitingPageNormalEntry', 'true');
+        
         navigate(`/waiting/${roomId}`, { state: { room } });
       } else {
         console.warn("❌ roomId 없음");
@@ -159,6 +169,28 @@ const handleHomeMessage = (
       break;
     }
 
+
+    case "IS_JOINED": {
+      const isJoined = data.isJoined;
+      const roomId = data.roomId;
+      const room = data.room;
+      if (isJoined && room) {
+        console.log("✅ 현재 방에 참여 중 - 방 상태 복원");
+        
+        // 정상 입장 플래그 설정 (재입장)
+        sessionStorage.setItem('waitingPageNormalEntry', 'true');
+        
+        if (handlers.setRoom) {
+          handlers.setRoom(room);
+        }
+      } else {
+        console.log("❌ 현재 방에 참여하지 않음 - 홈으로 이동");
+        if (navigate) {
+          navigate('/home', { replace: true });
+        }
+      }
+      break;
+    }
 
     case "ERROR": {
       console.error("❌ 서버 오류:", data.msg);

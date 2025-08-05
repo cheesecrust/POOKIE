@@ -68,7 +68,7 @@ public class InGameService {
                     "round", room.getRound(),
                     "rtc_token", rtcToken
             ));
-
+            room.updateUserTeamInfo();
             deliverKeywords(room);
             log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
@@ -110,6 +110,10 @@ public class InGameService {
         }
         for(UserDto nor : room.getGameInfo().getNormal()) {
             onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
+        }
+        RoomStateDto.Turn opposite = room.getTurn() == RoomStateDto.Turn.RED ? RoomStateDto.Turn.BLUE : RoomStateDto.Turn.RED;
+        for(UserDto opp : room.getUsers().get(opposite.toString())) {
+            onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
         }
         log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
     }
@@ -166,7 +170,7 @@ public class InGameService {
             // 턴 바꿔주기
             room.turnChange();
             log.info("Room {} turn change", room.getRoomId());
-            log.info("{}", room.mappingRoomInfo());
+            log.info("Before turn change : {}", room.mappingRoomInfo());
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
@@ -175,6 +179,7 @@ public class InGameService {
                     "turn", room.getTurn().toString(),
                     "tempTeamScore", room.getTempTeamScores()
             ));
+            log.info("After turn change : {}", room.mappingRoomInfo());
             deliverKeywords(room);
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
@@ -217,11 +222,13 @@ public class InGameService {
             5. Turn 교환
          */
             RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
+            if(!onlinePlayerManager.isMaster(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
             // 라운드 끝, 팀별 점수 집계
             // 클라이언트와 서버의 데이터를 교차 검증한다.
             if (!room.validationTempScore(gameResult)) {
                 gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
             }
+            log.info("Before round over : {}", room.mappingRoomInfo());
             room.roundOver();
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, room.roundResult());
             // 라운드별 점수 초기화
@@ -229,9 +236,11 @@ public class InGameService {
             // 라운드 증가, 턴 체인지
             room.turnChange();
             if (!increaseRound(session, room)) {
+                room.resetUserTeamInfo();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
+            log.info("After round over : {}", room.mappingRoomInfo());
             log.info("Room {} round over", room.getRoomId());
             // client response message
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
@@ -254,9 +263,10 @@ public class InGameService {
         log.info("SUBMIT ANSWER REQUEST : ROOM {}", request.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-            if (!isMasterRequest(request.getUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
             // 서로 동기화 정보가 다르다면 그냥 버린다.
             // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
+            log.info("USER : {} {} {}", request.getUser().getUserEmail(), room.getTurn(), request.getInputAnswer());
+            log.info("NOW : {} {}", room.getTurn(), room.getGameInfo().getKeywordList().get(request.getKeywordIdx()));
             if (!request.getRound().equals(room.getRound()) || !request.getKeywordIdx().equals(room.getGameInfo().getKeywordIdx())
                     || room.getGameInfo().getNormal().stream().filter(
                     (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
@@ -285,8 +295,8 @@ public class InGameService {
     public void handlePainterChange(PainterChangeRequest request) throws IOException {
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-            if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room)
-                    && isMasterRequest(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(!request.getCurRepIdx().equals(room.getGameInfo().getRepIdx())) throw new IllegalArgumentException("잘못된 요청입니다.");
             log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
             if (!room.getGameInfo().changePainter()) {
                 log.warn("다음 차례가 없습니다.");
@@ -298,6 +308,10 @@ public class InGameService {
             }
             for (UserDto nor : room.getGameInfo().getNormal()) {
                 onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
+            }
+            RoomStateDto.Turn opposite = room.getTurn() == RoomStateDto.Turn.RED ? RoomStateDto.Turn.BLUE : RoomStateDto.Turn.RED;
+            for(UserDto opp : room.getUsers().get(opposite.toString())) {
+                onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
             }
         } catch (IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(

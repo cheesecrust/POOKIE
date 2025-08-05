@@ -376,3 +376,11 @@ INSERT INTO game_keywords (game_type_id, word) VALUES
                                                    (3, "산"),
                                                    (3, "강"),
                                                    (3, "바다");
+
+INSERT INTO store_items (name, image, exp, price, created_at, updated_at) VALUES
+                                                   ('생수', 'water.png', 10, 50, NOW(), NOW()),
+                                                   ('커피', 'coffee.png', 15, 100, NOW(), NOW()),
+                                                   ('콜라', 'coke.png', 12, 80, NOW(), NOW()),
+                                                   ('우유', 'milk.png', 20, 120, NOW(), NOW()),
+                                                   ('맥주', 'beer.png', 25, 200, NOW(), NOW()),
+                                                   ('와인', 'wine.png', 40, 350, NOW(), NOW());
