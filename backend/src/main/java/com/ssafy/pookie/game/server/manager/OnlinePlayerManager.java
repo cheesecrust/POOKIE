@@ -41,8 +41,8 @@ public class OnlinePlayerManager {
     // 메시지 전달 유형
     // 1. 해당 팀원들에게만
     // 2. 해당 대기방 전체
-    public void broadCastMessageToRoomUser(WebSocketSession session, String RoomId, String team, Map<String, Object> msg) throws IOException {
-        RoomStateDto room = this.rooms.get(RoomId);
+    public void broadCastMessageToRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
+        RoomStateDto room = this.rooms.get(roomId);
         if(!isAuthorized(session, room)) return;
 
         // 1. 팀원들에게만 전달
