@@ -35,6 +35,7 @@ public class CharacterService {
     public UserCharacters levelUpMyPookie(Long userAccountId, UserCharacters userCharacter, int requiredExpForStepUp) {
         // 레벨업 조건 미충족 시 그대로 반환
         if (userCharacter.getExp() < requiredExpForStepUp) {
+            log.info("현재 step에서 최대 경험치 이상이므로 step up(level up) 진행 안합니다.");
             return userCharacter;
         }
 
@@ -45,6 +46,7 @@ public class CharacterService {
         PookieType currentType = userCharacter.getCharacter().getType();
 
         List<Characters> candidates = null;
+        log.info("현재 step: {}: ", currentStep);
         if (currentStep == 0) {
             candidates = charactersRepository.findByStep(1);
         } else if (currentStep == 1) {
@@ -79,17 +81,24 @@ public class CharacterService {
      */
     @Transactional
     public void updateCatalogStates(UserAccounts user, Characters character, boolean represent, boolean growing) {
-        CharacterCatalog catalog = characterCatalogRepository
+
+       log.info("도감 상태 업데이트 시작합니다.");
+        // 기존 대표/성장 상태 초기화 (bulk update → 영속성 깨짐)
+        characterCatalogRepository.resetAllRepresent(user.getId());
+        characterCatalogRepository.resetAllGrowing(user.getId());
+        log.info("도감 상태 대표, 성장 모두 false로 두었습니다.");
+
+        // bulk update 이후 다시 조회해서 최신 영속 엔티티 확보
+        CharacterCatalog refreshedCatalog = characterCatalogRepository
                 .findByUserAccountAndCharacter(user, character)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        // 기존 대표/성장 상태 초기화
-        characterCatalogRepository.resetAllRepresent(user.getId());
-        characterCatalogRepository.resetAllGrowing(user.getId());
+        // 대표/성장 상태 반영
+        refreshedCatalog.updateIsRep(represent);
+        refreshedCatalog.updateIsGrowing(growing);
 
-        catalog.updateIsRep(represent);
-        catalog.updateIsGrowing(growing);
-        characterCatalogRepository.save(catalog);
+        // save 대상은 refreshedCatalog
+        characterCatalogRepository.save(refreshedCatalog);
     }
 
     /**
@@ -97,6 +106,19 @@ public class CharacterService {
      */
     public List<CharacterCatalog> getPookiesByUserId(Long userAccountId) {
         return characterCatalogRepository.findByUserAccountId(userAccountId);
+    }
+
+    /**
+     * 성장하는 푸키 가져오기
+     */
+    public Characters getGrowingPookie(Long userAccountId) {
+        List<CharacterCatalog> catalog =
+                characterCatalogRepository.findByUserAccountIdAndIsGrowing(userAccountId, true);
+
+        if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
+        if (catalog.isEmpty()) throw new CustomException(ErrorCode.GROWING_POKIE_NOT_FOUND);
+
+        return catalog.get(0).getCharacter();
     }
 
     /**
@@ -198,18 +220,25 @@ public class CharacterService {
      */
     @Transactional(rollbackFor = Exception.class)
     public UserCharacters feedMyPookie(Long userAccountId, int expFromItem) {
-        Characters repCharacter = getRepPookie(userAccountId);
+        Characters growingPookieCharacter = getGrowingPookie(userAccountId);
 
         UserCharacters userCharacter = userCharactersRepository
-                .findByUserAccountIdAndCharacterId(userAccountId, repCharacter.getId())
+                .findByUserAccountIdAndCharacterId(userAccountId, growingPookieCharacter.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.REP_POKIE_NOT_FOUND));
+
+        int currentStep = userCharacter.getCharacter().getStep();
+        log.info("현재 대표 캐릭터에게 아이템을 사용합니다. 대표 캐릭터: {}, 현재 경험치: {}, 현재 step: {}"
+                , userCharacter.getCharacter(), userCharacter.getExp(), currentStep);
 
         userCharacter.upExp(expFromItem);
 
-        int currentStep = userCharacter.getCharacter().getStep();
-        int requiredExpForStepUp = ExpThreshold.getRequiredExpForStep(currentStep);
+        log.info("현재 대표 캐릭터에게 아이템을 사용했습니다. 대표 캐릭터: {}, 현재 경험치: {}, 현재 step: {}"
+                , userCharacter.getCharacter(), userCharacter.getExp(), currentStep);
 
+        int requiredExpForStepUp = ExpThreshold.getRequiredExpForStep(currentStep);
+        log.info("현재 step에서 레벨업 가능한 최대 경험치 이상: {}", requiredExpForStepUp);
         if (userCharacter.getExp() >= requiredExpForStepUp) {
+            log.info("현재 step에서 최대 경험치 이상이므로 step up(level up) 진행합니다.");
             return levelUpMyPookie(userAccountId, userCharacter, requiredExpForStepUp);
         }
 
