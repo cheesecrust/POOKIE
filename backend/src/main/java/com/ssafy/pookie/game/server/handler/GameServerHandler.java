@@ -59,8 +59,8 @@ public class GameServerHandler extends TextWebSocketHandler {
             UserDto user = new UserDto().mapUserDto(session);
             JoinDto join;
             TurnDto gameResult;
-            log.info("REQUEST : {}", msg.getType());
-            log.info("payload : {}", msg.getPayload());
+            log.info("REQUEST TYPE : {}", msg.getType());
+            log.info("payload\nSession : {}\n{}", session.getAttributes().get("userEmail"), msg.getPayload());
             socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
                 // Room

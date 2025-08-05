@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class MessageDto {
-    public enum Type { ON,
+    public enum Type { ON, LOG,
         // lobby event ( HOME )
         // request
         ROOM_JOIN,

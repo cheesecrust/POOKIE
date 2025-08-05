@@ -95,7 +95,6 @@ public class GameRoomService {
                             "msg", joinDto.getUser().getUserNickname() + "가 입장하였습니다.",
                             "room", room.mappingRoomInfo()
                     ));
-            // TODO : 입장 정보를 lobby 의 roomlist 에 업데이트 해줘야함
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
