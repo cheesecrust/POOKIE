@@ -138,7 +138,7 @@ public class OnlinePlayerManager {
                         try {
                             sendToMessageUser(s, Map.of(
                                     "type", MessageDto.Type.WAITING_USER_REMOVED.toString(),
-                                    "msg", session.getAttributes(),
+                                    "msg", "방안의 새로고침 발생",
                                     "room", room.mappingRoomInfo()
                             ));
                             sendUpdateRoomStateToUserOn(room);
