@@ -30,6 +30,8 @@ const SilentScreamPage = () => {
   
   // 타이머 
   const time = useGameStore((state) => state.time);
+  const isTimerEnd = useGameStore((state) => state.isTimerEnd);
+  const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
 
   // 맞히는 사람(제시어 x)
   const norIdxList = useGameStore((state) => state.norIdxList);
@@ -54,6 +56,8 @@ const SilentScreamPage = () => {
   const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
   const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
+  const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
+
   // 첫 시작 모달
   const handleTimerPrepareSequence = useGameStore((state) => state.handleTimerPrepareSequence);
 
@@ -74,30 +78,48 @@ const SilentScreamPage = () => {
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
-  // 턴 바뀔 때
+  // 턴 바뀔 때 턴 모달 띄움 
   useEffect(() => {
-    
+    // 첫 로딩(게임 시작) 제외
+    if (!isFirstLoad) {
+      showTurnChangeModal();
+    } else {
+      setIsFirstLoad(false);
+    }
   }, [turn]);
 
-    // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드드 띄우기
+    // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
     if ((!norIdxList?.includes(myIdx)) && keywordList.length > 0) {
       setKeyword(keywordList[keywordIdx]);
     }
   }, [keywordIdx, keywordList, norIdxList]);
 
-  // turn 변환 (레드팀 -> 블루팀), 라운드 변환환
+  // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (myIdx === master && keywordIdx >= 15) 
-      if (turn === "RED")
+    if (myIdx === master)
+      if (keywordIdx >= 15) 
+        if (turn === "RED")
+        {
+        emitTurnOver({ roomId,team:turn,score:score });
+      } 
+        else if (turn === "BLUE")
+        {
+        emitRoundOver({ roomId,team:turn,score:score });
+      }
+      // 추가 조건 : 타이머 끝났을 때 
+      if (isTimerEnd)
       {
-      emitTurnOver({ roomId,team:turn,score:score });
-    } 
-    else if (turn === "BLUE")
-    {
-      emitRoundOver({ roomId,team:turn,score:score });
-    }
-  }, [keywordIdx]);
+        if (turn === "RED"){
+          emitTurnOver({ roomId,team:turn,score:score });
+        }
+        else if (turn === "BLUE"){
+          emitRoundOver({ roomId,team:turn,score:score });
+        }
+        resetGameTimerEnd();
+      }
+      
+  }, [keywordIdx,isTimerEnd]);
   
   // esc 키 눌렀을 때 제출 모달 닫기
   useEffect(() => {
