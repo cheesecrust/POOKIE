@@ -11,7 +11,9 @@ import {
   emitTurnOver,
   emitRoundOver,
   emitAnswerSubmit,
+  emitDrawEvent,
 } from "../sockets/game/emit";
+import { updateHandlers } from "../sockets/websocket";
 
 // // 필요로 하는 정보 ( 소켓 이용 )
 // // 1. 누구의 턴
@@ -52,7 +54,7 @@ const SketchRelayPage = () => {
   // 모달 상태 (게임시작, 턴체인지, 정답입력, 결과확인)
   const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
-  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(true);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
   useEffect(() => {
@@ -75,6 +77,7 @@ const SketchRelayPage = () => {
   const ctxRef = useRef(null);  // context ref
   const [isDrawing, setIsDrawing] = useState(false);   // 그리는 중인지 확인
   const [isErasing, setIsErasing] = useState(false); // 지우개 상태값 (true: 지우개 모드, false: 펜 모드)
+  const lastPointRef = useRef({ x: 0, y: 0 }); // 이전 포인트 저장
 
   const toggleEraser = () => {
     setIsErasing(true);
@@ -89,6 +92,13 @@ const SketchRelayPage = () => {
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 전체 지우기 이벤트를 다른 사용자들에게 전송
+    emitDrawEvent({
+      roomId,
+      drawType: "clear",
+      data: {}
+    });
   };   // 도화지 전체 지우기 함수
 
   // 도화지 초기화
@@ -155,14 +165,28 @@ const SketchRelayPage = () => {
     const { offsetX, offsetY } = getCoordinates(e);
 
     ctx.beginPath();     // 새로운 드로잉 시작
-
     ctx.moveTo(offsetX, offsetY); // 시작점 설정
-
     setDrawingStyle(ctx);   // 현재 모드에 따라 스타일 설정
-
     setIsDrawing(true);     // 그리기 시작
 
-  }, []);
+    // 이전 포인트 저장
+    lastPointRef.current = { x: offsetX, y: offsetY };
+
+    // 그리기 시작 이벤트 전송
+    emitDrawEvent({
+      roomId,
+      drawType: "start",
+      data: {
+        x: offsetX,
+        y: offsetY,
+        prevX: offsetX,
+        prevY: offsetY,
+        tool: isErasing ? "eraser" : "pen",
+        brushSize: isErasing ? 25 : 3,
+        color: "black"
+      }
+    });
+  }, [roomId, isErasing]);
 
   const draw = useCallback(
     (e) => {
@@ -174,21 +198,100 @@ const SketchRelayPage = () => {
       ctx.lineTo(offsetX, offsetY);   // 선 그리기
       ctx.stroke();
 
+      // 그리기 이벤트 전송
+      emitDrawEvent({
+        roomId,
+        drawType: "draw",
+        data: {
+          x: offsetX,
+          y: offsetY,
+          prevX: lastPointRef.current.x,
+          prevY: lastPointRef.current.y,
+          tool: isErasing ? "eraser" : "pen",
+          brushSize: isErasing ? 25 : 3,
+          color: "black"
+        }
+      });
+
       ctx.beginPath();
       ctx.moveTo(offsetX, offsetY);
+      setDrawingStyle(ctx);       // 현재 모드에 따라 스타일 재설정
 
-      setDrawingStyle(ctx);       // 현재 모드에 따라 스타일 재설정 (드래그 중일 때도 스타일 유지)
+      // 이전 포인트 업데이트
+      lastPointRef.current = { x: offsetX, y: offsetY };
     },
-    [isDrawing, setDrawingStyle]
+    [isDrawing, setDrawingStyle, roomId, isErasing]
   );
 
   const stopDrawing = useCallback(() => {
+    if (!isDrawing) return;
+    
     const ctx = ctxRef.current;
     if (ctx) {
       ctx.closePath();
     }
     setIsDrawing(false);
-    }, []);
+
+    // 그리기 종료 이벤트 전송
+    emitDrawEvent({
+      roomId,
+      drawType: "end",
+      data: {}
+    });
+  }, [isDrawing, roomId]);
+
+  // 다른 사용자의 그리기 이벤트 처리
+  const handleRemoteDrawEvent = useCallback((eventData) => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+
+    const { drawType, data } = eventData;
+
+    switch (drawType) {
+      case "clear":
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        break;
+      
+      case "start":
+        ctx.beginPath();
+        ctx.moveTo(data.x, data.y);
+        if (data.tool === "eraser") {
+          ctx.lineWidth = data.brushSize;
+          ctx.globalCompositeOperation = "destination-out";
+        } else {
+          ctx.lineWidth = data.brushSize;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = data.color;
+        }
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        break;
+      
+      case "draw":
+        ctx.lineTo(data.x, data.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(data.x, data.y);
+        break;
+      
+      case "end":
+        ctx.closePath();
+        break;
+    }
+  }, []);
+
+  // WebSocket 핸들러 등록
+  useEffect(() => {
+    updateHandlers({
+      onDrawEvent: handleRemoteDrawEvent
+    });
+
+    return () => {
+      updateHandlers({
+        onDrawEvent: null
+      });
+    };
+  }, [handleRemoteDrawEvent]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
