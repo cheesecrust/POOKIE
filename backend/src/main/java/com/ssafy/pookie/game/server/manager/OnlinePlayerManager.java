@@ -62,8 +62,8 @@ public class OnlinePlayerManager {
         권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
-        log.info("Request Session : {}", session);
-        log.info("Request Room : {}", room);
+        log.info("Request Session : {}", session.getAttributes().get("userEmail"));
+        log.info("Request Room : {}", room.mappingSimpleRoomInfo(MessageDto.Type.LOG));
         return room != null && room.isIncluded(session);
     }
 
@@ -112,7 +112,6 @@ public class OnlinePlayerManager {
      */
     public void removeFromLobby(WebSocketSession session) throws IOException {
         removeSessionFromRooms(session);
-
         Long userAccountId = (Long) session.getAttributes().get("userAccountId");
         getLobby().remove(userAccountId);
 
@@ -134,6 +133,18 @@ public class OnlinePlayerManager {
                 room.removeUser(session);
                 if(room.getSessions().isEmpty()) {
                     removeRoomFromServer(room.getRoomId());
+                } else {
+                    room.getSessions().forEach((s) -> {
+                        try {
+                            sendToMessageUser(s, Map.of(
+                                    "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
+                                    "msg", session.getAttributes()
+                            ));
+                            sendUpdateRoomStateToUserOn(room);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                 }
             }
         });
@@ -163,6 +174,20 @@ public class OnlinePlayerManager {
                     log.info("Room {} was disappeared", room.getRoomId());
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    // 방 정보가 업데이트 된다면, LOBBY 의 ON 상태의 유저들에게 전달해야한다.
+    public void sendUpdateRoomStateToUserOn(RoomStateDto room) {
+        this.lobby.keySet().forEach((userAccountId) -> {
+            LobbyUserDto user = this.lobby.get(userAccountId);
+            if(user.getStatus() == LobbyUserDto.Status.ON) {
+                try {
+                    sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_UPDATE));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });

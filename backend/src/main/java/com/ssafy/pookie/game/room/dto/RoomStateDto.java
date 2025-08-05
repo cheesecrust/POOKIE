@@ -251,4 +251,21 @@ public class RoomStateDto {
             this.users.get(team).removeIf(user -> user.getSession() == session);
         }
     }
+
+    public Map<String, Object> mappingSimpleRoomInfo(MessageDto.Type type) {
+        return Map.of(
+                "type", type.toString(),
+                "room", Map.of(
+                        "roomId", this.roomId,
+                        "roomTitle", this.roomTitle,
+                        "gameType", this.gameType,
+                        "roomMaster", this.roomMaster.getUserNickname(),
+                        "roomPw", this.roomPw != null && !this.roomPw.isEmpty(),
+                        "teamInfo", Map.of(
+                                "RED", this.users.getOrDefault("RED", List.of()).size(),
+                                "BLUE", this.users.getOrDefault("BLUE", List.of()).size(),
+                                "TOTAL", this.users.getOrDefault("RED", List.of()).size()+this.users.getOrDefault("BLUE", List.of()).size()
+                        )
+                ));
+    }
 }

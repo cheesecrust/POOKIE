@@ -95,7 +95,7 @@ public class GameRoomService {
                             "msg", joinDto.getUser().getUserNickname() + "가 입장하였습니다.",
                             "room", room.mappingRoomInfo()
                     ));
-
+            onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
@@ -127,7 +127,7 @@ public class GameRoomService {
     }
 
     // User 가 Room 을 떠날 때
-    public void handleLeave(WebSocketSession session, String roomId) throws IOException {
+    public void handleLeave(WebSocketSession session, String roomId, Boolean forced) throws IOException {
         try {
             // 1. 현재 방을 가져온다.
             RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);
@@ -155,7 +155,8 @@ public class GameRoomService {
             log.info("Player {} was LEAVED ROOM", session.getAttributes().get("userEmail"));
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
-                    "msg", "Lobby 로 돌아갑니다."
+                    "msg", "Lobby 로 돌아갑니다.",
+                    "reason", forced ? "KICKED" : "LEAVED"
             ));
             // 2-2. 방이 비어있다면, 삭제한다.
             if(room.getSessions().isEmpty()) {
@@ -171,6 +172,7 @@ public class GameRoomService {
                 return;
             }
             onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
+            onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
                 log.info("REGRANT Master");
@@ -262,7 +264,7 @@ public class GameRoomService {
             UserDto removeTarget = request.findRemoveTarget(room);
             if(removeTarget == null || removeTarget.getSession() == session) throw new IllegalArgumentException("대상을 확인해주세요.");
 
-            handleLeave(removeTarget.getSession(), request.getRoomId());
+            handleLeave(removeTarget.getSession(), request.getRoomId(), true);
             log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
 
         } catch(IllegalArgumentException e) {
@@ -303,20 +305,7 @@ public class GameRoomService {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
-                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), Map.of(
-                            "type", MessageDto.Type.ROOM_CREATED.toString(),
-                            "room", Map.of(
-                                    "roomId", room.getRoomId(),
-                                    "roomTitle", room.getRoomTitle(),
-                                    "gameType", room.getGameType(),
-                                    "roomMaster", room.getRoomMaster().getUserNickname(),
-                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
-                                    "teamInfo", Map.of(
-                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
-                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
-                                    )
-                            )));
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

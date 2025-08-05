@@ -2,9 +2,10 @@ package com.ssafy.pookie.store.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.global.exception.CustomException;
+import com.ssafy.pookie.global.exception.constants.ErrorCode;
 import com.ssafy.pookie.inventory.model.InventoryItem;
 import com.ssafy.pookie.inventory.repository.InventoryItemRepository;
-import com.ssafy.pookie.store.dto.PurchaseItemRequestDto;
 import com.ssafy.pookie.store.dto.PurchaseItemResponseDto;
 import com.ssafy.pookie.store.dto.StoreItemResponseDto;
 import com.ssafy.pookie.store.model.StoreItem;
@@ -34,7 +35,7 @@ public class StoreService {
     // 단일 조회
     public StoreItemResponseDto getItemById(Long itemId) {
         StoreItem item = storeItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
         return StoreItemResponseDto.fromEntity(item);
     }
 
@@ -42,18 +43,18 @@ public class StoreService {
     @Transactional
     public PurchaseItemResponseDto purchaseItem(Long userAccountId, Long itemIdx) {
         StoreItem item = storeItemRepository.findById(itemIdx)
-                .orElseThrow(() -> new IllegalArgumentException("해당 상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ITEM_NOT_FOUND));
 
         UserAccounts userAccounts = userAccountsRepository.findById(userAccountId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 계정은 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (userAccounts.getCoin() < item.getPrice()) {
-            throw new IllegalStateException("코인이 부족하여 구매할 수 없습니다.");
+            throw new CustomException(ErrorCode.INSUFFICIENT_COIN);
         }
 
         Boolean canBought = userAccounts.buyItem(item.getPrice());
         if (!canBought) {
-           throw new IllegalStateException("코인이 부족하여 구매할 수 없습니다.");
+            throw new CustomException(ErrorCode.INSUFFICIENT_COIN);
         }
 
         userAccountsRepository.save(userAccounts);
@@ -78,4 +79,3 @@ public class StoreService {
                 .build();
     }
 }
-
