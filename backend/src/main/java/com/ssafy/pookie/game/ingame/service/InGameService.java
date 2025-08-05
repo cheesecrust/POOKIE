@@ -68,7 +68,7 @@ public class InGameService {
                     "round", room.getRound(),
                     "rtc_token", rtcToken
             ));
-
+            room.updateUserTeamInfo();
             deliverKeywords(room);
             log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
@@ -233,6 +233,7 @@ public class InGameService {
             // 라운드 증가, 턴 체인지
             room.turnChange();
             if (!increaseRound(session, room)) {
+                room.resetUserTeamInfo();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
@@ -258,7 +259,6 @@ public class InGameService {
         log.info("SUBMIT ANSWER REQUEST : ROOM {}", request.getRoomId());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-            if (!isMasterRequest(request.getUser().getSession(), room)) throw new IllegalArgumentException("잘못된 요청입니다.");
             // 서로 동기화 정보가 다르다면 그냥 버린다.
             // 정답을 맞추는 사람이 아닌 사람이 전송한 데이터라면 버린다
             log.info("USER : {} {} {}", request.getUser().getUserEmail(), request.getUser().getTeam(), request.getInputAnswer());
@@ -291,8 +291,8 @@ public class InGameService {
     public void handlePainterChange(PainterChangeRequest request) throws IOException {
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-            if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room)
-                    && isMasterRequest(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(!request.getCurRepIdx().equals(room.getGameInfo().getRepIdx())) throw new IllegalArgumentException("잘못된 요청입니다.");
             log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
             if (!room.getGameInfo().changePainter()) {
                 log.warn("다음 차례가 없습니다.");
