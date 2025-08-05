@@ -140,6 +140,7 @@ public class OnlinePlayerManager {
                                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
                                     "msg", session.getAttributes()
                             ));
+                            sendUpdateRoomStateToUserOn(room);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -173,6 +174,20 @@ public class OnlinePlayerManager {
                     log.info("Room {} was disappeared", room.getRoomId());
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    // 방 정보가 업데이트 된다면, LOBBY 의 ON 상태의 유저들에게 전달해야한다.
+    public void sendUpdateRoomStateToUserOn(RoomStateDto room) {
+        this.lobby.keySet().forEach((userAccountId) -> {
+            LobbyUserDto user = this.lobby.get(userAccountId);
+            if(user.getStatus() == LobbyUserDto.Status.ON) {
+                try {
+                    sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_UPDATE));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });
