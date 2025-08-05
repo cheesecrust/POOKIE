@@ -3,6 +3,7 @@ package com.ssafy.pookie.auth.controller;
 import com.ssafy.pookie.auth.dto.*;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pookie.auth.service.UserService;
@@ -53,19 +54,30 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponseDto>> login(
-            @Valid @RequestBody LoginRequestDto loginRequest) {
+            @Valid @RequestBody LoginRequestDto loginRequest,
+            HttpServletResponse response) {
         log.info("로그인 요청: email={}", loginRequest.getEmail());
+
         try {
-            LoginResponseDto response = userService.login(loginRequest);
+            LoginResponseDto loginResponse = userService.login(loginRequest);
 
-            log.info("로그인 성공: userId={}", response.getUserAccountId());
+            // Refresh Token → HttpOnly 쿠키
+            Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
+            refreshTokenCookie.setHttpOnly(true);
+//            refreshTokenCookie.setSecure(true);
+            refreshTokenCookie.setPath("/");
+            refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
+            response.addCookie(refreshTokenCookie);
 
-            return ResponseEntity.ok(ApiResponse.success("로그인에 성공했습니다.", response));
+            // Access Token → 헤더
+            response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
+
+            return ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
 
         } catch (Exception e) {
             log.error("로그인 실패: email={}, error={}", loginRequest.getEmail(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("로그인에 실패했습니다: " + e.getMessage()));
+                    .body(ApiResponse.error("로그인 실패: " + e.getMessage()));
         }
     }
 

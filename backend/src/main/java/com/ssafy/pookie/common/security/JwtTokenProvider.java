@@ -23,7 +23,8 @@ public class JwtTokenProvider {
     // 생성자에서 설정값 주입
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.access-token-expiration:604800000}") long accessTokenExpiration, // 7일
+//            @Value("${jwt.access-token-expiration:604800000}") long accessTokenExpiration, // 7일
+            @Value("${jwt.access-token-expiration:600000}") long accessTokenExpiration, // 1분
             @Value("${jwt.refresh-token-expiration:604800000}") long refreshTokenExpiration // 7일
     ) {
 
