@@ -16,6 +16,7 @@ const useAuthStore = create(
 
       setUser: (user) => set({ user }),
       setAccessToken: (token) => set({ accessToken: token }),
+      setIsLoggedIn: (isLoggedIn) => set({ isLoggedIn }),
 
       // ✅ 로그인 요청 + user 상태 저장
       login: async ({ email, password, navigate }) => {
