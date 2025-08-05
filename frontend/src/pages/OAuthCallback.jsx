@@ -6,6 +6,7 @@ import useAuthStore from "../store/useAuthStore";
 
 const OAuthCallback = () => {
     const navigate = useNavigate();
+    const store = useAuthStore();
 
     useEffect(() => {
         try {
@@ -22,9 +23,9 @@ const OAuthCallback = () => {
     
             if (accessToken) {
                 localStorage.setItem('accessToken', accessToken);
-                useAuthStore.setAccessToken(accessToken);
-                useAuthStore.setUser({ email, nickname, userAccountId });
-                useAuthStore.setIsLoggedIn(true); 
+                store.setAccessToken(accessToken);
+                store.setUser({ email, nickname, userAccountId });
+                store.setIsLoggedIn(true); 
                 navigate('/home');
             } else {
                 navigate('/login');
