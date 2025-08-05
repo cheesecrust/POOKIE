@@ -19,13 +19,31 @@ import {
 
 const SamePosePage = () => {
   const { user } = useAuthStore();
+  const master = useGameStore((state) => state.master);
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
+
+  // 턴 라운드 키워드
   const turn = useGameStore((state) => state.turn);
+  const round = useGameStore((state) => state.round);
+
   const keyword = useGameStore((state) => state.keywordList[state.keywordIdx]);
+
+  //타이머
+  const turnTimeLeft = useGameStore((state) => state.turnTimeLeft);
+  const timeLeft = useGameStore((state) => state.timeLeft);
+
+  // 팀 구분
   const [redTeam, setRedTeam] = useState([]);
   const [blueTeam, setBlueTeam] = useState([]);
   const [publisherTrack, setPublisherTrack] = useState(null);
+
+  // 점수 관련
+  const teamScore = useGameStore((state) => state.teamScore);
+  const tempTeamScore = useGameStore((state) => state.tempTeamScore);
+  const roundResult = useGameStore((state) => state.roundResult);
+  const gameResult = useGameStore((state) => state.gameResult);
+  const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수
 
   const roomRef = useRef(null);
 
