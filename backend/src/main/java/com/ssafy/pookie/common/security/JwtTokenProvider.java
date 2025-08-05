@@ -124,7 +124,7 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Social Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
+        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
