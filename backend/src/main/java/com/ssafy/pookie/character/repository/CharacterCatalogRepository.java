@@ -9,14 +9,28 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+
 
 @Repository
 public interface CharacterCatalogRepository extends JpaRepository<CharacterCatalog, Integer> {
-    List<CharacterCatalog> findCharacterCatalogByUserAccountId(Long userAccountId);
-    
-    List<CharacterCatalog> findCharacterCatalogByUserAccountIdAndIsRepresent(Long userAccountId, boolean isRepresent);
+
+    List<CharacterCatalog> findByUserAccountId(Long userAccountId);
+
+    List<CharacterCatalog> findByUserAccountIdAndIsRepresent(Long userAccountId, boolean isRepresent);
 
     boolean existsByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
 
-    Optional<CharacterCatalog> findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int characterStep, PookieType characterType);
+    Optional<CharacterCatalog> findByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
+
+    Optional<CharacterCatalog> findByUserAccountAndCharacter(UserAccounts user, Characters character);
+
+    @Modifying
+    @Query("UPDATE CharacterCatalog c SET c.isRepresent = false WHERE c.userAccount.id = :userId")
+    void resetAllRepresent(Long userId);
+
+    @Modifying
+    @Query("UPDATE CharacterCatalog c SET c.isGrowing = false WHERE c.userAccount.id = :userId")
+    void resetAllGrowing(Long userId);
 }

@@ -29,96 +29,116 @@ public class CharacterService {
     private final UserCharactersRepository userCharactersRepository;
 
     /**
-     * 경험치 증가 및 필요 시 레벨업
+     * 현재 키우는 푸키 레벨업
      */
     @Transactional
     public UserCharacters levelUpMyPookie(Long userAccountId, UserCharacters userCharacter, int requiredExpForStepUp) {
+        // 레벨업 조건 미충족 시 그대로 반환
+        if (userCharacter.getExp() < requiredExpForStepUp) {
+            return userCharacter;
+        }
 
-        // 레벨업 조건 충족 시 처리
-        if (userCharacter.getExp() >= requiredExpForStepUp) {
-            userCharacter.resetExp();
-            int currentStep = userCharacter.getCharacter().getStep();
-            PookieType currentType = userCharacter.getCharacter().getType();
+        // 경험치 초기화
+        userCharacter.resetExp();
 
-            List<Characters> candidates = null;
-            if (currentStep == 0) {
-                candidates = charactersRepository.findByStep(1);
-            } else if (currentStep == 1) {
-                candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 2);
-            }
+        int currentStep = userCharacter.getCharacter().getStep();
+        PookieType currentType = userCharacter.getCharacter().getType();
 
-            if (candidates != null && !candidates.isEmpty()) {
-                Characters nextChar = getRandomCharacter(candidates);
-                userCharacter.changeCharacter(nextChar);
+        List<Characters> candidates = null;
+        if (currentStep == 0) {
+            candidates = charactersRepository.findByStep(1);
+        } else if (currentStep == 1) {
+            candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 2);
+        }
 
-                CharacterCatalog catalog = setPookieCatalogIfNotExists(
-                        userCharacter.getUserAccount(), nextChar.getStep(), nextChar.getType()
-                );
-                changeRepState(userCharacter.getUserAccount(), catalog.getCharacter(), true);
-            }
+        if (candidates != null && !candidates.isEmpty()) {
+            // 기존 대표/성장 해제
+            updateCatalogStates(userCharacter.getUserAccount(), userCharacter.getCharacter(), false, false);
+
+            // 다음 캐릭터 선택 및 교체
+            Characters nextChar = getRandomCharacter(candidates);
+            userCharacter.changeCharacter(nextChar);
+
+            // 도감 등록 및 상태 업데이트
+            CharacterCatalog catalog = setPookieCatalogIfNotExists(
+                    userCharacter.getUserAccount(), nextChar.getStep(), nextChar.getType()
+            );
+            updateCatalogStates(userCharacter.getUserAccount(), catalog.getCharacter(), true, true);
+
+        } else if (currentStep == 2) {
+            // 레벨 1 -> 2로 최종 진화했을 경우 키우는
+            // 최종 진화 → 성장 종료 (새로운 푸키 받기는 버튼으로 처리)
+            updateCatalogStates(userCharacter.getUserAccount(), userCharacter.getCharacter(), true, false);
         }
 
         return userCharactersRepository.save(userCharacter);
     }
 
     /**
-     * user의 도감 조회하기
+     * 도감 상태 업데이트 (대표/성장 동기화)
      */
-    public List<CharacterCatalog> getPookiesByUserId(Long userAccountId) {
-        return characterCatalogRepository.findCharacterCatalogByUserAccountId(userAccountId);
+    @Transactional
+    public void updateCatalogStates(UserAccounts user, Characters character, boolean represent, boolean growing) {
+        CharacterCatalog catalog = characterCatalogRepository
+                .findByUserAccountAndCharacter(user, character)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        // 기존 대표/성장 상태 초기화
+        characterCatalogRepository.resetAllRepresent(user.getId());
+        characterCatalogRepository.resetAllGrowing(user.getId());
+
+        catalog.updateIsRep(represent);
+        catalog.updateIsGrowing(growing);
+        characterCatalogRepository.save(catalog);
     }
 
     /**
-     * 대표 푸딩 가져오기
+     * user의 도감 조회하기
+     */
+    public List<CharacterCatalog> getPookiesByUserId(Long userAccountId) {
+        return characterCatalogRepository.findByUserAccountId(userAccountId);
+    }
+
+    /**
+     * 대표 푸키 가져오기
      */
     public Characters getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
-                characterCatalogRepository.findCharacterCatalogByUserAccountIdAndIsRepresent(userAccountId, true);
+                characterCatalogRepository.findByUserAccountIdAndIsRepresent(userAccountId, true);
 
-        if (catalog.size() > 2) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
+        if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (catalog.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
 
         return catalog.get(0).getCharacter();
     }
 
     /**
-     * 대표 푸딩 바꾸기
+     * 대표 푸키 바꾸기
      */
     @Transactional
     public void changeRepPookie(UserAccounts userAccount, PookieType pookieType, int step) {
         CharacterCatalog catalog = characterCatalogRepository
-                .findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
+                .findByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        if (catalog == null) throw new CustomException(ErrorCode.CHARACTER_NOT_FOUND);
-
-        changeRepState(userAccount, catalog.getCharacter(), true);
-    }
-
-    public void changeRepState(UserAccounts userAccount, Characters character, boolean reqState) {
-        CharacterCatalog catalog = characterCatalogRepository
-                .findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), character.getStep(), character.getType())
-                .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
-
-        catalog.updateIsRep(reqState);
-        characterCatalogRepository.save(catalog);
+        updateCatalogStates(userAccount, catalog.getCharacter(), true, catalog.isGrowing());
     }
 
     /**
-     * 나의 푸딩 조회하기
+     * 나의 푸키 조회하기
      */
     public UserCharacters findMyPookieByUserId(Long userAccountId) {
         List<UserCharacters> userCharacters =
-                userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, true);
+                userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, false);
 
-        if (userCharacters.size() > 2) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
+        if (userCharacters.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (userCharacters.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
 
         return userCharacters.get(0);
     }
 
     /**
-     * 푸딩 지급하기 (Characters 반환)
+     * 푸키 지급하기 (처음 지급 or 새로운 푸키 받기)
      */
     @Transactional
     public Characters setUserPookie(UserAccounts userAccount, PookieType pookieType) {
@@ -127,44 +147,50 @@ public class CharacterService {
                 .findFirst()
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        log.info("✅ 캐릭터 조회 성공: id={}, name={}", character.getId(), character.getName());
-
-        if (userAccount.getId() == null) {
-            throw new CustomException(ErrorCode.INVALID_USER_ACCOUNT);
-        }
-
-        try {
-            UserCharacters userCharacters = UserCharacters.builder()
-                    .userAccount(userAccount)
-                    .character(character)
-                    .exp(0)
-                    .isDrop(false)
-                    .build();
-
-            userCharactersRepository.save(userCharacters);
-            return character;
-        } catch (Exception e) {
-            log.error("❌ UserCharacters 저장 중 에러", e);
-            throw new CustomException(ErrorCode.INTERNAL_ERROR);
-        }
-    }
-
-    public void setPookieCatalog(UserAccounts userAccount, int step, PookieType pookieType) {
-        CharacterCatalog catalog = characterCatalogRepository
-                .findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
-                .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
-
-
-        if (catalog != null) return;
-
-        Characters character = charactersRepository.findCharactersByTypeAndStep(pookieType, step).get(0);
-        catalog = CharacterCatalog.builder()
+        // UserCharacters 저장
+        UserCharacters userCharacters = UserCharacters.builder()
                 .userAccount(userAccount)
                 .character(character)
-                .isRepresent(false)
+                .exp(0)
+                .isDrop(false)
                 .build();
+        userCharactersRepository.save(userCharacters);
 
-        characterCatalogRepository.save(catalog);
+        // CharacterCatalog 등록 (없으면 생성)
+        CharacterCatalog catalog = setPookieCatalogIfNotExists(
+                userAccount, character.getStep(), character.getType()
+        );
+
+        // 대표 & 성장 캐릭터로 지정
+        updateCatalogStates(userAccount, catalog.getCharacter(), true, true);
+
+        log.info("✅ 첫 푸키 지급 완료: userId={}, characterId={}, step={}",
+                userAccount.getId(), character.getId(), character.getStep());
+
+        return character;
+    }
+
+    /**
+     * 도감에 푸키 등록 (없으면 새로 생성)
+     */
+    private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, int step, PookieType pookieType) {
+        return characterCatalogRepository
+                .findByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
+                .orElseGet(() -> {
+                    Characters character = charactersRepository.findCharactersByTypeAndStep(pookieType, step)
+                            .stream()
+                            .findFirst()
+                            .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
+
+                    CharacterCatalog catalog = CharacterCatalog.builder()
+                            .userAccount(userAccount)
+                            .character(character)
+                            .isRepresent(false)
+                            .isGrowing(false)
+                            .build();
+
+                    return characterCatalogRepository.save(catalog);
+                });
     }
 
     /**
@@ -172,29 +198,17 @@ public class CharacterService {
      */
     @Transactional(rollbackFor = Exception.class)
     public UserCharacters feedMyPookie(Long userAccountId, int expFromItem) {
-        // 대표 푸딩 확인
         Characters repCharacter = getRepPookie(userAccountId);
 
-        userCharactersRepository.findByUserAccountIdAndCharacterId(userAccountId, repCharacter.getId())
+        UserCharacters userCharacter = userCharactersRepository
+                .findByUserAccountIdAndCharacterId(userAccountId, repCharacter.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.REP_POKIE_NOT_FOUND));
 
-        // 경험치 증가 + 필요 시 레벨업은 levelUpMyPookie 호출로 처리
-        // TODO: 캐릭터 도감 엔티티에 키우는 캐릭터 필드 추가 후
-        List<UserCharacters> userCharacters =
-                userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, false);
-
-        if (userCharacters.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
-
-        if (userCharacters.size() > 2) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
-
-        UserCharacters userCharacter = userCharacters.get(0);
         userCharacter.upExp(expFromItem);
 
         int currentStep = userCharacter.getCharacter().getStep();
-        PookieType currentType = userCharacter.getCharacter().getType();
         int requiredExpForStepUp = ExpThreshold.getRequiredExpForStep(currentStep);
 
-        // 레벨업 조건 충족 시 처리
         if (userCharacter.getExp() >= requiredExpForStepUp) {
             return levelUpMyPookie(userAccountId, userCharacter, requiredExpForStepUp);
         }
@@ -205,26 +219,5 @@ public class CharacterService {
     private Characters getRandomCharacter(List<Characters> candidates) {
         Random random = new Random();
         return candidates.get(random.nextInt(candidates.size()));
-    }
-
-    private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, int step, PookieType pookieType) {
-        boolean exists = characterCatalogRepository
-                .existsByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType);
-
-        if (!exists) {
-            Characters character = charactersRepository.findCharactersByTypeAndStep(pookieType, step).get(0);
-            CharacterCatalog catalog = CharacterCatalog.builder()
-                    .userAccount(userAccount)
-                    .character(character)
-                    .isRepresent(false)
-                    .build();
-            return characterCatalogRepository.save(catalog);
-        }
-
-        CharacterCatalog characterCatalog = characterCatalogRepository
-                .findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
-                .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
-
-        return characterCatalog;
     }
 }
