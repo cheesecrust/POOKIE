@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CharacterCatalogRepository extends JpaRepository<CharacterCatalog, Integer> {
@@ -15,13 +16,7 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
     
     List<CharacterCatalog> findCharacterCatalogByUserAccountIdAndIsRepresent(Long userAccountId, boolean isRepresent);
 
-    List<CharacterCatalog> findCharacterCatalogByUserAccountAndIsRepresent(UserAccounts userAccount, boolean isRepresent);
-
-    CharacterCatalog findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int characterStep, PookieType characterType);
-
     boolean existsByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
 
-    CharacterCatalog findCharacterCatalogByUserAccountAndCharacterStepAndCharacterType(UserAccounts userAccountId, int characterStep, PookieType characterType);
-
-    List<CharacterCatalog> findCharacterCatalogByUserAccountAndCharacter(UserAccounts userAccount, Characters character);
+    Optional<CharacterCatalog> findCharacterCatalogByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int characterStep, PookieType characterType);
 }
