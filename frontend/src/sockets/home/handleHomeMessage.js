@@ -131,8 +131,14 @@ const handleHomeMessage = (
     }
 
     // 추가적인 방 관련 메시지들 처리
-    case "ROOM_CREATE": 
-    case "ROOM_UPDATE":
+    case "ROOM_UPDATE": {
+      const updatedRoom = data.room;
+      const idx = currentRoomList.findIndex(room => room.roomId == updatedRoom.roomId);
+      if (idx !== -1) {
+        currentRoomList[idx] = updatedRoom;
+      }
+      break;
+    }
     case "ROOM_CHANGE": {
       console.log("🟢 추가 방 관련 메시지:", data.type, data);
       const roomList = data.payload?.roomList || data.roomList || data.rooms;
