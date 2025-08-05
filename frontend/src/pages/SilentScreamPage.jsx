@@ -1,6 +1,10 @@
 // src/pages/SilentScreamPage.jsx
 
-import { useEffect, useParams, useState } from "react";
+import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
+import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
@@ -16,10 +20,17 @@ import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver } from "../
 
 const SilentScreamPage = () => {
 
+  // 방 정보 선언
   const master = useGameStore((state)=> state.master)
   const {user} = useAuthStore();
   const myIdx = user?.userAccountId;
-  const roomId = useGameStore((state) => state.roomId);
+  const { roomId } = useParams();
+  const roomInstance = useGameStore((state) => state.roomInstance);
+  const redTeam = useGameStore((state) => state.redTeam);
+  const blueTeam = useGameStore((state) => state.blueTeam);
+  const publisherTrack = useGameStore((state) => state.publisherTrack);
+  const participants = useGameStore((state) => state.participants);
+
 
   // 상태 관리 (전역)
   // 턴,라운드
@@ -138,6 +149,79 @@ const SilentScreamPage = () => {
     };
   }, [isSubmitModalOpen]);
  
+  // livekit 관련
+  async function getToken(roomId, participantName) {
+    if (!accessToken) throw new Error("로그인 필요. accessToken 없음");
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const res = await fetch(`${apiUrl}/rtc/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ room: roomId, name: participantName, team: "red" }),
+    });
+    if (!res.ok) throw new Error("open vidu 토큰 요청 실패");
+    const tokenObj = await res.json();
+    return tokenObj.token;
+  }
+
+  // livekit 렌더 함수
+  const renderVideoByRole = (roleGroup, positionStyles) => {
+    return roleGroup.map((p, idx) => {
+      return (
+        <div
+          key={p.identity}
+          className={`absolute ${positionStyles[idx]?.position}`}
+        >
+          <LiveKitVideo
+            videoTrack={p.track}
+            nickname={p.nickname}
+            isLocal={p.isLocal}
+            containerClassName={positionStyles[idx]?.size}
+            nicknameClassName="absolute bottom-4 left-4 text-white text-2xl"
+          />
+        </div>
+      );
+    });
+  };  
+
+  // 위치/크기 정의
+  const repStyles = [
+    {
+      position: "top-10 left-5",
+      size: "w-180 h-125 rounded-lg shadow-lg",
+    },
+  ];
+  const norStyles = [
+    {
+      position: "top-10 left-195",
+      size: "w-90 h-60 rounded-lg shadow-lg",
+    },
+    {
+      position: "top-75 left-195",
+      size: "w-90 h-60 rounded-lg shadow-lg",
+    },
+  ];
+  const enemyStyles = [
+    {
+      position: "bottom-6 right-220",
+      size: "w-85 h-60 rounded-lg shadow-lg",
+    },
+    {
+      position: "bottom-6 right-120",
+      size: "w-85 h-60 rounded-lg shadow-lg",
+    },
+    {
+      position: "bottom-6 right-20",
+      size: "w-85 h-60 rounded-lg shadow-lg",
+    },
+  ];
+
+  // 분류 후 자동 배치
+  const repGroup = participants.filter((p) => p.role === "REP");
+  const norGroup = participants.filter((p) => p.role === "NOR");
+  const enemyGroup = participants.filter((p) => p.role === null);
   
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -155,64 +239,29 @@ const SilentScreamPage = () => {
           {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
         </div>
 
-        {/* 🔴 현재팀 캠 */}
+        {/* 현재팀 캠 */}
         <div className="relative w-full h-[250px]">
-          {/* user1 - 왼쪽 크게 */}
-          <div className="absolute top-10 left-5 w-180 h-125 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-4xl px-5 py-4">
-             user1
-            </p>
-          </div>
-
-          {/* user2 */}
-          <div className="absolute top-10 left-195 w-90 h-60 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-2xl px-5 py-2">
-              user2
-            </p>
-          </div>
-
-          {/* user3 */}
-          <div className="absolute top-75 left-195 w-90 h-60 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-2xl px-5 py-2">
-              user3
-            </p>
-          </div>
-
+          {/* user1 (Rep) - 왼쪽 크게 */}
+          {renderVideoByRole(repGroup, repStyles)}
+          {renderVideoByRole(norGroup, norStyles)}
         </div>
 
 
         {/* 상대팀 캠 */}
         <div className="relative w-full h-[180px] mt-auto">
-          {/* 상대 팀 턴 */}
           <div className="absolute bottom-70 right-12 text-2xl font-bold">
-            BLUE TEAM
+            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
           </div>
-          {/* user4 */}
-          <div className="absolute bottom-6 right-220 w-85 h-60 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-2xl px-5 py-2">
-              user4
-            </p>
-          </div>
-
-          {/* user5 */}
-          <div className="absolute bottom-6 right-120 w-85 h-60 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-2xl px-5 py-2">
-              user5
-            </p>
-          </div>
-
-          {/* user6 */}
-          <div className="absolute bottom-6 right-20 w-85 h-60 bg-white rounded-lg shadow-lg">
-            <p className="text-start text-2xl px-5 py-2">
-              user6
-            </p>
-          </div>
-
+          {renderVideoByRole(enemyGroup, enemyStyles)}
         </div>
           
         {/* RoundInfo (우측 상단 고정) */}
         <div className="absolute top-12 right-8 z-20 scale-150">
-          <RoundInfo round={round} redScore={teamScore?.red} blueScore={teamScore?.blue} />
+          <RoundInfo
+            round={round}
+            redScore={teamScore?.red}
+            blueScore={teamScore?.blue}
+          />
         </div>
         
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
@@ -282,4 +331,3 @@ const SilentScreamPage = () => {
 }
 
 export default SilentScreamPage;
-
