@@ -45,10 +45,10 @@ const SilentScreamPage = () => {
   const tempTeamScore = useGameStore((state) => state.tempTeamScore);
   const roundResult = useGameStore((state) => state.roundResult);
   const gameResult = useGameStore((state) => state.gameResult);
+  const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
 
   // 상태 관리 (로컬)
   const [keyword, setKeyword] = useState("");
-  const [score, setScore] = useState(0); // current turn 팀 점수
 
   // 모달 상태 관리
   const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
@@ -107,6 +107,19 @@ const SilentScreamPage = () => {
     }
   }, [keywordIdx]);
 
+  // turn 변환 (레드팀 -> 블루팀), 라운드 변환환
+  useEffect(() => {
+    if (keywordIdx >= 15) 
+      if (turn === "RED")
+      {
+      emitTurnOver({ roomId,team:turn,score:score });
+    } 
+    else if (turn === "BLUE")
+    {
+      emitRoundOver({ roomId,team:turn,score:score });
+    }
+  }, [keywordIdx]);
+  
   // esc 키 눌렀을 때 제출 모달 닫기
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -198,7 +211,7 @@ const SilentScreamPage = () => {
           
         {/* RoundInfo (우측 상단 고정) */}
         <div className="absolute top-12 right-8 z-20 scale-150">
-          <RoundInfo round={1} redScore={0} blueScore={0} />
+          <RoundInfo round={round} redScore={teamScore?.red} blueScore={teamScore?.blue} />
         </div>
         
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
@@ -215,7 +228,7 @@ const SilentScreamPage = () => {
 
           {/* 🔽 모든 유저에게 보이는 진행도 */}
           <div className="mt-2 px-3 py-1 bg-white border-2 border-black rounded shadow-md text-black text-lg font-bold text-center w-[100px]">
-            {keywordIdx + 1} / 15
+            {Math.min((keywordIdx ?? 0) + 1, 15)} / 15
           </div>
         </div>
         
