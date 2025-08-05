@@ -268,4 +268,14 @@ public class RoomStateDto {
                         )
                 ));
     }
+
+    public void updateUserTeamInfo() {
+        this.users.get("RED").forEach((user) -> user.setTeam(UserDto.Team.RED));
+        this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.BLUE));
+    }
+
+    public void resetUserTeamInfo() {
+        this.users.get("RED").forEach((user) -> user.setTeam(UserDto.Team.NONE));
+        this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.NONE));
+    }
 }

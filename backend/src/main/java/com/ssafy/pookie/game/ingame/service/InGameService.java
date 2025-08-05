@@ -68,7 +68,7 @@ public class InGameService {
                     "round", room.getRound(),
                     "rtc_token", rtcToken
             ));
-
+            room.updateUserTeamInfo();
             deliverKeywords(room);
             log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
@@ -233,6 +233,7 @@ public class InGameService {
             // 라운드 증가, 턴 체인지
             room.turnChange();
             if (!increaseRound(session, room)) {
+                room.resetUserTeamInfo();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
