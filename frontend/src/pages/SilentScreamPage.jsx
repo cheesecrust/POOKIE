@@ -9,10 +9,11 @@ import KeywordModal from "../components/atoms/modal/KeywordModal";
 import SubmitModal from "../components/molecules/games/SubmitModal";
 import PassButton from "../components/atoms/button/PassButton.jsx"
 import RightButton from "../components/atoms/button/RightButton.jsx"
+import Timer from "../components/molecules/games/Timer";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore'
-import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver } from "../sockets/game/emit.js";
+import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver, emitTimerStart } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
 
@@ -26,9 +27,8 @@ const SilentScreamPage = () => {
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
   
-  //타이머 
-  const turnTimeLeft = useGameStore((state) => state.turnTimeLeft);
-  const timeLeft = useGameStore((state) => state.timeLeft);
+  // 타이머 
+  const time = useGameStore((state) => state.time);
 
   // 맞히는 사람(제시어 x)
   const norIdxList = useGameStore((state) => state.norIdxList);
@@ -48,6 +48,7 @@ const SilentScreamPage = () => {
   const gameResult = useGameStore((state) => state.gameResult);
   const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
 
+
   // 상태 관리 (로컬)
   const [keyword, setKeyword] = useState("");
 
@@ -56,7 +57,8 @@ const SilentScreamPage = () => {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
-
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+  
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
@@ -69,24 +71,33 @@ const SilentScreamPage = () => {
 
 
 
-  // 1️ 첫 페이지 로딩
-  useEffect(() => {
-    setIsGamestartModalOpen(true);
+// 1️ 첫 페이지 로딩
+useEffect(() => {
+  setIsGamestartModalOpen(true);
 
-    const timer1 = setTimeout(() => {
-      setIsGamestartModalOpen(false);
-      setIsTurnModalOpen(true);
+  const timer1 = setTimeout(() => {
+    setIsGamestartModalOpen(false);
+    setIsTurnModalOpen(true);
 
-      const timer2 = setTimeout(() => {
-        setIsTurnModalOpen(false);
-        setIsFirstLoad(false); // 첫 진입 끝남
-      }, 3000);
+    const timer2 = setTimeout(() => {
+      setIsTurnModalOpen(false);
+      setIsFirstLoad(false); // 첫 진입 끝남
 
-      return () => clearTimeout(timer2);
+      // master면 타이머 시작 emit
+      if (myIdx === master) {
+        emitTimerStart({ roomId });
+      }
+
+      // 타이머 UI 보이기
+      setIsTimerOpen(true);
+
     }, 3000);
 
-    return () => clearTimeout(timer1);
-  }, []);
+    return () => clearTimeout(timer2);
+  }, 3000);
+
+  return () => clearTimeout(timer1);
+}, [myIdx, master, roomId]);
 
   // 턴 바뀔 때
   useEffect(() => {
@@ -95,7 +106,6 @@ const SilentScreamPage = () => {
       const timer = setTimeout(() => {
         setIsTurnModalOpen(false);
       }, 3000);
-
       return () => clearTimeout(timer);
     }
   }, [turn]);
@@ -210,6 +220,13 @@ const SilentScreamPage = () => {
 
         </div>
           
+        {/* 타이머 */}
+        {isTimerOpen && (
+          <div className="absolute top-12 right-64 z-20 scale-150">
+            <Timer seconds={time} />
+          </div>
+        )}
+        
         {/* RoundInfo (우측 상단 고정) */}
         <div className="absolute top-12 right-8 z-20 scale-150">
           <RoundInfo round={round} redScore={teamScore?.red} blueScore={teamScore?.blue} />
@@ -223,7 +240,6 @@ const SilentScreamPage = () => {
 
           {/* 정답 제출 버튼 */}
           {norIdxList.includes(myIdx) && (
-            console.log("✅ 제출 버튼 클릭됨"),
             <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
           )}
 

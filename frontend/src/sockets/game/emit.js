@@ -34,6 +34,13 @@ export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer}) =>
 });
 };
 
+// 타이머 시작
+export const emitTimerStart = ({roomId}) => {
+  sendMessage("TIMER_START", {
+    roomId,
+});
+};
+
 // 제시어 패스 (고요속의 외침)
 export const emitGamePass = ({roomId}) => {
   sendMessage("GAME_PASS", {

@@ -8,6 +8,11 @@ export default async function handleGameMessage(msg, handlers) {
       // -----------------------------
       // 응답(Response) 메시지
       // -----------------------------
+      case "TIMER":
+        console.log("Timer", msg);
+        handlers?.onTimer?.(msg);
+        break;
+
       case "GAME_KEYWORD":
         console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
@@ -38,20 +43,16 @@ export default async function handleGameMessage(msg, handlers) {
         handlers?.onGamePassed?.(msg);
         break;
       
-      case "GAME_PAINTER_CHANGED":
-        console.log("그림 그리는 사람 변경:", data);
-        handlers?.onGamePainterChanged?.(data);
-        break;
+      // case "GAME_PAINTER_CHANGED":
+      //   console.log("그림 그리는 사람 변경:", msg);
+      //   handlers?.onGamePainterChanged?.(msg);
+      //   break;
       
       // case "TIMER_PREPARE_START":
       //   console.log("prepare start:", data);
       //   handlers?.onTimerPrepareStart?.(data);
       //   break;
 
-      // case "TIMER":
-      //   console.log("prepare end:", data);
-      //   handlers?.onTimerPrepareEnd?.(data);
-      //   break;
 
       default:
         console.warn("[GAME] 처리되지 않은 메시지:", msg);

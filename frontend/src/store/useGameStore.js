@@ -13,8 +13,7 @@ const useGameStore = create((set) => ({
     round: 1,
     turn: "RED",
 
-    timeleft: null,
-    turnTimeLeft: null,
+    time: 0,
 
     keywordList: [],
     keywordIdx: null,
@@ -41,6 +40,10 @@ const useGameStore = create((set) => ({
     setRed: (red) => set({ red }),
     setBlue: (blue) => set({ blue }),
     setMaster: (master) => set({ master }),
+    
+
+    
+    setTime: (data) => set({ time: data.time }),
     
     setGameKeyword: (data) => set({
         keywordList: data.keywordList,
