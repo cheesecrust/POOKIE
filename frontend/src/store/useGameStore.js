@@ -1,6 +1,9 @@
 import {create} from 'zustand';
 
 const useGameStore = create((set) => ({
+
+    master: null,
+
     rtctoken: null,
     roomId: null,
 
@@ -37,7 +40,8 @@ const useGameStore = create((set) => ({
     setRound: (round) => set({ round }),
     setRed: (red) => set({ red }),
     setBlue: (blue) => set({ blue }),
-
+    setMaster: (master) => set({ master }),
+    
     setGameKeyword: (data) => set({
         keywordList: data.keywordList,
         keywordIdx: data.keywordIdx,

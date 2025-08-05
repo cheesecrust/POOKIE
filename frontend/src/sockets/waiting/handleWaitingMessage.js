@@ -21,6 +21,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setRound,
         setRed,
         setBlue,
+        setMaster,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -79,9 +80,10 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setRound(round);
             setRed(room.RED);
             setBlue(room.BLUE);
-            
+            setMaster(room.master.id)
+
             console.log(room)
-            console.log(room.roomMaster)
+            console.log(room.master)
             console.log(room.RED)
             console.log(room.BLUE)
 
