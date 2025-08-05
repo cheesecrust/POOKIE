@@ -73,6 +73,18 @@ const useAuthStore = create(
               onTimer: (data) => {
                 useGameStore.getState().setTime(data);
               },
+              onTimerPrepareStart: (data) => {
+                useGameStore.getState().setTimerPrepareStart(data);
+              },
+              onTimerPrepareEnd: (data) => {
+                useGameStore.getState().setTimerPrepareEnd(data);
+              },
+              onGameTimerStart: (data) => {
+                useGameStore.getState().setGameTimerStart(data);
+              },
+              onGameTimerEnd: (data) => {
+                useGameStore.getState().setGameTimerEnd(data);
+              },
               // chat handler
             }
           })
@@ -210,6 +222,18 @@ const useAuthStore = create(
               },
               onTimer: (data) => {
                 useGameStore.getState().setTime(data);
+              },
+              onTimerPrepareStart: (data) => {
+                useGameStore.getState().setTimerPrepareStart(data);
+              },
+              onTimerPrepareEnd: (data) => {
+                useGameStore.getState().setTimerPrepareEnd(data);
+              },
+              onGameTimerStart: (data) => {
+                useGameStore.getState().setGameTimerStart(data);
+              },
+              onGameTimerEnd: (data) => {
+                useGameStore.getState().setGameTimerEnd(data);
               },
                 // chat handler
               }
