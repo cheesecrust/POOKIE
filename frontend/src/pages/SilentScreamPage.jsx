@@ -16,6 +16,7 @@ import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver } from "../
 
 const SilentScreamPage = () => {
 
+  const master = useGameStore((state)=> state.master)
   const {user} = useAuthStore();
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
@@ -109,7 +110,7 @@ const SilentScreamPage = () => {
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환환
   useEffect(() => {
-    if (keywordIdx >= 15) 
+    if (myIdx === master && keywordIdx >= 15) 
       if (turn === "RED")
       {
       emitTurnOver({ roomId,team:turn,score:score });
@@ -267,7 +268,7 @@ const SilentScreamPage = () => {
         children={keyword}
       >
       </KeywordModal>
-      
+
       {/* 턴 모달 */}
       <PopUpModal 
         isOpen={isTurnModalOpen} 
