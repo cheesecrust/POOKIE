@@ -73,14 +73,15 @@ export const handleSocketMessage = (msg, handlers) => {
 
     const typePrefix = msg.type.split("_")[0];
 
-    // if (typePrefix === "TIMER") {
-    //     import("./game/handleGameMessage")
-    //         .then((mod) => mod.default?.(msg, handlers))
-    //         .catch((err) => {
-    //             console.error("[SocketRouter] TIMER 핸들러 로딩 실패:", err);
-    //         });
-    //     return;
-    // }
+    // 타이머 게임쪽으로 
+    if (typePrefix === "TIMER") {
+        import("./game/handleGameMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] TIMER 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
 
     const routeMap = { // 접두사로 구분
         ROOM: () => {
