@@ -19,12 +19,12 @@ const useGameStore = create((set) => ({
     norIdxList: [],
     repIdxList: [],
     repIdx: null,
-    answer: null,
     nowInfo: null,
 
     tempTeamScore: null,
 
     // gameResult 랑 teamScore 같은듯?
+    score: null, // 현재 라운드 팀 점수 
     teamScore: null,
     gameResult: null,
     roundResult: null,
@@ -46,12 +46,12 @@ const useGameStore = create((set) => ({
         norIdxList: data.norIdxList,
     }),
 
-    setGameAnswerSubmitted: (data) => set({
+    setGameAnswerSubmitted: (data) => set((state) => ({
         nowInfo: data.nowInfo,
-        answer: data.answer,
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
-    }),
+        score: data.answer ? (state.score ?? 0) + 1 : state.score,
+    })),
 
     setGameTurnOvered: (data) => set({
         turn: data.turn,
