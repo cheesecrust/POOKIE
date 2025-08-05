@@ -194,7 +194,7 @@ const SilentScreamPage = () => {
 
         {/* 제시어 제출 버튼 */}
         {norIdxList.includes(myIdx) && <div className="absolute top-80 right-40 z-20 scale-300">
-          <RightButton onClick={() => setIsSubmitModalOpen(true)} />
+          <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
         </div>}
         
 

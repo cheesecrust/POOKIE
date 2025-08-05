@@ -72,8 +72,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
 
         case "GAME_STARTED": {
             const { rtc_token, turn, round } = data;
-            console.log(data)
-            console.log("🟢 게임 시작 메시지 수신:", data);
+            
             // 전역으로 넣어달라 하십니다
             setRtcToken(rtc_token);
             setTurn(turn);
@@ -81,7 +80,6 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setRed(room.RED);
             setBlue(room.BLUE);
 
-            console.log("🟢 룸정보:", room);
             navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             break;
         }
