@@ -1,5 +1,6 @@
 // src/pages/SilentScreamPage.jsx
 
+import {useNavigate} from "react-router-dom";
 import { useEffect,  useState } from "react";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
@@ -17,6 +18,7 @@ import useGameStore from '../store/useGameStore'
 import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver, emitTimerStart } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
+  const navigate = useNavigate();
 
   const master = useGameStore((state)=> state.master)
   const {user} = useAuthStore();
@@ -51,6 +53,8 @@ const SilentScreamPage = () => {
   const gameResult = useGameStore((state) => state.gameResult);
   const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
 
+  // 최종 승자
+  const win = useGameStore((state) => state.win);
   // 모달
   const isGameStartModalOpen = useGameStore((state) => state.isGamestartModalOpen);
   const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
@@ -68,7 +72,8 @@ const SilentScreamPage = () => {
   // 모달 상태 관리
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  
+  const [isWinModalOpen, setIsWinModalOpen] = useState(false);
+ 
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
@@ -112,9 +117,11 @@ const SilentScreamPage = () => {
       {
         if (turn === "RED"){
           emitTurnOver({ roomId,team:turn,score:score });
+          emitTimerStart({ roomId });
         }
         else if (turn === "BLUE"){
           emitRoundOver({ roomId,team:turn,score:score });
+          emitTimerStart({ roomId });
         }
         resetGameTimerEnd();
       }
@@ -138,7 +145,18 @@ const SilentScreamPage = () => {
     };
   }, [isSubmitModalOpen]);
  
-  
+  // 최종 누가 이겼는지
+  useEffect(() => {
+    if (win) {
+      setIsWinModalOpen(true);
+      const timeout = setTimeout(() => {
+        navigate(`/waiting/${roomId}`);
+      }, 7000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [win]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지는 absolute로 완전 뒤로 보내야 함 */}
@@ -289,6 +307,14 @@ const SilentScreamPage = () => {
         onClose={() => closeTurnModal()}
       >
         <p className="text-6xl font-bold font-pixel">{turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}</p>
+      </PopUpModal>
+
+      {/* 최종 승자 모달 */}
+      <PopUpModal 
+        isOpen={isWinModalOpen} 
+        onClose={() => setIsWinModalOpen(false)}
+      >
+       <p className="text-6xl font-bold font-pixel">{win === "DRAW" && "DRAW!" || win === "RED" && "RED TEAM WIN!" || win === "BLUE" && "BLUE TEAM WIN!"}</p>
       </PopUpModal>
     </div>
 

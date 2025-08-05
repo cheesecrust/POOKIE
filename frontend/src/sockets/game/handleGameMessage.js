@@ -62,6 +62,11 @@ export default async function handleGameMessage(msg, handlers) {
         console.log("제시어 패스:", msg);
         handlers?.onGamePassed?.(msg);
         break;
+
+      case "WAITING_GAME_OVER":
+        console.log("게임 종료:", msg);
+        handlers?.onWaitingGameOver?.(msg);
+        break;
       
       case "GAME_PAINTER_CHANGED":
         console.log("그림 그리는 사람 변경:", msg);

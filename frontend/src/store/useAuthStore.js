@@ -235,6 +235,9 @@ const useAuthStore = create(
               onGameTimerEnd: (data) => {
                 useGameStore.getState().setGameTimerEnd(data);
               },
+              onWaitingGameOver: (data) => {
+                useGameStore.getState().setWatingGameOver(data);
+              },
                 // chat handler
               }
             });

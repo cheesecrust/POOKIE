@@ -33,7 +33,9 @@ const useGameStore = create((set) => ({
     teamScore: {RED:0,BLUE:0},
     gameResult: null,
     roundResult: null,
+    finalScore: {RED:0,BLUE:0},
 
+    win: null,
 
     // 모달 상태 관리
     isGamestartModalOpen: false,
@@ -125,7 +127,7 @@ const useGameStore = create((set) => ({
         round: data.round,
         gameResult: data.gameResult,
         roundResult: data.roundResult,
-        win: data.win,
+        // win: data.win,
     }),
 
     setGameNewRound: (data) => set({
@@ -138,7 +140,11 @@ const useGameStore = create((set) => ({
         nowInfo: data.nowInfo,
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
-    }),
+    }),    
+    setWatingGameOver: (data) => set({
+        win: data.gameResult.win,
+        finalScore: data.gameResult.finalScore,
+    })
 
 }))
 
