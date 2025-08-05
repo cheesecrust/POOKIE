@@ -43,7 +43,7 @@ export const emitGamePass = ({roomId}) => {
 
 // 그림 그리기 이벤트
 export const emitDrawEvent = ({ roomId, drawType, data }) => {
-  sendMessage("GAME_DRAW_EVENT", {
+  sendMessage("GAME_DRAW", {
     roomId,
     drawType, // "draw", "clear", "start", "end"
     data: {
