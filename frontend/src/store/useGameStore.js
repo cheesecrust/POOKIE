@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import {emitTimerStart} from '../sockets/game/emit';
+import useAuthStore from './useAuthStore';
 
 const useGameStore = create((set) => ({
 
@@ -8,6 +9,7 @@ const useGameStore = create((set) => ({
     rtctoken: null,
     roomId: null,
 
+    // 팀 유저 정보
     red: null,
     blue: null,
 
@@ -32,18 +34,40 @@ const useGameStore = create((set) => ({
     gameResult: null,
     roundResult: null,
 
-    win: null,
 
+    // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
 
-
+    showTurnChangeModal: () => {
+        set({ isTurnModalOpen: true });
+        setTimeout(() => {
+            set({ isTurnModalOpen: false });
+        }, 2000);
+    },
+    
+    // 모달 SET 함수
     openGamestartModal: () => set({ isGamestartModalOpen: true }),
     closeGamestartModal: () => set({ isGamestartModalOpen: false }),
     openTurnModal: () => set({ isTurnModalOpen: true }),
     closeTurnModal: () => set({ isTurnModalOpen: false }),
     
+    
+    // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
+    isTimerEnd: false,
+    
+    // 타이머끝 상태 set 함수
+    resetIsTimerEnd: () => set({ isTimerEnd:false }),
+
+    // 타이머 SET 함수
+    setTimerPrepareStart: () => set({ }),
+    setTimerPrepareEnd: () => set({ }),
+    setGameTimerStart: () => set({  }),
+    setGameTimerEnd: () => set({ isTimerEnd:true }),
+
     handleTimerPrepareSequence: (roomId) => {
+        const master = useGameStore.getState().master;
+        const myIdx = useAuthStore.getState().user?.userAccountId;
         // 1) 게임 스타트 모달 ON
         set({ isGamestartModalOpen: true });
     
@@ -54,16 +78,16 @@ const useGameStore = create((set) => ({
           setTimeout(() => {
             // 3) 턴 모달 OFF, 서버에 타이머 시작 요청
             set({ isTurnModalOpen: false });
-            emitTimerStart({ roomId }); //  실제 타이머 시작
+            if (myIdx === master){
+                emitTimerStart({ roomId }); //  실제 타이머 시작
+            }
           }, 2000);
     
         }, 2000);
       },
 
-    setTimerPrepareStart: () => set({ }),
-    setTimerPrepareEnd: () => set({ }),
-    setGameTimerStart: () => set({  }),
 
+    
     setRoomId: (id) => set({roomId:id}),
     setRtcToken: (token) => set({ rtctoken: token }),
     setTurn: (turn) => set({ turn }),
