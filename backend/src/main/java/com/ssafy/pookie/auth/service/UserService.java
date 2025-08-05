@@ -71,7 +71,7 @@ public class UserService {
         UserAccounts savedAccount = userAccountsRepository.save(account);
 
         // 첫 푸키 지급 (UserCharacters + CharacterCatalog까지 통합)
-        characterService.setUserPookie(savedAccount, PookieType.BASE);
+        characterService.setUserInitPookie(savedAccount);
 
         return SignupResponseDto.builder()
                 .userId(savedUser.getId())

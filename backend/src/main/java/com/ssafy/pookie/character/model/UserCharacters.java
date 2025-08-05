@@ -50,7 +50,7 @@ public class UserCharacters {
         this.exp = 0;
     }
 
-    public void changeCharacter(Characters newCharacter) {
-        this.character = newCharacter;
+    public void setMaxExpForLevelUp(int maxExp) {
+        this.exp = maxExp;
     }
 }

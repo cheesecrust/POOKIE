@@ -37,7 +37,7 @@ public class OAuthUserService {
         String socialId = oAuth2User.getAttribute("sub");
         String nickname = oAuth2User.getAttribute("name");
 
-        return handleLoginCommon(email, nickname, socialId, PookieType.BASE, "google");
+        return handleLoginCommon(email, nickname, socialId, "google");
     }
 
     /**
@@ -54,14 +54,14 @@ public class OAuthUserService {
         String nickname = profile != null ? (String) profile.get("nickname") : null;
         String socialId = oAuth2User.getAttribute("id").toString();
 
-        return handleLoginCommon(email, nickname, socialId, PookieType.BASE, "kakao");
+        return handleLoginCommon(email, nickname, socialId, "kakao");
     }
 
     /**
      * 공통 로그인/회원가입 처리
      */
     private LoginResponseDto handleLoginCommon(String email, String nickname,
-                                               String socialId, PookieType defaultType, String provider) {
+                                               String socialId, String provider) {
         if (email == null || email.isBlank()) {
             throw new IllegalStateException("소셜 로그인에서 이메일 정보를 가져오지 못했습니다.");
         }
@@ -91,7 +91,7 @@ public class OAuthUserService {
             UserAccounts savedAccount = userAccountsRepository.save(account);
 
             // 기본 푸키 지급 (UserCharacters + CharacterCatalog 등록 + 대표/성장 설정 포함)
-            characterService.setUserPookie(savedAccount, defaultType);
+            characterService.setUserInitPookie(savedAccount);
 
             user = savedUser;
             userAccount = savedAccount;
