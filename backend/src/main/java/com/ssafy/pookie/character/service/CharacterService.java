@@ -1,7 +1,6 @@
 package com.ssafy.pookie.character.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
-import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
