@@ -19,6 +19,7 @@ public enum ErrorCode {
     // Character 관련
     TOO_MANY_POOKIES(HttpStatus.BAD_REQUEST, "보유 가능한 푸키 수를 초과했습니다."),
     REP_POKIE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 캐릭터를 찾을 수 없습니다."),
+    GROWING_POKIE_NOT_FOUND(HttpStatus.NOT_FOUND, "성장하는 캐릭터를 찾을 수 없습니다."),
     CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 푸키를 찾을 수 없습니다."),
     INVALID_USER_ACCOUNT(HttpStatus.BAD_REQUEST, "UserAccount가 아직 DB에 저장되지 않았습니다."),
 

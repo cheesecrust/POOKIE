@@ -70,13 +70,6 @@ public class InventoryService {
             inventoryItemRepository.save(inventoryItem);
         }
 
-        // 4. 레벨업 시 대표 캐릭터 변경
-        characterService.changeRepPookie(
-                updatedCharacter.getUserAccount(),
-                updatedCharacter.getCharacter().getType(),
-                updatedCharacter.getCharacter().getStep()
-        );
-
         // 5. 캐릭터 상태 DTO 변환 후 반환
         return UserCharactersResponseDto.fromEntity(updatedCharacter);
     }
