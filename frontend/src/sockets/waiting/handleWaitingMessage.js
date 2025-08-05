@@ -77,6 +77,11 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setRound(round);
             setRed(room.RED);
             setBlue(room.BLUE);
+            
+            console.log(room)
+            console.log(room.roomMaster)
+            console.log(room.RED)
+            console.log(room.BLUE)
 
             navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             break;
