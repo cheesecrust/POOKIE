@@ -96,7 +96,7 @@ public class GameRoomService {
                             "room", room.mappingRoomInfo()
                     ));
             // TODO : 입장 정보를 lobby 의 roomlist 에 업데이트 해줘야함
-
+            onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
@@ -173,6 +173,7 @@ public class GameRoomService {
                 return;
             }
             onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
+            onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
                 log.info("REGRANT Master");

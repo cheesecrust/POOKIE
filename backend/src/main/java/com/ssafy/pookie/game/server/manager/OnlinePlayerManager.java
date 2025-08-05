@@ -140,6 +140,7 @@ public class OnlinePlayerManager {
                                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
                                     "msg", session.getAttributes()
                             ));
+                            sendUpdateRoomStateToUserOn(room);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
