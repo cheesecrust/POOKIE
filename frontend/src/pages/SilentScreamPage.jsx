@@ -107,8 +107,22 @@ const SilentScreamPage = () => {
     }
   }, [keywordIdx]);
 
+  // esc 키 눌렀을 때 제출 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsSubmitModalOpen(false);
+      }
+    };
   
-
+    if (isSubmitModalOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+  
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSubmitModalOpen]);
  
   
   return (
@@ -195,15 +209,14 @@ const SilentScreamPage = () => {
 
           {/* 정답 제출 버튼 */}
           {norIdxList.includes(myIdx) && (
-            <RightButton onClick={() => setIsSubmitModalOpen(true)} />
+            console.log("✅ 제출 버튼 클릭됨"),
+            <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
           )}
 
           {/* 🔽 모든 유저에게 보이는 진행도 */}
-          {keywordList.length > 0 && (
-            <span className="mt-2 text-xl font-semibold text-yellow-300 drop-shadow">
-              {keywordIdx + 1} / {keywordList.length}
-            </span>
-          )}
+          <div className="mt-2 px-3 py-1 bg-white border-2 border-black rounded shadow-md text-black text-lg font-bold text-center w-[100px]">
+            {keywordIdx + 1} / 15
+          </div>
         </div>
         
 
@@ -223,11 +236,17 @@ const SilentScreamPage = () => {
       </PopUpModal>
       
       {/* 제시어 제출 모달 */}
-      {isSubmitModalOpen && <SubmitModal 
+      {isSubmitModalOpen && (
+      <SubmitModal 
+        isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
-        onSubmit={(inputAnswer) => emitAnswerSubmit({roomId, round, norId:myIdx, keywordIdx, inputAnswer})}
-      >
-      </SubmitModal>}
+        onSubmit={(inputAnswer) => {
+          emitAnswerSubmit({roomId, round, norId:myIdx, keywordIdx, inputAnswer});
+          setIsSubmitModalOpen(false);
+        }}
+      />
+    )}
+
       {/*  KEYWORD 모달 */}
       <KeywordModal 
         isOpen={isKeywordModalOpen} 
