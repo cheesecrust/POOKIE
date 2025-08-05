@@ -69,9 +69,9 @@ public class UserService {
 
         Users savedUser = usersRepository.save(user);
         UserAccounts savedAccount = userAccountsRepository.save(account);
-        Characters character = characterService.setUserPookie(savedAccount, PookieType.BASE);
-        characterService.setPookieCatalog(savedAccount, character.getStep(), character.getType());
-        characterService.changeRepPookie(savedAccount, character.getType(), character.getStep());
+
+        // 첫 푸키 지급 (UserCharacters + CharacterCatalog까지 통합)
+        characterService.setUserPookie(savedAccount, PookieType.BASE);
 
         return SignupResponseDto.builder()
                 .userId(savedUser.getId())

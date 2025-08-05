@@ -32,6 +32,8 @@ public class CharacterCatalog {
 
     private boolean isRepresent;
 
+    private boolean isGrowing;
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -41,5 +43,9 @@ public class CharacterCatalog {
 
     public void updateIsRep(boolean isRepresent) {
         this.isRepresent = isRepresent;
+    }
+
+    public void updateIsGrowing(boolean isGrowing) {
+        this.isGrowing = isGrowing;
     }
 }
