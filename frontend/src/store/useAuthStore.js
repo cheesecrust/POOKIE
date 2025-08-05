@@ -68,6 +68,9 @@ const useAuthStore = create(
               onGameNewRound: (data) => {
                 useGameStore.getState().setGameNewRound(data);
               },
+              onGamePassed: (data) => {
+                useGameStore.getState().setGamePassed(data);
+              },
               // chat handler
             }
           })
@@ -149,34 +152,42 @@ const useAuthStore = create(
         const accessToken = get().accessToken;
         const isLoggedIn = get().isLoggedIn;
 
-        if (!accessToken || isLoggedIn) return;
+        if (!accessToken) return;
 
         try {
-          await get().fetchUserInfo();
-          set({ isLoggedIn: true });
+          // 사용자 정보가 없는 경우에만 fetch
+          if (!get().user) {
+            await get().fetchUserInfo();
+          }
+          
+          if (!isLoggedIn) {
+            set({ isLoggedIn: true });
+          }
 
-          console.log("socket 재연결 호출");
-          // 📍소켓 재연결📍
-          connectSocket({
-            url: import.meta.env.VITE_SOCKET_URL,
-            token: accessToken,
-            handlers: {
-              // common handler
-              navigate,
+          // 소켓 연결 상태 확인
+          const { isSocketConnected } = await import('../sockets/websocket');
+          
+          if (!isSocketConnected()) {
+            console.log("🔄 소켓 재연결 시작");
+            
+            // 📍소켓 재연결📍
+            connectSocket({
+              url: import.meta.env.VITE_SOCKET_URL,
+              token: accessToken,
+              handlers: {
+                // common handler
+                navigate,
 
-              // home handler
-              setRoomList: useRoomStore.getState().setRoomList,
+                // home handler
+                setRoomList: useRoomStore.getState().setRoomList,
 
-              // waiting handler
-              user: get().user,
-              setRoom: () => { },
-              setTeam: () => { },
-              setIsReady: () => { },
-
+                // waiting handler
+                user: get().user,
+                setRoom: () => { },
+                setTeam: () => { },
+                setIsReady: () => { },
               // game handler
-              onGameStarted: (data) => {
-                useGameStore.getState().setGameStarted(data);
-              },
+
               onGameKeyword: (data) => {
                 useGameStore.getState().setGameKeyword(data);
               },
@@ -192,10 +203,15 @@ const useAuthStore = create(
               onGameNewRound: (data) => {
                 useGameStore.getState().setGameNewRound(data);
               },
-
-              // chat handler
-            }
-          });
+              onGamePassed: (data) => {
+                useGameStore.getState().setGamePassed(data);
+              },
+                // chat handler
+              }
+            });
+          } else {
+            console.log("✅ 소켓이 이미 연결되어 있음 - 재연결 생략");
+          }
         } catch (err) {
           console.error('자동 로그인 실패 (accessToken 만료)');
           set({ accessToken: null, isLoggedIn: false });

@@ -8,7 +8,6 @@ const SubmitModal = ({ isOpen, onClose, onSubmit }) => {
     if (text.trim() !== "") {
       onSubmit(text);
       setText("");
-      onClose();
     }
   };
 

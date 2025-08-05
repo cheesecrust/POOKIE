@@ -152,6 +152,10 @@ const handleHomeMessage = (
         console.log("✅ navigate 존재 여부", typeof navigate);
         console.log("👉 navigate 직전 실행");
         console.log(room)
+        
+        // 정상 입장 플래그 설정
+        sessionStorage.setItem('waitingPageNormalEntry', 'true');
+        
         navigate(`/waiting/${roomId}`, { state: { room } });
       } else {
         console.warn("❌ roomId 없음");
@@ -159,6 +163,28 @@ const handleHomeMessage = (
       break;
     }
 
+
+    case "IS_JOINED": {
+      const isJoined = data.isJoined;
+      const roomId = data.roomId;
+      const room = data.room;
+      if (isJoined && room) {
+        console.log("✅ 현재 방에 참여 중 - 방 상태 복원");
+        
+        // 정상 입장 플래그 설정 (재입장)
+        sessionStorage.setItem('waitingPageNormalEntry', 'true');
+        
+        if (handlers.setRoom) {
+          handlers.setRoom(room);
+        }
+      } else {
+        console.log("❌ 현재 방에 참여하지 않음 - 홈으로 이동");
+        if (navigate) {
+          navigate('/home', { replace: true });
+        }
+      }
+      break;
+    }
 
     case "ERROR": {
       console.error("❌ 서버 오류:", data.msg);
