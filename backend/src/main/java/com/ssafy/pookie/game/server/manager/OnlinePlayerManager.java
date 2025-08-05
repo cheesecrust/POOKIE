@@ -137,8 +137,9 @@ public class OnlinePlayerManager {
                     room.getSessions().forEach((s) -> {
                         try {
                             sendToMessageUser(s, Map.of(
-                                    "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
-                                    "msg", session.getAttributes()
+                                    "type", MessageDto.Type.WAITING_USER_REMOVED.toString(),
+                                    "msg", session.getAttributes(),
+                                    "room", room.mappingRoomInfo()
                             ));
                             sendUpdateRoomStateToUserOn(room);
                         } catch (IOException e) {
