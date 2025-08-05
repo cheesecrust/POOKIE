@@ -6,36 +6,21 @@ import ChatBox from "../components/molecules/common/ChatBox";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState } from "react";
 import { getSocket } from "../sockets/websocket";
-// import { handleSamePoseMessage } from "../sockets/samePose/onMessage";
+import useAuthStore from "../store/useAuthStore.js";
+import useGameStore from "../store/useGameStore";
 
 const SamePosePage = () => {
+  const { user } = useAuthStore();
+  const roomId = useGameStore((state) => state.roomId);
   const [keyword, setKeyword] = useState("");
-  const [turn, setTurn] = useState(""); // 턴 RED인지 BLUE인지지
 
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleMessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        // handleSamePoseMessage(msg, {
-        //   onKeywordReceived: (msg) => {
-        //     const receivedKeyword = msg.KeywordList?.[0];
-        //     if (receivedKeyword) setKeyword(receivedKeyword);
-        //   },
-        //   onStartedGame: (msg) => {
-        //     setTurn(msg.turn);
-        //   },
-        // });
-      } catch (err) {
-        console.error("[SamePosePage] 메시지 파싱 실패:", err);
-      }
-    };
-
-    socket.addEventListener("message", handleMessage);
-    return () => socket.removeEventListener("message", handleMessage);
-  }, []);
+  // 상태 관리 (전역)
+  // 턴,라운드
+  const turn = useGameStore((state) => state.turn);
+  const round = useGameStore((state) => state.round);
+  //키워드
+  const keywordList = useGameStore((state) => state.keywordList);
+  const keywordIdx = useGameStore((state) => state.keywordIdx);
 
   return (
     <div
