@@ -159,16 +159,7 @@ public class OnlinePlayerManager {
                     sendToMessageUser(user.getUser().getSession(), Map.of(
                             "type", MessageDto.Type.ROOM_REMOVED.toString(),
                             "room", Map.of(
-                                    "roomId", room.getRoomId(),
-                                    "roomTitle", room.getRoomTitle(),
-                                    "gameType", room.getGameType(),
-                                    "roomMaster", room.getRoomMaster().getUserNickname(),
-                                    "roomPw", room.getRoomPw() != null && !room.getRoomPw().isEmpty(),
-                                    "teamInfo", Map.of(
-                                            "RED", room.getUsers().getOrDefault("RED", List.of()).size(),
-                                            "BLUE", room.getUsers().getOrDefault("BLUE", List.of()).size(),
-                                            "TOTAL", room.getUsers().getOrDefault("RED", List.of()).size()+room.getUsers().getOrDefault("BLUE", List.of()).size()
-                                    )
+                                    "roomId", room.getRoomId()
                             )));
                     this.rooms.remove(getRoomId);
                     log.info("Room {} was disappeared", room.getRoomId());
