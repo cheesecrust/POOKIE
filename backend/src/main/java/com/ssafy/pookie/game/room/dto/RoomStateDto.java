@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Builder
 public class RoomStateDto {
-    public enum Status {WAITING, START, END};
+    public enum Status {WAITING, READY, START, END};
     public enum Turn {RED, BLUE, NONE};
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
 

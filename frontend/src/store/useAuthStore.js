@@ -237,6 +237,8 @@ const useAuthStore = create(
               },
               onWaitingGameOver: (data) => {
                 useGameStore.getState().setWatingGameOver(data);
+                // 게임 종료 후 대기방 복귀를 위한 정상 입장 플래그 설정
+                sessionStorage.setItem('waitingPageNormalEntry', 'true');
               },
                 // chat handler
               }

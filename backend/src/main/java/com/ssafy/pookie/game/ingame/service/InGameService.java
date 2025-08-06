@@ -37,7 +37,7 @@ public class InGameService {
     private final RtcService rtcService;
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
-    public void hadleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
+    public void handleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
         try {
             // 현재 방의 상태를 가져옴
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
@@ -66,7 +66,15 @@ public class InGameService {
                     "msg", "게임을 시작합니다.",
                     "turn", room.getTurn().toString(),
                     "round", room.getRound(),
-                    "rtc_token", rtcToken
+                    "rtc_token", rtcToken,
+                    "game_init", Map.of(
+                            "score", 0,
+                            "teamScore", Map.of(
+                                    "RED", 0,
+                                    "BLUE", 0
+                            ),
+                            "win", 0
+                    )
             ));
             room.updateUserTeamInfo();
             deliverKeywords(room);
@@ -196,13 +204,13 @@ public class InGameService {
         // 1. 게임 끝
         if(nowRound == 3) { // 더 이상 진행 불가
             log.info("Room {} Game Over", room.getRoomId());
-            room.resetAfterGameOver();
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
                     "room", room.mappingRoomInfo(),
                     "gameResult", room.gameOver()
             ));
+            room.resetAfterGameOver();
             return false;
         }
         // 2. 게임 진행
@@ -237,6 +245,7 @@ public class InGameService {
             room.turnChange();
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
+                room.resetRoom();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }

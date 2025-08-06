@@ -151,6 +151,8 @@ const SilentScreamPage = () => {
     if (win) {
       setIsWinModalOpen(true);
       const timeout = setTimeout(() => {
+        // 게임 종료 후 대기방 복귀 - 정상 입장 플래그 설정
+        sessionStorage.setItem('waitingPageNormalEntry', 'true');
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
       }, 7000);
 

@@ -53,7 +53,6 @@ public class GameRoomService {
                 create = true;
             } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())) throw new IllegalArgumentException("존재하지 않는 방입니다.");
 
-
             // 기존에 있던 방이라면 입장, 없던 방이라면 생성
             RoomStateDto room = createNewRoom(joinDto);
 
@@ -62,7 +61,6 @@ public class GameRoomService {
                 joinDto.getUser().setGrant(UserDto.Grant.MASTER);
             }
             if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) throw new IllegalArgumentException("GameType이 일치하지 않습니다.");
-
 
             // 비밀번호 확인
             if((room.getRoomPw() != null || !room.getRoomPw().isEmpty()) &&
@@ -117,6 +115,7 @@ public class GameRoomService {
                     .roomMaster(joinDto.getUser())
                     .gameInfo(new GameInfoDto())
                     .sessions(new HashSet<>())
+                    .status(RoomStateDto.Status.WAITING)
                     .build();
 
             log.info("Room {} was created", newRoom.getRoomId());
