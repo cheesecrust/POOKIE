@@ -34,10 +34,11 @@ const SamePosePage = () => {
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
 
-  // 제시어어
+  // 제시어
   const keywordIdx = useGameStore((state) => state.keywordIdx);
   const keywordList = useGameStore((state) => state.keywordList);
   const keyword = keywordList?.[keywordIdx] ?? "";
+
   //타이머
   const isTimerEnd = useGameStore((state) => state.isTimerEnd);
   const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
@@ -48,6 +49,33 @@ const SamePosePage = () => {
   const [redTeam, setRedTeam] = useState([]);
   const [blueTeam, setBlueTeam] = useState([]);
   const [publisherTrack, setPublisherTrack] = useState(null);
+
+  // 게임시 나빼고 가려야 함
+  const [hideTargetIds, setHideTargetIds] = useState([]);
+  const [countdown, setCountdown] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // norIdxList 가져오기
+  const norIdxList = useGameStore((state) => state.norIdxList) || [];
+
+  // hideModal 대상 계산 => 나중에 수정
+  useEffect(() => {
+    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
+
+    if (isMyTeamRed) {
+      if (turn === "RED") {
+        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      } else {
+        setHideTargetIds(blueTeam.map((p) => p.id));
+      }
+    } else {
+      if (turn === "BLUE") {
+        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      } else {
+        setHideTargetIds(redTeam.map((p) => p.id));
+      }
+    }
+  }, [turn, redTeam, blueTeam, norIdxList, myIdx]);
 
   // 점수 관련
   const teamScore = useGameStore((state) => state.teamScore);
@@ -123,15 +151,23 @@ const SamePosePage = () => {
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
-  // 턴 바뀔 때 턴 모달 띄움
+  // 턴 모달 중복 방지
   useEffect(() => {
-    // 첫 로딩(게임 시작) 제외
-    if (!isFirstLoad) {
-      showTurnChangeModal();
-    } else {
-      setIsFirstLoad(false);
+    if (isFirstLoad) {
+      setIsFirstLoad(false); // 첫 로딩 시 턴 변경 모달 안 띄움
+      return;
     }
+    showTurnChangeModal();
   }, [turn]);
+
+  // 타이머 → hideModal 표시 캠 가리기
+  useEffect(() => {
+    if (timeLeft !== null) {
+      setCountdown(timeLeft);
+      if (timeLeft === 3) setShowModal(true);
+      if (timeLeft < 0) setShowModal(false);
+    }
+  }, [timeLeft]);
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
@@ -159,6 +195,7 @@ const SamePosePage = () => {
       return () => clearTimeout(timeout);
     }
   }, [win]);
+
   // livekit 연결
   // useEffect(() => {
   //   const connectLiveKit = async () => {
@@ -304,7 +341,7 @@ const SamePosePage = () => {
                 <p>제시어</p>
               </div>
               <p className="text-2xl font-semibold text-black mt-2">
-                {keyword || "상대 팀 진행 중..."}
+                {keyword || "제시어 대기 중..."}
               </p>
             </div>
           </div>
@@ -317,11 +354,56 @@ const SamePosePage = () => {
         </div>
       </section>
 
-      {/* 3:3 화면 구성 */}
+      {/* RED TEAM */}
       <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
-        {" "}
-        {/* RED TEAM */}
-        {/* <div className="flex flex-wrap justify-center w-full bg-red-100 p-2">
+        {redTeam.map((p) => (
+          <div
+            key={p.id}
+            id={`player-${p.id}`}
+            className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg relative"
+          >
+            {p.nickname}
+            {showModal && hideTargetIds.includes(p.id) && (
+              <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-white text-4xl font-bold pointer-events-none">
+                {countdown > 0 ? countdown : "찰칵!"}
+              </div>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <section className="basis-3/9 flex flex-row gap-6p-4">
+        {/* ChatBox 영역 */}
+        <div className="basis-1/3 relative">
+          <div className="absolute bottom-0 left-0">
+            <ChatBox width="350px" height="250px" />
+          </div>
+        </div>
+
+        {/* Blue 팀 캠 영역 */}
+        <div className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 justify-center items-center">
+          {blueTeam.map((p) => (
+            <div
+              key={p.id}
+              id={`player-${p.id}`}
+              className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg relative"
+            >
+              {p.nickname}
+              {showModal && hideTargetIds.includes(p.id) && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-white text-4xl font-bold pointer-events-none">
+                  {countdown > 0 ? countdown : "찰칵!"}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3:3 화면 구성 */}
+      {/* <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
+        {" "} */}
+      {/* RED TEAM */}
+      {/* <div className="flex flex-wrap justify-center w-full bg-red-100 p-2">
           {publisherTrack?.team === "RED" && (
             <LiveKitVideo
               videoTrack={publisherTrack.track}
@@ -340,25 +422,25 @@ const SamePosePage = () => {
             />
           ))}
         </div> */}
-        <div className="flex-1 h-full border border-red-500 bg-blue-300 rounded-lg"></div>
+      {/* <div className="flex-1 h-full border border-red-500 bg-blue-300 rounded-lg"></div>
         <div className="flex-1 h-full border border-red-500 bg-green-300 rounded-lg"></div>
         <div className="flex-1 h-full border border-red-500 bg-yellow-300 rounded-lg"></div>
-      </section>
+      </section> */}
 
-      <section className="basis-3/9 flex flex-row">
+      {/* <section className="basis-3/9 flex flex-row">
         <div className="relative basis-1/3 ">
           <div className="absolute bottom-0 left-0 ">
             <ChatBox width="350px" height="250px" />
           </div>
-        </div>
+        </div> */}
 
-        {/* BLUE TEAM */}
-        <section className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 p-4 justify-center items-center">
+      {/* BLUE TEAM */}
+      {/* <section className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 p-4 justify-center items-center">
           <div className="flex-1 h-full border border-blue-500 bg-blue-300 rounded-lg"></div>
           <div className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg"></div>
-          <div className="flex-1 h-full border border-blue-500 bg-yellow-300 rounded-lg"></div>
+          <div className="flex-1 h-full border border-blue-500 bg-yellow-300 rounded-lg"></div> */}
 
-          {/* {publisherTrack?.team === "BLUE" && (
+      {/* {publisherTrack?.team === "BLUE" && (
             <LiveKitVideo
               videoTrack={publisherTrack.track}
               isLocal={true}
@@ -366,7 +448,7 @@ const SamePosePage = () => {
               containerClassName="w-40 h-32 border border-blue-500 m-1"
             />
           )} */}
-          {/* {blueTeam.map((p) => (
+      {/* {blueTeam.map((p) => (
             <LiveKitVideo
               key={p.identity}
               videoTrack={p.track}
@@ -375,8 +457,8 @@ const SamePosePage = () => {
               containerClassName="w-40 h-32 border border-blue-500 m-1"
             />
           ))} */}
-        </section>
-      </section>
+      {/* </section>
+      </section> */}
 
       {/* 관련 */}
 
@@ -399,12 +481,11 @@ emitAnswerSubmit({
         <p className="text-6xl font-bold font-pixel">GAME START</p>
       </PopUpModal>
 
-      {/* GAME START 모달 */}
-      <PopUpModal
-        isOpen={isGameStartModalOpen}
-        onClose={() => closeGameStartModal()}
-      >
-        <p className="text-6xl font-bold font-pixel">GAME START</p>
+      {/* 턴 모달 */}
+      <PopUpModal isOpen={isTurnModalOpen} onClose={() => closeTurnModal()}>
+        <p className="text-6xl font-bold font-pixel">
+          {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
+        </p>
       </PopUpModal>
 
       {/* 최종 승자 모달 */}
@@ -416,13 +497,6 @@ emitAnswerSubmit({
           {(win === "DRAW" && "DRAW!") ||
             (win === "RED" && "RED TEAM WIN!") ||
             (win === "BLUE" && "BLUE TEAM WIN!")}
-        </p>
-      </PopUpModal>
-
-      {/* 턴 모달 */}
-      <PopUpModal isOpen={isTurnModalOpen} onClose={() => closeTurnModal()}>
-        <p className="text-6xl font-bold font-pixel">
-          {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
         </p>
       </PopUpModal>
     </div>
