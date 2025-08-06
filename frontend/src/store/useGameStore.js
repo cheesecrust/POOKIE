@@ -143,7 +143,8 @@ const useGameStore = create((set) => ({
         nowInfo: data.nowInfo,
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
-    }),    
+    }),
+    
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,
         finalScore: data.gameResult.finalScore,
