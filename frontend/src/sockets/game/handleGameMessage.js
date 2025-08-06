@@ -1,91 +1,79 @@
 // src/sockets/common/game/handleGameMessage.js
 
 export default async function handleGameMessage(msg, handlers) {
-    console.log("🟢 게임 메시지 수신:", msg);
-    const { type} = msg;
-  
-    switch (type) {
-      // -----------------------------
-      // 응답(Response) 메시지
-      // -----------------------------
-      case "TIMER":
-        console.log("Timer", msg);
-        handlers?.onTimer?.(msg);
-        break;
+  console.log("🟢 게임 메시지 수신:", msg);
+  const { type } = msg;
 
-      case "TIMER_PREPARE_START":
-        console.log("첫 게임 시작 타이머:", msg);
-        handlers?.onTimerPrepareStart?.(msg);
-        break;
+  switch (type) {
+    // -----------------------------
+    // 응답(Response) 메시지
+    // -----------------------------
+    case "TIMER":
+      handlers?.onTimer?.(msg);
+      break;
 
-      case "TIMER_PREPARE_END":
-        console.log("첫 게임 시작 타이머 끝:", msg);
-        handlers?.onTimerPrepareEnd?.(msg);
-        break;
+    case "TIMER_PREPARE_START":
+      handlers?.onTimerPrepareStart?.(msg);
+      break;
 
-      case "GAME_TIMER_START":
-        console.log("게임 진행 타이머 시작:", msg);
-        handlers?.onGameTimerStart?.(msg);
-        break;
-      
-      case "GAME_TIMER_END":
-        console.log("게임 진행 타이머 끝:", msg);
-        handlers?.onGameTimerEnd?.(msg);
-        break;
-      
-      case "GAME_KEYWORD":
-        console.log("제시어:", msg);
-        handlers?.onGameKeyword?.(msg);
-        break;
+    case "TIMER_PREPARE_END":
+      handlers?.onTimerPrepareEnd?.(msg);
+      break;
 
-      case "GAME_TURN_OVERED":
-        console.log("턴이 종료되었습니다:", msg);
-        handlers?.onGameTurnOvered?.(msg);
-        break;
-  
-      case "GAME_ROUND_OVERED":
-        console.log("라운드 종료:", msg);
-        handlers?.onGameRoundOvered?.(msg);
-        break;
-  
-      case "GAME_NEW_ROUND":
-        console.log("새로운 라운드 시작:", msg);
-        handlers?.onGameNewRound?.(msg);
-        break;
-  
-      case "GAME_ANSWER_SUBMITTED":
-        console.log("정답 제출 결과:", msg);
-        handlers?.onGameAnswerSubmitted?.(msg);
-        break;
-      
-      case "GAME_PASSED":
-        console.log("제시어 패스:", msg);
-        handlers?.onGamePassed?.(msg);
-        break;
+    case "GAME_TIMER_START":
+      handlers?.onGameTimerStart?.(msg);
+      break;
 
-      case "WAITING_GAME_OVER":
-        console.log("게임 종료:", msg);
-        handlers?.onWaitingGameOver?.(msg);
-        break;
-      
-      case "GAME_PAINTER_CHANGED":
-        console.log("그림 그리는 사람 변경:", msg);
-        handlers?.onGamePainterChanged?.(msg);
-        break;
-      
-      case "GAME_DRAW_EVENT":
-        console.log("그리기 이벤트 수신:", msg);
-        handlers?.onDrawEvent?.(msg);
-        break;      
-      // case "TIMER_PREPARE_START":
-      //   console.log("prepare start:", data);
-      //   handlers?.onTimerPrepareStart?.(data);
-      //   break;
+    case "GAME_TIMER_END":
+      handlers?.onGameTimerEnd?.(msg);
+      break;
+
+    case "GAME_KEYWORD":
+      handlers?.onGameKeyword?.(msg);
+      break;
+
+    case "GAME_TURN_OVERED":
+      handlers?.onGameTurnOvered?.(msg);
+      break;
+
+    case "GAME_ROUND_OVERED":
+      handlers?.onGameRoundOvered?.(msg);
+      break;
+
+    case "GAME_NEW_ROUND":
+      handlers?.onGameNewRound?.(msg);
+      break;
+
+    case "GAME_ANSWER_SUBMITTED":
+      handlers?.onGameAnswerSubmitted?.(msg);
+      break;
+
+    case "GAME_PASSED":
+      handlers?.onGamePassed?.(msg);
+      break;
+
+    case "WAITING_GAME_OVER":
+      console.log("게임 종료:", msg);
+      handlers?.onWaitingGameOver?.(msg);
+      break;
+
+    case "GAME_PAINTER_CHANGED":
+      console.log("그림 그리는 사람 변경:", msg);
+      handlers?.onGamePainterChanged?.(msg);
+      break;
+
+    case "GAME_DRAW_EVENT":
+      console.log("그리기 이벤트 수신:", msg);
+      handlers?.onDrawEvent?.(msg);
+      break;
+    // case "TIMER_PREPARE_START":
+    //   console.log("prepare start:", data);
+    //   handlers?.onTimerPrepareStart?.(data);
+    //   break;
 
 
-      default:
-        console.warn("[GAME] 처리되지 않은 메시지:", msg);
-        break;
-    }
+    default:
+      console.warn("[GAME] 처리되지 않은 메시지:", msg);
+      break;
   }
-  
+}
