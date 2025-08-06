@@ -13,6 +13,26 @@ export default async function handleGameMessage(msg, handlers) {
         handlers?.onTimer?.(msg);
         break;
 
+      case "TIMER_PREPARE_START":
+        console.log("첫 게임 시작 타이머:", msg);
+        handlers?.onTimerPrepareStart?.(msg);
+        break;
+
+      case "TIMER_PREPARE_END":
+        console.log("첫 게임 시작 타이머 끝:", msg);
+        handlers?.onTimerPrepareEnd?.(msg);
+        break;
+
+      case "GAME_TIMER_START":
+        console.log("게임 진행 타이머 시작:", msg);
+        handlers?.onGameTimerStart?.(msg);
+        break;
+      
+      case "GAME_TIMER_END":
+        console.log("게임 진행 타이머 끝:", msg);
+        handlers?.onGameTimerEnd?.(msg);
+        break;
+      
       case "GAME_KEYWORD":
         console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
@@ -41,6 +61,11 @@ export default async function handleGameMessage(msg, handlers) {
       case "GAME_PASSED":
         console.log("제시어 패스:", msg);
         handlers?.onGamePassed?.(msg);
+        break;
+
+      case "WAITING_GAME_OVER":
+        console.log("게임 종료:", msg);
+        handlers?.onWaitingGameOver?.(msg);
         break;
       
       // case "GAME_PAINTER_CHANGED":
