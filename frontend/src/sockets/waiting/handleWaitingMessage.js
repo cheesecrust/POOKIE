@@ -28,15 +28,15 @@ const handleWaitingMessage = (data, handlers = {}) => {
     const updateClientState = (room) => {
         setRoom(room);
 
-        const myTeam = room.RED.some((u) => u.id === user.id)
+        const myTeam = room.RED.some((u) => u.id === user.userAccountId)
             ? "RED"
-            : room.BLUE.some((u) => u.id === user.id)
+            : room.BLUE.some((u) => u.id === user.userAccountId)
                 ? "BLUE"
                 : null;
 
         setTeam(myTeam);
 
-        const me = room[myTeam]?.find((u) => u.id === user.id);
+        const me = room[myTeam]?.find((u) => u.id === user.userAccountId);
         setIsReady(me?.status === "READY");
     };
 
@@ -44,7 +44,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
 
         // // 방 참여
         case "WAITING_JOINED":
-            console.log("🟢 새 사용자 입장:", data.user?.nickname, "| 방 상태 업데이트");
+            console.log("🟢 새 사용자 입장:", data.user?.userNickname, "| 방 상태 업데이트");
             updateClientState(data.room);
             break;
 
@@ -82,8 +82,6 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setMaster(room.master.id)
             setRoomInfo(room)
 
-            console.log(room)
-            console.log(room.master)
             console.log(room.RED)
             console.log(room.BLUE)
 
