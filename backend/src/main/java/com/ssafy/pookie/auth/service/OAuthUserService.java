@@ -5,7 +5,6 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.model.base.Users;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.auth.repository.UsersRepository;
-import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
 import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
@@ -73,6 +72,7 @@ public class OAuthUserService {
 
         Users user = usersRepository.findByEmail(email).orElse(null);
         UserAccounts userAccount;
+
         if (user == null) {
             log.info("신규 소셜 회원가입 진행: email={}", email);
 
@@ -90,16 +90,15 @@ public class OAuthUserService {
             Users savedUser = usersRepository.save(user);
             UserAccounts savedAccount = userAccountsRepository.save(account);
 
-            // 기본 캐릭터 지급
-            Characters character = characterService.setUserPookie(savedAccount, defaultType);
-            characterService.setPookieCatalog(savedAccount, character.getStep(), character.getType());
-            characterService.changeRepPookie(savedAccount, character.getType(), character.getStep());
+            // 기본 푸키 지급 (UserCharacters + CharacterCatalog 등록 + 대표/성장 설정 포함)
+            characterService.setUserPookie(savedAccount, defaultType);
 
             user = savedUser;
             userAccount = savedAccount;
         } else {
             userAccount = user.getUserAccount();
         }
+
         // JWT 발급
         String accessToken = jwtTokenProvider.createSocialAccessToken(
                 userAccount.getId(), user.getEmail(), userAccount.getNickname(), provider);
