@@ -67,7 +67,7 @@ export default async function handleGameMessage(msg, handlers) {
         console.log("게임 종료:", msg);
         handlers?.onWaitingGameOver?.(msg);
         break;
-      
+
       case "GAME_PAINTER_CHANGED":
         console.log("그림 그리는 사람 변경:", msg);
         handlers?.onGamePainterChanged?.(msg);
@@ -77,6 +77,13 @@ export default async function handleGameMessage(msg, handlers) {
         console.log("그리기 이벤트 수신:", msg);
         handlers?.onDrawEvent?.(msg);
         break;      
+
+      
+      // case "GAME_PAINTER_CHANGED":
+      //   console.log("그림 그리는 사람 변경:", msg);
+      //   handlers?.onGamePainterChanged?.(msg);
+      //   break;
+      
       // case "TIMER_PREPARE_START":
       //   console.log("prepare start:", data);
       //   handlers?.onTimerPrepareStart?.(data);
