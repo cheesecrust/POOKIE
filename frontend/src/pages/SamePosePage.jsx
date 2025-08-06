@@ -118,7 +118,7 @@ const SamePosePage = () => {
     });
   };
 
-  // 1️ 첫 페이지 로딩
+  // 첫 페이지 로딩
   useEffect(() => {
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
@@ -135,14 +135,7 @@ const SamePosePage = () => {
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (myIdx === master)
-      if (keywordIdx >= 15)
-        if (turn === "RED") {
-          emitTurnOver({ roomId, team: turn, score: score });
-        } else if (turn === "BLUE") {
-          emitRoundOver({ roomId, team: turn, score: score });
-        }
-    // 추가 조건 : 타이머 끝났을 때
+    // 타이머 끝났을 때
     if (isTimerEnd) {
       if (turn === "RED") {
         emitTurnOver({ roomId, team: turn, score: score });
