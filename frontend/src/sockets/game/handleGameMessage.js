@@ -8,6 +8,31 @@ export default async function handleGameMessage(msg, handlers) {
       // -----------------------------
       // 응답(Response) 메시지
       // -----------------------------
+      case "TIMER":
+        console.log("Timer", msg);
+        handlers?.onTimer?.(msg);
+        break;
+
+      case "TIMER_PREPARE_START":
+        console.log("첫 게임 시작 타이머:", msg);
+        handlers?.onTimerPrepareStart?.(msg);
+        break;
+
+      case "TIMER_PREPARE_END":
+        console.log("첫 게임 시작 타이머 끝:", msg);
+        handlers?.onTimerPrepareEnd?.(msg);
+        break;
+
+      case "GAME_TIMER_START":
+        console.log("게임 진행 타이머 시작:", msg);
+        handlers?.onGameTimerStart?.(msg);
+        break;
+      
+      case "GAME_TIMER_END":
+        console.log("게임 진행 타이머 끝:", msg);
+        handlers?.onGameTimerEnd?.(msg);
+        break;
+      
       case "GAME_KEYWORD":
         console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
@@ -46,17 +71,22 @@ export default async function handleGameMessage(msg, handlers) {
       case "GAME_DRAW_EVENT":
         console.log("그리기 이벤트 수신:", msg);
         handlers?.onDrawEvent?.(msg);
+
+      case "WAITING_GAME_OVER":
+        console.log("게임 종료:", msg);
+        handlers?.onWaitingGameOver?.(msg);
         break;
+      
+      // case "GAME_PAINTER_CHANGED":
+      //   console.log("그림 그리는 사람 변경:", msg);
+      //   handlers?.onGamePainterChanged?.(msg);
+      //   break;
       
       // case "TIMER_PREPARE_START":
       //   console.log("prepare start:", data);
       //   handlers?.onTimerPrepareStart?.(data);
       //   break;
 
-      // case "TIMER":
-      //   console.log("prepare end:", data);
-      //   handlers?.onTimerPrepareEnd?.(data);
-      //   break;
 
       default:
         console.warn("[GAME] 처리되지 않은 메시지:", msg);

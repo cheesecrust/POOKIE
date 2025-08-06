@@ -1,6 +1,7 @@
 // src/pages/SilentScreamPage.jsx
 
-import { useEffect, useParams, useState } from "react";
+import {useNavigate} from "react-router-dom";
+import { useEffect,  useState } from "react";
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
@@ -9,26 +10,31 @@ import KeywordModal from "../components/atoms/modal/KeywordModal";
 import SubmitModal from "../components/molecules/games/SubmitModal";
 import PassButton from "../components/atoms/button/PassButton.jsx"
 import RightButton from "../components/atoms/button/RightButton.jsx"
+import Timer from "../components/molecules/games/Timer";
+import KeywordCard from "../components/atoms/modal/KeywordCard";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore'
-import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver } from "../sockets/game/emit.js";
+import { emitGamePass, emitAnswerSubmit, emitTurnOver, emitRoundOver, emitTimerStart } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
+  const navigate = useNavigate();
 
   const master = useGameStore((state)=> state.master)
   const {user} = useAuthStore();
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
+  const roomInfo = useGameStore((state) => state.roomInfo);
 
   // 상태 관리 (전역)
   // 턴,라운드
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
   
-  //타이머 
-  const turnTimeLeft = useGameStore((state) => state.turnTimeLeft);
-  const timeLeft = useGameStore((state) => state.timeLeft);
+  // 타이머 
+  const time = useGameStore((state) => state.time);
+  const isTimerEnd = useGameStore((state) => state.isTimerEnd);
+  const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
 
   // 맞히는 사람(제시어 x)
   const norIdxList = useGameStore((state) => state.norIdxList);
@@ -48,78 +54,80 @@ const SilentScreamPage = () => {
   const gameResult = useGameStore((state) => state.gameResult);
   const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
 
+  // 최종 승자
+  const win = useGameStore((state) => state.win);
+  // 모달
+  const isGameStartModalOpen = useGameStore((state) => state.isGamestartModalOpen);
+  const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
+  const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
+  const closeTurnModal = useGameStore((state) => state.closeTurnModal);
+  const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
+
+  // 첫 시작 모달
+  const handleTimerPrepareSequence = useGameStore((state) => state.handleTimerPrepareSequence);
+
   // 상태 관리 (로컬)
   const [keyword, setKeyword] = useState("");
+  const [isTimerOpen, setIsTimerOpen] = useState(true);
 
   // 모달 상태 관리
-  const [isTurnModalOpen, setIsTurnModalOpen] = useState(false);
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [isGamestartModalOpen, setIsGamestartModalOpen] = useState(false);
-
+  const [isWinModalOpen, setIsWinModalOpen] = useState(false);
+ 
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-
-  // const {roomId} = useParams();
-  // const setRoomId = useGameStore((state) => state.setRoomId);
-  // useEffect(()=> {
-  //   if (!roomId) return;
-  //   setRoomId(roomId); 
-  //   }, [roomId,setRoomId]);
-
 
 
   // 1️ 첫 페이지 로딩
   useEffect(() => {
-    setIsGamestartModalOpen(true);
+    handleTimerPrepareSequence(roomId);
+  }, [roomId]);
 
-    const timer1 = setTimeout(() => {
-      setIsGamestartModalOpen(false);
-      setIsTurnModalOpen(true);
-
-      const timer2 = setTimeout(() => {
-        setIsTurnModalOpen(false);
-        setIsFirstLoad(false); // 첫 진입 끝남
-      }, 3000);
-
-      return () => clearTimeout(timer2);
-    }, 3000);
-
-    return () => clearTimeout(timer1);
-  }, []);
-
-  // 턴 바뀔 때
+  // 턴 바뀔 때 턴 모달 띄움 
   useEffect(() => {
-    if (!isFirstLoad && !isGamestartModalOpen) {
-      setIsTurnModalOpen(true);
-      const timer = setTimeout(() => {
-        setIsTurnModalOpen(false);
-      }, 3000);
-
-      return () => clearTimeout(timer);
+    // 첫 로딩(게임 시작) 제외
+    if (!isFirstLoad) {
+      showTurnChangeModal();
+    } else {
+      setIsFirstLoad(false);
     }
   }, [turn]);
 
-    // repIdxList와 내 id가 매칭되고 keywordIdx가 변경되면 제시어 모달 띄우기
+    // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
-    if (repIdxList?.includes(myIdx) && keywordList.length > 0) {
-      setKeyword(keywordList[keywordIdx] || "");
-      setIsKeywordModalOpen(true);
+    if ((!norIdxList?.includes(myIdx)) && keywordList.length > 0) {
+      setKeyword(keywordList[keywordIdx]);
     }
-  }, [keywordIdx]);
+  }, [keywordIdx, keywordList, norIdxList]);
 
-  // turn 변환 (레드팀 -> 블루팀), 라운드 변환환
+  // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (myIdx === master && keywordIdx >= 15) 
-      if (turn === "RED")
+    if (myIdx === master)
+      if (keywordIdx >= 15) 
+        if (turn === "RED")
+        {
+        emitTurnOver({ roomId,team:turn,score:score });
+      } 
+        else if (turn === "BLUE")
+        {
+        emitRoundOver({ roomId,team:turn,score:score });
+      }
+      // 추가 조건 : 타이머 끝났을 때 
+      if (isTimerEnd)
       {
-      emitTurnOver({ roomId,team:turn,score:score });
-    } 
-    else if (turn === "BLUE")
-    {
-      emitRoundOver({ roomId,team:turn,score:score });
-    }
-  }, [keywordIdx]);
+        if (turn === "RED"){
+          emitTurnOver({ roomId,team:turn,score:score });
+          emitTimerStart({ roomId });
+        }
+        else if (turn === "BLUE"){
+          emitRoundOver({ roomId,team:turn,score:score });
+          emitTimerStart({ roomId });
+        }
+        resetGameTimerEnd();
+      }
+      
+  }, [keywordIdx,isTimerEnd]);
   
   // esc 키 눌렀을 때 제출 모달 닫기
   useEffect(() => {
@@ -138,7 +146,18 @@ const SilentScreamPage = () => {
     };
   }, [isSubmitModalOpen]);
  
-  
+  // 최종 누가 이겼는지
+  useEffect(() => {
+    if (win) {
+      setIsWinModalOpen(true);
+      const timeout = setTimeout(() => {
+        navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+      }, 7000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [win]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지는 absolute로 완전 뒤로 보내야 함 */}
@@ -210,10 +229,24 @@ const SilentScreamPage = () => {
 
         </div>
           
+        {/* 타이머 */}
+        {isTimerOpen && (
+          <div className="absolute top-12 right-64 z-20 scale-150">
+            <Timer seconds={time} />
+          </div>
+        )}
+        
         {/* RoundInfo (우측 상단 고정) */}
         <div className="absolute top-12 right-8 z-20 scale-150">
-          <RoundInfo round={round} redScore={teamScore?.red} blueScore={teamScore?.blue} />
+          <RoundInfo round={round} redScore={teamScore?.RED} blueScore={teamScore?.BLUE} />
         </div>
+
+        {/* Keyword 카드 (발화자 + 상대팀 보임) */}
+        {!norIdxList.includes(myIdx) && (
+          <div className="absolute top-28 right-40 z-20">
+            <KeywordCard keyword={keywordList[keywordIdx]} />
+          </div>
+        )}
         
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
           {/* 발화자용 PASS 버튼 */}
@@ -223,7 +256,6 @@ const SilentScreamPage = () => {
 
           {/* 정답 제출 버튼 */}
           {norIdxList.includes(myIdx) && (
-            console.log("✅ 제출 버튼 클릭됨"),
             <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
           )}
 
@@ -243,8 +275,8 @@ const SilentScreamPage = () => {
 
        {/* GAME START 모달 */}
       <PopUpModal 
-        isOpen={isGamestartModalOpen} 
-        onClose={() => setIsGamestartModalOpen(false)}
+        isOpen={isGameStartModalOpen} 
+        onClose={() => closeGameStartModal()}
       >
         <p className="text-6xl font-bold font-pixel">GAME START</p>
       </PopUpModal>
@@ -255,26 +287,35 @@ const SilentScreamPage = () => {
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
         onSubmit={(inputAnswer) => {
+          if (!inputAnswer?.trim()) return;
           emitAnswerSubmit({roomId, round, norId:myIdx, keywordIdx, inputAnswer});
           setIsSubmitModalOpen(false);
         }}
       />
     )}
 
-      {/*  KEYWORD 모달 */}
+       {/* KEYWORD 모달
       <KeywordModal 
         isOpen={isKeywordModalOpen} 
         onClose={() => setIsKeywordModalOpen(false)}
         children={keyword}
       >
-      </KeywordModal>
+      </KeywordModal> */}
 
       {/* 턴 모달 */}
       <PopUpModal 
         isOpen={isTurnModalOpen} 
-        onClose={() => setIsTurnModalOpen(false)}
+        onClose={() => closeTurnModal()}
       >
         <p className="text-6xl font-bold font-pixel">{turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}</p>
+      </PopUpModal>
+
+      {/* 최종 승자 모달 */}
+      <PopUpModal 
+        isOpen={isWinModalOpen} 
+        onClose={() => setIsWinModalOpen(false)}
+      >
+       <p className="text-6xl font-bold font-pixel">{win === "DRAW" && "DRAW!" || win === "RED" && "RED TEAM WIN!" || win === "BLUE" && "BLUE TEAM WIN!"}</p>
       </PopUpModal>
     </div>
 
