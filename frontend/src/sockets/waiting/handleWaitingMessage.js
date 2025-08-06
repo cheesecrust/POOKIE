@@ -23,6 +23,9 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setBlue,
         setMaster,
         setRoomInfo,
+        setTeamScore,
+        setScore,
+        setWin,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -71,7 +74,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         }
 
         case "GAME_STARTED": {
-            const { rtc_token, turn, round } = data;
+            const { rtc_token, turn, round, game_init } = data;
             console.log("🟢 게임 시작 메시지 수신:", data);
             // 전역으로 넣어달라 하십니다
             setRtcToken(rtc_token);
@@ -81,7 +84,11 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setBlue(room.BLUE);
             setMaster(room.master.id)
             setRoomInfo(room)
-
+            
+            setWin(game_init.win)
+            setTeamScore(game_init.teamScore)
+            setScore(game_init.score)
+            
             console.log(room)
             console.log(room.master)
             console.log(room.RED)

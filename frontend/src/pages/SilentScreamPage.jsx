@@ -148,7 +148,10 @@ const SilentScreamPage = () => {
  
   // 최종 누가 이겼는지
   useEffect(() => {
+    console.log(win);
+    console.log(isWinModalOpen);
     if (win) {
+      
       setIsWinModalOpen(true);
       const timeout = setTimeout(() => {
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
