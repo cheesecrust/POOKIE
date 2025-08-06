@@ -1,4 +1,5 @@
 // src/sockets/common/game/handleGameMessage.js
+import useGameStore from "../../store/useGameStore";
 
 export default async function handleGameMessage(msg, handlers) {
     console.log("🟢 게임 메시지 수신:", msg);
@@ -9,6 +10,10 @@ export default async function handleGameMessage(msg, handlers) {
       // 응답(Response) 메시지
       // -----------------------------
       case "GAME_KEYWORD":
+        // livekit 연결
+        const { repIdxList, norIdxList } = msg;
+        useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+
         console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
         break;

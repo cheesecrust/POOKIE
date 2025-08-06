@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 
-const useGameStore = create((set) => ({
+const useGameStore = create((set, get) => ({
 
     master: null,
 
@@ -86,6 +86,52 @@ const useGameStore = create((set) => ({
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
     }),
+
+    // Livekit 관련
+    addParticipant: (participant) =>
+        set((state) => {
+          const current = Array.isArray(state.participants) ? state.participants : [];
+          return {
+            participants: [
+              ...current.filter((p) => p.identity !== participant.identity),
+              participant,
+            ],
+          };
+        }),
+
+    removeParticipant: (identity) =>
+        set((state) => ({
+            participants: state.participants.filter((p) => p.identity !== identity),
+        })),
+
+    updateParticipant: (identity, newData) =>
+        set((state) => ({
+            participants: state.participants.map((p) =>
+                p.identity === identity ? { ...p, ...newData } : p
+            ),
+        })),
+
+    setGameRoles: ({ repIdxList, norIdxList }) => {
+        const participants = get().participants;
+
+        const updatedParticipants = participants.map((p) => {
+            const role = repIdxList.includes(p.userAccountId)
+            ? "REP"
+            : norIdxList.includes(p.userAccountId)
+            ? "NOR"
+            : null;
+            return { ...p, role };
+        });
+
+        set(() => ({
+                repIdxList,
+                norIdxList,
+                participants: updatedParticipants,
+            }));
+            
+            console.log("역할 부여 완료", updatedParticipants);
+            console.log("📌 repIdxList:", repIdxList, "📌 norIdxList:", norIdxList);
+        },
 
 }))
 

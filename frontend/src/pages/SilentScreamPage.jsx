@@ -1,7 +1,7 @@
 // src/pages/SilentScreamPage.jsx
 
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
-import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
+import connectLiveKit from "../utils/connectLiveKit";
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -148,23 +148,14 @@ const SilentScreamPage = () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSubmitModalOpen]);
- 
-  // livekit 관련
-  async function getToken(roomId, participantName) {
-    if (!accessToken) throw new Error("로그인 필요. accessToken 없음");
-    const apiUrl = import.meta.env.VITE_API_URL;
-    const res = await fetch(`${apiUrl}/rtc/token`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ room: roomId, name: participantName, team: "red" }),
-    });
-    if (!res.ok) throw new Error("open vidu 토큰 요청 실패");
-    const tokenObj = await res.json();
-    return tokenObj.token;
-  }
+
+  // Livekit 연결
+  useEffect(() => {
+    if (!user || !roomId || roomInstance || participants.length > 0) return;
+
+    console.log("🚀 LiveKit 연결 시작")
+    connectLiveKit(user);
+  }, [user, roomId]);
 
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
@@ -219,9 +210,20 @@ const SilentScreamPage = () => {
   ];
 
   // 분류 후 자동 배치
+  const enemyTeam = turn === "RED" ? "BLUE" : "RED"; // 반대 팀 계산
   const repGroup = participants.filter((p) => p.role === "REP");
   const norGroup = participants.filter((p) => p.role === "NOR");
-  const enemyGroup = participants.filter((p) => p.role === null);
+  const enemyGroup = participants.filter((p) => p.role === null && p.team === enemyTeam);
+  console.log("repGroup", repGroup);
+  console.log("norGroup", norGroup);
+  console.log("enemyGroup", enemyGroup);
+
+  useEffect(() => {
+    console.log("🔍 전체 participants 확인", participants);
+    participants.forEach((p) => {
+      console.log(`[${p.identity}] userId: ${p.userAccountId}, role: ${p.role}, team: ${p.team}`);
+    });
+  }, [participants]);  
   
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -244,8 +246,7 @@ const SilentScreamPage = () => {
           {/* user1 (Rep) - 왼쪽 크게 */}
           {renderVideoByRole(repGroup, repStyles)}
           {renderVideoByRole(norGroup, norStyles)}
-        </div>
-
+        </div> 
 
         {/* 상대팀 캠 */}
         <div className="relative w-full h-[180px] mt-auto">
@@ -272,7 +273,7 @@ const SilentScreamPage = () => {
 
           {/* 정답 제출 버튼 */}
           {norIdxList.includes(myIdx) && (
-            console.log("✅ 제출 버튼 클릭됨"),
+            // console.log("✅ 제출 버튼 클릭됨"),
             <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
           )}
 
