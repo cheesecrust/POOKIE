@@ -36,7 +36,11 @@ const useGameStore = create((set) => ({
     roundResult: null,
     finalScore: {RED:0,BLUE:0},
 
-    win: null,
+    win: 0,
+
+    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
+    setScore: (score) => {set({score: score})},
+    setWin: (win) => {set({win: win})},
 
     // 모달 상태 관리
     isGamestartModalOpen: false,
@@ -89,18 +93,13 @@ const useGameStore = create((set) => ({
         }, 2000);
       },
 
-
-    
     setRoomId: (id) => set({roomId:id}),
     setRtcToken: (token) => set({ rtctoken: token }),
     setTurn: (turn) => set({ turn }),
     setRound: (round) => set({ round }),
     setRed: (red) => set({ red }),
     setBlue: (blue) => set({ blue }),
-    setMaster: (master) => set({ master }),
-    
-
-    
+    setMaster: (master) => set({ master }),    
     setTime: (data) => set({ time: data.time }),
     
     setRoomInfo: (data) => set({ roomInfo: data }),
