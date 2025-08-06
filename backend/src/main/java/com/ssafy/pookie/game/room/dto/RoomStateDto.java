@@ -11,6 +11,7 @@ import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.*;
+import org.apache.catalina.User;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -245,11 +246,22 @@ public class RoomStateDto {
     }
 
     // 현재 방에 Session 을 제거한다. -> 팀에서도 제거해야함
-    public void removeUser(WebSocketSession session) {
+    public UserDto removeUser(WebSocketSession session) {
         this.sessions.remove(session);
+        UserDto leaveUser = null;
         for (String team : this.getUsers().keySet()) {
-            this.users.get(team).removeIf(user -> user.getSession() == session);
+            for(UserDto user : this.getUsers().get(team)) {
+                if(user.getSession() == session) {
+                    leaveUser = user;
+                    break;
+                }
+                if(leaveUser != null) break;
+            }
         }
+        for (String team : this.getUsers().keySet()) {
+            this.users.get(team).remove(leaveUser);
+        }
+        return leaveUser;
     }
 
     public Map<String, Object> mappingSimpleRoomInfo(MessageDto.Type type) {
