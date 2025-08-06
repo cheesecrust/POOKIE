@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { emitTimerStart } from '../sockets/game/emit';
 import useAuthStore from './useAuthStore';
 
-const useGameStore = create((set) => ({
+const useGameStore = create((set, get) => ({
 
     master: null,
 
@@ -37,6 +37,11 @@ const useGameStore = create((set) => ({
     finalScore: { RED: 0, BLUE: 0 },
 
     win: 0,
+
+    roomInstance: null,
+    participants: [],
+
+    setRoomId: (id) => set({roomId:id}),
 
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
     setScore: (score) => { set({ score: score }) },
@@ -98,12 +103,16 @@ const useGameStore = create((set) => ({
     },
 
     setRoomId: (id) => set({ roomId: id }),
+
     setRtcToken: (token) => set({ rtctoken: token }),
     setTurn: (turn) => set({ turn }),
     setRound: (round) => set({ round }),
     setRed: (red) => set({ red }),
     setBlue: (blue) => set({ blue }),
     setMaster: (master) => set({ master }),
+    setRoomInstance: (roomInstance) => set({ roomInstance }),
+    setParticipants: (participants) => set({ participants }),
+    
     setTime: (data) => set({ time: data.time }),
 
     setRoomInfo: (data) => set({ roomInfo: data }),
@@ -147,6 +156,52 @@ const useGameStore = create((set) => ({
         keywordIdx: data.nowInfo.keywordIdx,
         repIdx: data.nowInfo.repIdx,
     }),
+
+    // Livekit 관련
+    addParticipant: (participant) =>
+        set((state) => {
+          const current = Array.isArray(state.participants) ? state.participants : [];
+          return {
+            participants: [
+              ...current.filter((p) => p.identity !== participant.identity),
+              participant,
+            ],
+          };
+        }),
+
+    removeParticipant: (identity) =>
+        set((state) => ({
+            participants: state.participants.filter((p) => p.identity !== identity),
+        })),
+
+    updateParticipant: (identity, newData) =>
+        set((state) => ({
+            participants: state.participants.map((p) =>
+                p.identity === identity ? { ...p, ...newData } : p
+            ),
+        })),
+
+    setGameRoles: ({ repIdxList, norIdxList }) => {
+        const participants = get().participants;
+
+        const updatedParticipants = participants.map((p) => {
+            const role = repIdxList.includes(p.userAccountId)
+            ? "REP"
+            : norIdxList.includes(p.userAccountId)
+            ? "NOR"
+            : null;
+            return { ...p, role };
+        });
+
+        set(() => ({
+                repIdxList,
+                norIdxList,
+                participants: updatedParticipants,
+            }));
+            
+            console.log("역할 부여 완료", updatedParticipants);
+            console.log("📌 repIdxList:", repIdxList, "📌 norIdxList:", norIdxList);
+        },
 
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,
