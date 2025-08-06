@@ -22,6 +22,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setRed,
         setBlue,
         setMaster,
+        setRoomInfo,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -81,6 +82,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setRed(room.RED);
             setBlue(room.BLUE);
             setMaster(room.master.id)
+            setRoomInfo(room)
 
             console.log(room)
             console.log(room.master)

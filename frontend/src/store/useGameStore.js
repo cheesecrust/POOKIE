@@ -8,6 +8,7 @@ const useGameStore = create((set) => ({
 
     rtctoken: null,
     roomId: null,
+    roomInfo: null,
 
     // 팀 유저 정보
     red: null,
@@ -101,6 +102,8 @@ const useGameStore = create((set) => ({
 
     
     setTime: (data) => set({ time: data.time }),
+    
+    setRoomInfo: (data) => set({ roomInfo: data }),
     
     setGameKeyword: (data) => set({
         keywordList: data.keywordList,
