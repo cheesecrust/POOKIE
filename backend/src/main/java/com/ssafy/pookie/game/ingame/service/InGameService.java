@@ -42,8 +42,8 @@ public class InGameService {
             // 현재 방의 상태를 가져옴
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
             log.info("GAME START REQUEST : Room {}", room.getRoomId());
-            // 1. 시작 조건을 확인
-            room.isPreparedStart();
+//            // 1. 시작 조건을 확인
+//            room.isPreparedStart();
             // 2. 인원 충족, 모두 준비 완료
             // 게임 시작 설정
             room.setStatus(RoomStateDto.Status.START);
