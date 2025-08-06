@@ -58,6 +58,7 @@ const useGameStore = create((set) => ({
 
     // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
     isTimerEnd: false,
+    gameTimerStarted: false,
 
     // 타이머끝 상태 set 함수
     resetIsTimerEnd: () => set({ isTimerEnd: false }),
@@ -65,26 +66,29 @@ const useGameStore = create((set) => ({
     // 타이머 SET 함수
     setTimerPrepareStart: () => set({}),
     setTimerPrepareEnd: () => set({}),
-    setGameTimerStart: () => set({}),
+    setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: () => set({ isTimerEnd: true }),
 
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-        // 1) 게임 스타트 모달 ON
+
+        // 1) 방장이면 먼저 타이머 시작
+        if (myIdx === master) {
+            emitTimerStart({ roomId }); // 실제 타이머 시작
+        }
+
+        // 2) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
 
         setTimeout(() => {
-            // 2) 게임 스타트 모달 OFF, 턴 모달 ON
+            // 3) 게임 시작 모달 OFF, 턴 모달 ON
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
 
             setTimeout(() => {
-                // 3) 턴 모달 OFF, 서버에 타이머 시작 요청
+                // 4) 턴 모달 OFF
                 set({ isTurnModalOpen: false });
-                if (myIdx === master) {
-                    emitTimerStart({ roomId }); //  실제 타이머 시작
-                }
-            }, 2000);
+            }, 1000);
 
         }, 2000);
     },

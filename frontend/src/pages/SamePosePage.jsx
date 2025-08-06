@@ -4,6 +4,7 @@ import RoundInfo from "../components/molecules/games/RoundInfo";
 import toggle_left from "../assets/icon/toggle_left.png";
 import ChatBox from "../components/molecules/common/ChatBox";
 import PopUpModal from "../components/atoms/modal/PopUpModal";
+import GameResultModal from "../components/organisms/games/GameResultModal";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -40,42 +41,25 @@ const SamePosePage = () => {
   const keyword = keywordList?.[keywordIdx] ?? "";
 
   //타이머
+  const time = useGameStore((state) => state.time);
   const isTimerEnd = useGameStore((state) => state.isTimerEnd);
   const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
-  const turnTimeLeft = useGameStore((state) => state.turnTimeLeft);
-  const timeLeft = useGameStore((state) => state.timeLeft);
 
   // 팀 구분
-  const [redTeam, setRedTeam] = useState([]);
-  const [blueTeam, setBlueTeam] = useState([]);
+  const redTeam = useGameStore((state) => state.red) || [];
+  const blueTeam = useGameStore((state) => state.blue) || [];
   const [publisherTrack, setPublisherTrack] = useState(null);
 
-  // 게임시 나빼고 가려야 함
+  // 턴에 따라 위치 변환
+  const isRedTurn = turn === "RED";
+
+  // 게임 시 나빼고 가려야 함
   const [hideTargetIds, setHideTargetIds] = useState([]);
   const [countdown, setCountdown] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   // norIdxList 가져오기
   const norIdxList = useGameStore((state) => state.norIdxList) || [];
-
-  // hideModal 대상 계산 => 나중에 수정
-  useEffect(() => {
-    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
-
-    if (isMyTeamRed) {
-      if (turn === "RED") {
-        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
-      } else {
-        setHideTargetIds(blueTeam.map((p) => p.id));
-      }
-    } else {
-      if (turn === "BLUE") {
-        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
-      } else {
-        setHideTargetIds(redTeam.map((p) => p.id));
-      }
-    }
-  }, [turn, redTeam, blueTeam, norIdxList, myIdx]);
 
   // 점수 관련
   const teamScore = useGameStore((state) => state.teamScore);
@@ -86,6 +70,8 @@ const SamePosePage = () => {
 
   // 최종 승자
   const win = useGameStore((state) => state.win);
+  // 결과창
+  const [isResultOpen, setIsResultOpen] = useState(false);
 
   // 모달
   const isGameStartModalOpen = useGameStore(
@@ -110,6 +96,8 @@ const SamePosePage = () => {
 
   const [isTimerOpen, setIsTimerOpen] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
+
+  const isFirstTimer = useRef(true); // 처음 타이머 수신시 hidemodal을 안띄우기 위함임
 
   // 팀끼리 사진 캡쳐
   const handleCapture = () => {
@@ -151,50 +139,84 @@ const SamePosePage = () => {
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
-  // 턴 모달 중복 방지
+  // 턴 바뀔 때 턴 모달 띄움
   useEffect(() => {
-    if (isFirstLoad) {
-      setIsFirstLoad(false); // 첫 로딩 시 턴 변경 모달 안 띄움
-      return;
+    // 첫 로딩(게임 시작) 제외
+    if (!isFirstLoad) {
+      showTurnChangeModal();
+    } else {
+      setIsFirstLoad(false);
     }
-    showTurnChangeModal();
   }, [turn]);
 
-  // 타이머 → hideModal 표시 캠 가리기
+  // 타이머 모달 => hide모달로 유저 가리기
   useEffect(() => {
-    if (timeLeft !== null) {
-      setCountdown(timeLeft);
-      if (timeLeft === 3) setShowModal(true);
-      if (timeLeft < 0) setShowModal(false);
+    if (isFirstTimer.current) {
+      isFirstTimer.current = false;
+      return;
     }
-  }, [timeLeft]);
+    if (time < 5) {
+      setShowModal(true);
+    }
+    if (time === 2) {
+      setShowModal(false);
+    }
+  }, [time]);
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    // 타이머 끝났을 때
     if (isTimerEnd) {
       if (turn === "RED") {
-        emitTurnOver({ roomId, team: turn, score: score });
-        emitTimerStart({ roomId });
+        emitTurnOver({ roomId, team: turn, score });
+        if (myIdx === master) {
+          emitTimerStart({ roomId });
+        }
       } else if (turn === "BLUE") {
-        emitRoundOver({ roomId, team: turn, score: score });
-        emitTimerStart({ roomId });
+        emitRoundOver({ roomId, team: turn, score });
+        if (round < 3 && myIdx === master) {
+          emitTimerStart({ roomId });
+        }
       }
       resetGameTimerEnd();
     }
-  }, [keywordIdx, isTimerEnd]);
+  }, [keywordIdx, isTimerEnd, master, myIdx, round, roomId, score, turn]);
+
+  // hideModal 대상 계산 => 나중에 수정
+  useEffect(() => {
+    if (!myIdx) return;
+
+    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
+
+    if (isMyTeamRed) {
+      if (turn === "RED") {
+        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      } else {
+        setHideTargetIds(blueTeam.map((p) => p.id));
+      }
+    } else {
+      if (turn === "BLUE") {
+        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      } else {
+        setHideTargetIds(redTeam.map((p) => p.id));
+      }
+    }
+  }, [turn, redTeam, blueTeam, norIdxList, myIdx]);
 
   // 최종 누가 이겼는지
   useEffect(() => {
     if (win) {
-      setIsWinModalOpen(true);
-      const timeout = setTimeout(() => {
-        navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
-      }, 7000);
+      setIsResultOpen(true);
 
-      return () => clearTimeout(timeout);
+      const modalTimeout = setTimeout(() => {
+        setIsResultOpen(false);
+        navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+      }, 5000);
+
+      return () => {
+        clearTimeout(modalTimeout);
+      };
     }
-  }, [win]);
+  }, [win, navigate, roomId, roomInfo]);
 
   // livekit 연결
   // useEffect(() => {
@@ -311,99 +333,153 @@ const SamePosePage = () => {
   // }, [turn]);
 
   return (
-    <div
-      className="flex flex-col h-screen bg-cover bg-center"
-      style={{ backgroundImage: `url(${background_same_pose})` }}
-    >
-      <section className="basis-3/9 flex flex-col p-4">
-        <div className="flex flex-row flex-1 items-center justify-between px-6">
-          <div className="flex flex-col text-sm text-gray-700 leading-tight w-[160px]">
-            <span className="mb-2">제시어에 맞게 동작을 취하세요</span>
-            <span className="text-xs">
-              최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
-              취해주세요.
-            </span>
-            {/* <button
+    <>
+      <div
+        className={`flex flex-col h-screen bg-cover bg-center ${
+          isResultOpen ? "blur-sm" : ""
+        }`}
+        style={{ backgroundImage: `url(${background_same_pose})` }}
+      >
+        <section className="basis-3/9 flex flex-col p-4">
+          <div className="flex flex-row flex-1 items-center justify-between px-6">
+            <div className="flex flex-col text-sm text-gray-700 leading-tight w-[160px]">
+              <span className="mb-2">제시어에 맞게 동작을 취하세요</span>
+              <span className="text-xs">
+                최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
+                취해주세요.
+              </span>
+              {/* <button
               onClick={handleCapture}
               className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
             >
               📸 사진 찰칵{" "}
             </button> */}
-          </div>
-
-          <div>
-            {/* 턴정보 */}
-            <div className="text-center text-2xl">{`${turn} TEAM TURN`}</div>
-            {/* 제시어 */}
-            <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[170px] gap-5 ">
-              <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
-                <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
-                <p>제시어</p>
-              </div>
-              <p className="text-2xl font-semibold text-black mt-2">
-                {keyword || "제시어 대기 중..."}
-              </p>
             </div>
-          </div>
 
-          <RoundInfo
-            round={round}
-            redScore={teamScore?.RED}
-            blueScore={teamScore?.BLUE}
-          />
-        </div>
-      </section>
-
-      {/* RED TEAM */}
-      <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
-        {redTeam.map((p) => (
-          <div
-            key={p.id}
-            id={`player-${p.id}`}
-            className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg relative"
-          >
-            {p.nickname}
-            {showModal && hideTargetIds.includes(p.id) && (
-              <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-white text-4xl font-bold pointer-events-none">
-                {countdown > 0 ? countdown : "찰칵!"}
-              </div>
-            )}
-          </div>
-        ))}
-      </section>
-
-      <section className="basis-3/9 flex flex-row gap-6p-4">
-        {/* ChatBox 영역 */}
-        <div className="basis-1/3 relative">
-          <div className="absolute bottom-0 left-0">
-            <ChatBox width="350px" height="250px" />
-          </div>
-        </div>
-
-        {/* Blue 팀 캠 영역 */}
-        <div className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 justify-center items-center">
-          {blueTeam.map((p) => (
-            <div
-              key={p.id}
-              id={`player-${p.id}`}
-              className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg relative"
-            >
-              {p.nickname}
-              {showModal && hideTargetIds.includes(p.id) && (
-                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-white text-4xl font-bold pointer-events-none">
-                  {countdown > 0 ? countdown : "찰칵!"}
+            <div>
+              {/* 턴정보 */}
+              <div className="text-center text-2xl">{`${turn} TEAM TURN`}</div>
+              {/* 제시어 */}
+              <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[170px] gap-5 ">
+                <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
+                  <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
+                  <p>제시어</p>
                 </div>
-              )}
+                <p className="text-2xl font-semibold text-black mt-2">
+                  {keyword || "상대 팀 진행 중..."}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* 3:3 화면 구성 */}
-      {/* <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
+            <RoundInfo
+              round={round}
+              redScore={teamScore?.RED}
+              blueScore={teamScore?.BLUE}
+            />
+          </div>
+        </section>
+
+        {isRedTurn ? (
+          <>
+            {/* RED TEAM */}
+            <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
+              {redTeam.map((p) => (
+                <div
+                  key={p.id}
+                  id={`player-${p.id}`}
+                  className="flex-1 h-full border border-red-500 bg-purple-300 rounded-lg relative flex items-center justify-center"
+                >
+                  {p.nickname} (id: {p.id})
+                  {showModal && hideTargetIds.includes(p.id) && (
+                    <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold">
+                      {countdown > 0 ? countdown : "찰 칵!"}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            <section className="basis-3/9 flex flex-row gap-6 p-4">
+              {/* ChatBox 영역 */}
+              <div className="basis-1/3 relative">
+                <div className="absolute bottom-0 left-0">
+                  <ChatBox width="350px" height="250px" />
+                </div>
+              </div>
+
+              {/* Blue 팀 캠 영역 */}
+              <div className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 justify-center items-center">
+                {blueTeam.map((p) => (
+                  <div
+                    key={p.id}
+                    id={`player-${p.id}`}
+                    className="flex-1 h-full border border-blue-500 bg-cyan-300 rounded-lg relative flex items-center justify-center"
+                  >
+                    {p.nickname} (id: {p.id})
+                    {showModal && hideTargetIds.includes(p.id) && (
+                      <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
+                        {countdown > 0 ? countdown : "찰 칵!"}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            {/* BLUE TEAM (큰 화면) */}
+            <section className="basis-4/9 flex flex-row gap-6 bg-blue-100 p-4 justify-center items-center">
+              {blueTeam.map((p) => (
+                <div
+                  key={p.id}
+                  id={`player-${p.id}`}
+                  className="flex-1 h-full border border-blue-500 bg-cyan-300 rounded-lg relative flex items-center justify-center"
+                >
+                  {p.nickname} (id: {p.id})
+                  {showModal && hideTargetIds.includes(p.id) && (
+                    <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
+                      {countdown > 0 ? countdown : "찰칵!"}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            {/* RED TEAM (작은 화면) */}
+            <section className="basis-3/9 flex flex-row gap-6 p-4">
+              {/* ChatBox */}
+              <div className="basis-1/3 relative">
+                <div className="absolute bottom-0 left-0">
+                  <ChatBox width="350px" height="250px" />
+                </div>
+              </div>
+
+              <div className="basis-2/3 flex flex-wrap gap-6 bg-red-100 justify-center items-center">
+                {redTeam.map((p) => (
+                  <div
+                    key={p.id}
+                    id={`player-${p.id}`}
+                    className="flex-1 h-full border border-red-500 bg-purple-300 rounded-lg relative flex items-center justify-center"
+                  >
+                    {p.nickname} (id: {p.id})
+                    {showModal && hideTargetIds.includes(p.id) && (
+                      <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
+                        {countdown > 0 ? countdown : "찰칵!"}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* 3:3 화면 구성 */}
+        {/* <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
         {" "} */}
-      {/* RED TEAM */}
-      {/* <div className="flex flex-wrap justify-center w-full bg-red-100 p-2">
+        {/* RED TEAM */}
+        {/* <div className="flex flex-wrap justify-center w-full bg-red-100 p-2">
           {publisherTrack?.team === "RED" && (
             <LiveKitVideo
               videoTrack={publisherTrack.track}
@@ -422,25 +498,25 @@ const SamePosePage = () => {
             />
           ))}
         </div> */}
-      {/* <div className="flex-1 h-full border border-red-500 bg-blue-300 rounded-lg"></div>
+        {/* <div className="flex-1 h-full border border-red-500 bg-blue-300 rounded-lg"></div>
         <div className="flex-1 h-full border border-red-500 bg-green-300 rounded-lg"></div>
         <div className="flex-1 h-full border border-red-500 bg-yellow-300 rounded-lg"></div>
       </section> */}
 
-      {/* <section className="basis-3/9 flex flex-row">
+        {/* <section className="basis-3/9 flex flex-row">
         <div className="relative basis-1/3 ">
           <div className="absolute bottom-0 left-0 ">
             <ChatBox width="350px" height="250px" />
           </div>
         </div> */}
 
-      {/* BLUE TEAM */}
-      {/* <section className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 p-4 justify-center items-center">
+        {/* BLUE TEAM */}
+        {/* <section className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 p-4 justify-center items-center">
           <div className="flex-1 h-full border border-blue-500 bg-blue-300 rounded-lg"></div>
           <div className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg"></div>
           <div className="flex-1 h-full border border-blue-500 bg-yellow-300 rounded-lg"></div> */}
 
-      {/* {publisherTrack?.team === "BLUE" && (
+        {/* {publisherTrack?.team === "BLUE" && (
             <LiveKitVideo
               videoTrack={publisherTrack.track}
               isLocal={true}
@@ -448,7 +524,7 @@ const SamePosePage = () => {
               containerClassName="w-40 h-32 border border-blue-500 m-1"
             />
           )} */}
-      {/* {blueTeam.map((p) => (
+        {/* {blueTeam.map((p) => (
             <LiveKitVideo
               key={p.identity}
               videoTrack={p.track}
@@ -457,12 +533,12 @@ const SamePosePage = () => {
               containerClassName="w-40 h-32 border border-blue-500 m-1"
             />
           ))} */}
-      {/* </section>
+        {/* </section>
       </section> */}
 
-      {/* 관련 */}
+        {/* 관련 */}
 
-      {/* 제출 모달은 동작이 맞았으면 true로 판단해서 true ? ${keyword}:"wrong"
+        {/* 제출 모달은 동작이 맞았으면 true로 판단해서 true ? ${keyword}:"wrong"
 const inputAnswer = true ? ${keyword}:"wrong"
  자동으로 제시어가 제출됨
 emitAnswerSubmit({
@@ -473,33 +549,32 @@ emitAnswerSubmit({
    inputAnswer,
  }); */}
 
-      {/* GAME START 모달 */}
-      <PopUpModal
-        isOpen={isGameStartModalOpen}
-        onClose={() => closeGameStartModal()}
-      >
-        <p className="text-6xl font-bold font-pixel">GAME START</p>
-      </PopUpModal>
+        {/* GAME START 모달 */}
+        <PopUpModal
+          isOpen={isGameStartModalOpen}
+          onClose={() => closeGameStartModal()}
+        >
+          <p className="text-6xl font-bold font-pixel">GAME START</p>
+        </PopUpModal>
 
-      {/* 턴 모달 */}
-      <PopUpModal isOpen={isTurnModalOpen} onClose={() => closeTurnModal()}>
-        <p className="text-6xl font-bold font-pixel">
-          {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
-        </p>
-      </PopUpModal>
+        {/* 턴 모달 */}
+        <PopUpModal isOpen={isTurnModalOpen} onClose={() => closeTurnModal()}>
+          <p className="text-6xl font-bold font-pixel">
+            {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
+          </p>
+        </PopUpModal>
+      </div>
 
       {/* 최종 승자 모달 */}
-      <PopUpModal
-        isOpen={isWinModalOpen}
-        onClose={() => setIsWinModalOpen(false)}
-      >
-        <p className="text-6xl font-bold font-pixel">
-          {(win === "DRAW" && "DRAW!") ||
-            (win === "RED" && "RED TEAM WIN!") ||
-            (win === "BLUE" && "BLUE TEAM WIN!")}
-        </p>
-      </PopUpModal>
-    </div>
+      {isResultOpen && (
+        <GameResultModal
+          win={win}
+          redTeam={redTeam}
+          blueTeam={blueTeam}
+          onClose={() => setIsResultOpen(false)}
+        />
+      )}
+    </>
   );
 };
 

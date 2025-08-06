@@ -44,7 +44,6 @@ const handleWaitingMessage = (data, handlers = {}) => {
 
         // // 방 참여
         case "WAITING_JOINED":
-            console.log("🟢 새 사용자 입장:", data.user?.userNickname, "| 방 상태 업데이트");
             updateClientState(data.room);
             break;
 
