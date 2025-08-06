@@ -1,15 +1,12 @@
 // src/pages/SilentScreamPage.jsx
 
-<<<<<<< HEAD
+
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-=======
-import {useNavigate} from "react-router-dom";
-import { useEffect,  useState } from "react";
->>>>>>> frontend/develop
+import { useNavigate } from "react-router-dom";
+
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
