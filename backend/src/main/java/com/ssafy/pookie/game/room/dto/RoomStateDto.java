@@ -12,6 +12,8 @@ import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.*;
 import org.apache.catalina.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Builder
 public class RoomStateDto {
+    private static final Logger log = LoggerFactory.getLogger(RoomStateDto.class);
+
     public enum Status {WAITING, READY, START, END};
     public enum Turn {RED, BLUE, NONE};
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
@@ -291,9 +295,17 @@ public class RoomStateDto {
         this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.NONE));
     }
 
-    // 게임 도중 누군가 나가면 게임을 종료한다.
-    private void forcedGameOver() {
-        String win = this.teamScores.get("RED") > this.teamScores.get("BLUE") ? "RED" : this.teamScores.get("RED") == this.teamScores.get("BLUE") ? "DRAW" : "BLUE";
-
+    // 게임을 시작할 준비가 되어있는지
+    public boolean isPreparedStart() throws IllegalArgumentException {
+        if(this.sessions.size() < 6) throw new IllegalArgumentException("6명 이상 모여야 시작 가능합니다.");
+        if(this.users.get("RED").size() != this.users.get("BLUE").size()) throw new IllegalArgumentException("팀원 수가 맞지 않습니다.");
+        if(!this.status.equals(Status.WAITING)) throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
+        this.users.keySet().forEach((team) -> {
+            this.users.get(team).forEach((user) -> {
+                if(user.getStatus() != UserDto.Status.READY) throw new IllegalArgumentException("준비완료가 되지 않았습니다.");
+            });
+        });
+        log.info("Room {} was prepared game start", this.roomId);
+        return true;
     }
 }

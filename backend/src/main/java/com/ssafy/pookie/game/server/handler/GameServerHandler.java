@@ -98,7 +98,8 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case WAITING_GAME_START:
                     GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
                     start.setUser(user);
-                    gameTimerService.beforeStartGameTimer(session, start);
+//                    gameTimerService.beforeStartGameTimer(session, start);
+                    inGameService.handleGameStart(session, start);
                     break;
                 case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
