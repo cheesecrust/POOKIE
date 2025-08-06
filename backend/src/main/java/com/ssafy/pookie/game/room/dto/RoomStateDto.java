@@ -11,6 +11,7 @@ import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import jakarta.annotation.Nullable;
 import lombok.*;
+import org.apache.catalina.User;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Builder
 public class RoomStateDto {
-    public enum Status {WAITING, START, END};
+    public enum Status {WAITING, READY, START, END};
     public enum Turn {RED, BLUE, NONE};
     public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
 
@@ -245,11 +246,22 @@ public class RoomStateDto {
     }
 
     // 현재 방에 Session 을 제거한다. -> 팀에서도 제거해야함
-    public void removeUser(WebSocketSession session) {
+    public UserDto removeUser(WebSocketSession session) {
         this.sessions.remove(session);
+        UserDto leaveUser = null;
         for (String team : this.getUsers().keySet()) {
-            this.users.get(team).removeIf(user -> user.getSession() == session);
+            for(UserDto user : this.getUsers().get(team)) {
+                if(user.getSession() == session) {
+                    leaveUser = user;
+                    break;
+                }
+                if(leaveUser != null) break;
+            }
         }
+        for (String team : this.getUsers().keySet()) {
+            this.users.get(team).remove(leaveUser);
+        }
+        return leaveUser;
     }
 
     public Map<String, Object> mappingSimpleRoomInfo(MessageDto.Type type) {
@@ -267,5 +279,21 @@ public class RoomStateDto {
                                 "TOTAL", this.users.getOrDefault("RED", List.of()).size()+this.users.getOrDefault("BLUE", List.of()).size()
                         )
                 ));
+    }
+
+    public void updateUserTeamInfo() {
+        this.users.get("RED").forEach((user) -> user.setTeam(UserDto.Team.RED));
+        this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.BLUE));
+    }
+
+    public void resetUserTeamInfo() {
+        this.users.get("RED").forEach((user) -> user.setTeam(UserDto.Team.NONE));
+        this.users.get("BLUE").forEach((user) -> user.setTeam(UserDto.Team.NONE));
+    }
+
+    // 게임 도중 누군가 나가면 게임을 종료한다.
+    private void forcedGameOver() {
+        String win = this.teamScores.get("RED") > this.teamScores.get("BLUE") ? "RED" : this.teamScores.get("RED") == this.teamScores.get("BLUE") ? "DRAW" : "BLUE";
+
     }
 }

@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.draw.service;
 
 import com.ssafy.pookie.game.draw.dto.DrawEvent;
+import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class DrawService {
     private Map<String, Object> convertDrawEventToMsg(DrawEvent drawEvent) {
         log.info(String.valueOf(drawEvent));
         return Map.of(
+                "type", MessageDto.Type.GAME_DRAW_EVENT.toString(),
                 "roomId", drawEvent.getRoomId(),
                 "userAccountId", drawEvent.getUser().getUserAccountId(),
                 "drawType", drawEvent.getDrawType(),

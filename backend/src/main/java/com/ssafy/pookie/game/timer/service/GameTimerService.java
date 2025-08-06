@@ -141,7 +141,7 @@ public class GameTimerService {
             if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) new IllegalArgumentException("잘못된 요청입니다.");
             // 1. 방 인원이 모드 채워졌는지
             if (room.getSessions().size() < 6) throw new IllegalArgumentException("6명 이상 모여야 시작 가능합니다.");
-            if (room.getSessions().size() <= 6) {
+            if (room.getSessions().size() == 6) {
                 // 모두 준비 완료 상태인지
                 int readyUserCnt = 0;
                 List<UserDto> teamUsers = room.getUsers().get("RED");
@@ -155,7 +155,7 @@ public class GameTimerService {
 
                 if (redTeamCnt != blueTeamCnt) throw new IllegalArgumentException("팀원이 맞지 않습니다.");
                 log.info("Room {}, 총인원 : {}, 준비완료 : {}", room.getRoomTitle(), room.getSessions().size(), readyUserCnt);
-
+                room.setStatus(RoomStateDto.Status.READY);
                 if (readyUserCnt != room.getSessions().size()) throw new IllegalArgumentException("준비완료가 되지 않았습니다.");
             }
             if (!isAuthorized(timerRequest.getUser().getSession(), room) || room.getStatus() == RoomStateDto.Status.WAITING
@@ -163,7 +163,7 @@ public class GameTimerService {
                 throw new IllegalArgumentException("잘못된 요청입니다.");
             }
 
-            inGameService.hadleGameStart(session, timerRequest);
+            inGameService.handleGameStart(session, timerRequest);
 
             // 새로운 Scheduler 생성
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();

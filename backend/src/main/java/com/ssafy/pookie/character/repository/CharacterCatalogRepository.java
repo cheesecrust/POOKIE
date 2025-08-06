@@ -19,6 +19,7 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
     List<CharacterCatalog> findByUserAccountId(Long userAccountId);
 
     List<CharacterCatalog> findByUserAccountIdAndIsRepresent(Long userAccountId, boolean isRepresent);
+    List<CharacterCatalog> findByUserAccountIdAndIsGrowing(Long userAccountId, boolean isGrowing);
 
     boolean existsByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
 
@@ -33,4 +34,9 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
     @Modifying
     @Query("UPDATE CharacterCatalog c SET c.isGrowing = false WHERE c.userAccount.id = :userId")
     void resetAllGrowing(Long userId);
+
+    @Modifying
+    @Query("UPDATE CharacterCatalog c SET c.isRepresent = :represent, c.isGrowing = :growing " +
+            "WHERE c.userAccount.id = :userId AND c.character.id = :characterId")
+    void updateCatalogState(Long userId, int characterId, boolean represent, boolean growing);
 }

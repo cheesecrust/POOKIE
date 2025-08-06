@@ -53,7 +53,6 @@ public class GameRoomService {
                 create = true;
             } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())) throw new IllegalArgumentException("존재하지 않는 방입니다.");
 
-
             // 기존에 있던 방이라면 입장, 없던 방이라면 생성
             RoomStateDto room = createNewRoom(joinDto);
 
@@ -62,7 +61,6 @@ public class GameRoomService {
                 joinDto.getUser().setGrant(UserDto.Grant.MASTER);
             }
             if(!room.getGameType().toString().equals(joinDto.getGameType().toString())) throw new IllegalArgumentException("GameType이 일치하지 않습니다.");
-
 
             // 비밀번호 확인
             if((room.getRoomPw() != null || !room.getRoomPw().isEmpty()) &&
@@ -117,6 +115,7 @@ public class GameRoomService {
                     .roomMaster(joinDto.getUser())
                     .gameInfo(new GameInfoDto())
                     .sessions(new HashSet<>())
+                    .status(RoomStateDto.Status.WAITING)
                     .build();
 
             log.info("Room {} was created", newRoom.getRoomId());
@@ -176,7 +175,7 @@ public class GameRoomService {
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
                 log.info("REGRANT Master");
-                regrantRoomMaster(room);
+                onlinePlayerManager.regrantRoomMaster(room);
             }
             leaveUser.setGrant(UserDto.Grant.NONE);
             // 현재 사용자가 나가서 그대로 보내면 안됨
@@ -200,20 +199,6 @@ public class GameRoomService {
                     "msg", e.getMessage()
             ));
         }
-    }
-
-    // 방장 재배정
-    public void regrantRoomMaster(RoomStateDto room) {
-        Map<String, List<UserDto>> user = room.getUsers();
-        String[] team = {"RED", "BLUE"};
-        int teamIdx = new Random().nextInt(2);
-        int playerIdx = new Random().nextInt(user.get(team[teamIdx]).isEmpty() ? 1 : user.get(team[teamIdx]).size());
-
-        if(user.get(team[teamIdx]).size() <= playerIdx) {
-            teamIdx = (teamIdx+1)%2;
-        }
-        user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
-        room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
     }
 
     // User 팀 바꾸기

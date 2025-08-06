@@ -34,6 +34,13 @@ export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer}) =>
 });
 };
 
+// 타이머 시작
+export const emitTimerStart = ({roomId}) => {
+  sendMessage("TIMER_START", {
+    roomId,
+});
+};
+
 // 제시어 패스 (고요속의 외침)
 export const emitGamePass = ({roomId}) => {
   sendMessage("GAME_PASS", {
@@ -41,11 +48,19 @@ export const emitGamePass = ({roomId}) => {
 });
 };
 
-// 그림 그리기 (추후 구현)
-export const emitPainterChange = (data) => {
-  sendMessage("GAME_PAINTER_CHANGE", data);
-};
-
-export const emitDraw = (data) => {
-  sendMessage("GAME_DRAW", data);
+// 그림 그리기 이벤트
+export const emitDrawEvent = ({ roomId, drawType, data }) => {
+  sendMessage("GAME_DRAW", {
+    roomId,
+    drawType, // "draw", "clear", "start", "end"
+    data: {
+      x: data.x,
+      y: data.y,
+      prevX: data.prevX,
+      prevY: data.prevY,
+      color: data.color || "black",
+      brushSize: data.brushSize || 3,
+      tool: data.tool || "pen"
+    }
+  });
 };
