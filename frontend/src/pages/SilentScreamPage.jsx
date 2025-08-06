@@ -1,11 +1,10 @@
 // src/pages/SilentScreamPage.jsx
 
-
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
@@ -31,14 +30,10 @@ const SilentScreamPage = () => {
   const myIdx = user?.userAccountId;
 
   const roomInstance = useGameStore((state) => state.roomInstance);
-  const redTeam = useGameStore((state) => state.redTeam);
-  const blueTeam = useGameStore((state) => state.blueTeam);
-  const publisherTrack = useGameStore((state) => state.publisherTrack);
   const participants = useGameStore((state) => state.participants);
 
   const roomId = useGameStore((state) => state.roomId);
   const roomInfo = useGameStore((state) => state.roomInfo);
-
 
   // 상태 관리 (전역)
   // 턴,라운드
@@ -93,7 +88,7 @@ const SilentScreamPage = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
 
-  // 1️ 첫 페이지 로딩
+  // 1️. 첫 페이지 로딩
   useEffect(() => {
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
@@ -108,7 +103,7 @@ const SilentScreamPage = () => {
     }
   }, [turn]);
 
-    // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
+  // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
     if ((!norIdxList?.includes(myIdx)) && keywordList.length > 0) {
       setKeyword(keywordList[keywordIdx]);
@@ -163,8 +158,8 @@ const SilentScreamPage = () => {
   // Livekit 연결
   useEffect(() => {
     if (!user || !roomId || roomInstance || participants.length > 0) return;
-
     console.log("🚀 LiveKit 연결 시작")
+
     connectLiveKit(user);
   }, [user, roomId]);
 
@@ -229,6 +224,7 @@ const SilentScreamPage = () => {
   console.log("norGroup", norGroup);
   console.log("enemyGroup", enemyGroup);
 
+  // participants 확인
   useEffect(() => {
     console.log("🔍 전체 participants 확인", participants);
     participants.forEach((p) => {

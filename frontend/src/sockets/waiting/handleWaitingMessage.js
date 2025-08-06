@@ -1,5 +1,4 @@
 // src/sockets/waiting/handleWaitingMessage.js
-import axiosInstance from "../../lib/axiosInstance";
 import useGameStore from "../../store/useGameStore";
 
 const handleWaitingMessage = (data, handlers = {}) => {
@@ -72,11 +71,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         }
 
         case "GAME_STARTED": {
-<<<<<<< HEAD
-            const { turn, round } = data;
-=======
-            const { rtc_token, turn, round, game_init } = data;
->>>>>>> frontend/develop
+            const { turn, round, game_init } = data;
             console.log("🟢 게임 시작 메시지 수신:", data);
             // 전역으로 넣어달라 하십니다
             setTurn(turn);
@@ -84,15 +79,11 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setRed(room.RED);
             setBlue(room.BLUE);
             setMaster(room.master.id)
-<<<<<<< HEAD
-            
-=======
             setRoomInfo(room)
-
             setWin(game_init.win)
             setTeamScore(game_init.teamScore)
             setScore(game_init.score)
->>>>>>> frontend/develop
+
             console.log(room)
             console.log(room.master)
             console.log(room.RED)
@@ -100,7 +91,6 @@ const handleWaitingMessage = (data, handlers = {}) => {
             navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             break;
         }
-
 
         case "ERROR":
             console.error("❌ 서버 오류:", data.msg);
