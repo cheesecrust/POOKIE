@@ -24,6 +24,7 @@ const SilentScreamPage = () => {
   const {user} = useAuthStore();
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
+  const roomInfo = useGameStore((state) => state.roomInfo);
 
   // 상태 관리 (전역)
   // 턴,라운드
@@ -150,7 +151,7 @@ const SilentScreamPage = () => {
     if (win) {
       setIsWinModalOpen(true);
       const timeout = setTimeout(() => {
-        navigate(`/waiting/${roomId}`);
+        navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
       }, 7000);
 
       return () => clearTimeout(timeout);
