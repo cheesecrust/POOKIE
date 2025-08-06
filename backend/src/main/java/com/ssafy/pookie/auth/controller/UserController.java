@@ -64,14 +64,15 @@ public class UserController {
             // Refresh Token → HttpOnly 쿠키
             Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
             refreshTokenCookie.setHttpOnly(true);
-//            refreshTokenCookie.setSecure(true);
+            // TODO: 배포에서는 true
+            refreshTokenCookie.setSecure(false);
             refreshTokenCookie.setPath("/");
             refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
             response.addCookie(refreshTokenCookie);
 
             // Access Token → 헤더
             response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
-
+            log.info("로그인 성공: email={}", loginResponse.getEmail());
             return ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
 
         } catch (Exception e) {
@@ -113,13 +114,15 @@ public class UserController {
      */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponseDto>> refreshToken(
-            @RequestHeader("Authorization") String refreshToken) {
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
         log.info("토큰 갱신 요청");
         try {
-            String token = refreshToken.startsWith("Bearer ") ?
-                    refreshToken.substring(7) : refreshToken;
+            if (refreshToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Refresh Token이 없습니다."));
+            }
 
-            LoginResponseDto response = userService.refreshToken(token);
+            LoginResponseDto response = userService.refreshToken(refreshToken);
 
             log.info("토큰 갱신 성공");
 
