@@ -18,19 +18,19 @@ const itemimage = {
     "coffee.png" : coffee,
 }
 
-const handleBuyItem = async(itemIdx) => {
+const handleBuyItem = async(itemIdx,onBuySuccess) => {
     try{
-        const res = axiosInstance.post('/store/items',{
+        const res = await axiosInstance.post('/store/items',{
             itemIdx
         })
-        
+        onBuySuccess && onBuySuccess();
     }
     catch(err){
         console.log(err);
     }
 }
 
-const StoreCard = ({ item }) => {
+const StoreCard = ({ item,onBuySuccess }) => {
   return (
     <div className=" bg-white rounded-lg p-4 flex flex-col items-center shadow-md hover:scale-105 transition-transform">
       <img
@@ -41,7 +41,7 @@ const StoreCard = ({ item }) => {
       <h3 className="font-bold text-lg">{item.name}</h3>
       <p className="text-sm text-gray-600">경험치: {item.exp}</p>
       <p className="text-sm text-gray-600">가격: {item.price}</p>
-      <RightButton className="scale-75" children="구매" onClick={()=>{handleBuyItem(item.itemIdx)}} ></RightButton>
+      <RightButton className="scale-75" children="구매" onClick={()=>{handleBuyItem(item.idx,onBuySuccess)}} ></RightButton>
 
     </div>
   );

@@ -14,21 +14,29 @@ import coinImg from "../assets/item/coin.png";
 
 import axiosInstance from "../lib/axiosInstance";
 
+import characterImageMap from "../utils/characterImageMap";
+
 const MyRoomPage = () => {
+
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("도감");
   const { user } = useAuthStore();
-  const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
 
+  // const [exp, setExp] = useState(null);
   const [coin, setCoin] = useState(null);
+  const [step, setStep] = useState(null);
 
   const fetchAuthInfo = async () => {
     try {
       const res = await axiosInstance.get("/auth/info");
 
-      console.log(res.data.data);
+      console.log("AuthInfo",res.data.data);
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
+      setStep(res.data.data.repCharacter.step);
+
     } catch (err) {
       console.log("AuthInfo 에러", err);
     }
@@ -73,14 +81,14 @@ const MyRoomPage = () => {
 
                 <div className="flex justify-between items-center p-2 rounded-md">
                   <span className="font-semibold">레벨:</span>
-                  <span>LV {user?.repCharacter?.step + 1}</span>
+                  <span>LV {step+1}</span>
                 </div>
 
                 <div className="p-2 rounded-md">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-semibold">Exp:</span>
                     <UserExp
-                      step={user?.repCharacter?.step || 1}
+                      step={step}
                       exp={user?.repCharacter?.exp || 0}
                     />
                   </div>
@@ -159,13 +167,13 @@ const MyRoomPage = () => {
 
               {activeTab === "상점" && (
                 <div className="text-center py-10">
-                  <StoreList></StoreList>
+                  <StoreList onBuySuccess={fetchAuthInfo}></StoreList>
                 </div>
               )}
 
               {activeTab === "인벤토리" && (
                 <div className="text-center py-10">
-                  <InventoryList></InventoryList>
+                  <InventoryList onUseSuccess={fetchAuthInfo}></InventoryList>
                 </div>
               )}
             </div>

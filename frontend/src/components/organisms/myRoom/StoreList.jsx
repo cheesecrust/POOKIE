@@ -3,7 +3,7 @@ import axiosInstance from "../../../lib/axiosInstance";
 import StoreCard from "../../molecules/myRoom/StoreCard";
 
 
-const StoreList = () => {
+const StoreList = ({onBuySuccess}) => {
   const [StoreItems, setStoreItems] = useState([]);
 
   // 상점 아이템 전체조회
@@ -28,7 +28,7 @@ const StoreList = () => {
   return (
     <div className="grid grid-cols-3 gap-4">
       {StoreItems.length >0 ? (
-        StoreItems.map((item) => <StoreCard key={item.idx} item={item} />)
+        StoreItems.map((item) => <StoreCard key={item.idx} item={item} onBuySuccess={onBuySuccess} />)
       ) : (
         <div className="col-span-3 text-center text-gray-500 py-10">
         </div>
