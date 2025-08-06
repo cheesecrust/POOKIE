@@ -51,9 +51,7 @@ const useAuthStore = create(
               setIsReady: () => { },
 
               // game handler
-              onGameStarted: (data) => {
-                useGameStore.getState().setGameStarted(data);
-              },
+
               onGameKeyword: (data) => {
                 useGameStore.getState().setGameKeyword(data);
               },
@@ -71,6 +69,21 @@ const useAuthStore = create(
               },
               onGamePassed: (data) => {
                 useGameStore.getState().setGamePassed(data);
+              },
+              onTimer: (data) => {
+                useGameStore.getState().setTime(data);
+              },
+              onTimerPrepareStart: (data) => {
+                useGameStore.getState().setTimerPrepareStart(data);
+              },
+              onTimerPrepareEnd: (data) => {
+                useGameStore.getState().setTimerPrepareEnd(data);
+              },
+              onGameTimerStart: (data) => {
+                useGameStore.getState().setGameTimerStart(data);
+              },
+              onGameTimerEnd: (data) => {
+                useGameStore.getState().setGameTimerEnd(data);
               },
               // chat handler
             }
@@ -206,6 +219,24 @@ const useAuthStore = create(
               },
               onGamePassed: (data) => {
                 useGameStore.getState().setGamePassed(data);
+              },
+              onTimer: (data) => {
+                useGameStore.getState().setTime(data);
+              },
+              onTimerPrepareStart: (data) => {
+                useGameStore.getState().setTimerPrepareStart(data);
+              },
+              onTimerPrepareEnd: (data) => {
+                useGameStore.getState().setTimerPrepareEnd(data);
+              },
+              onGameTimerStart: (data) => {
+                useGameStore.getState().setGameTimerStart(data);
+              },
+              onGameTimerEnd: (data) => {
+                useGameStore.getState().setGameTimerEnd(data);
+              },
+              onWaitingGameOver: (data) => {
+                useGameStore.getState().setWatingGameOver(data);
               },
                 // chat handler
               }
