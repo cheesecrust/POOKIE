@@ -41,7 +41,7 @@ public class GameTimerService {
                                 null,
                                 Map.of(
                                         "type", "TIMER",
-                                        "time", timeLeft+1  // 시간 보정
+                                        "time", timeLeft  // 시간 보정
                                 ));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -134,68 +134,68 @@ public class GameTimerService {
         timer.start(null);
     }
 
-    public void beforeStartGameTimer(WebSocketSession session, GameStartDto timerRequest) throws IOException {
-        try {
-            RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
-            // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
-            if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) new IllegalArgumentException("잘못된 요청입니다.");
-            room.isPreparedStart();
-            inGameService.handleGameStart(session, timerRequest);
-
-            // 새로운 Scheduler 생성
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            // 타이머 인스턴스 생성
-            GameTimerDto timer = new GameTimerDto(
-                    scheduler,
-                    timeLeft -> {
-                        // 매 초마다 Room 에 타이머 전송 ( ALL )
-                        try {
-                            onlinePlayerManager.broadCastMessageToRoomUser(
-                                    timerRequest.getUser().getSession(),
-                                    timerRequest.getRoomId(),
-                                    null,
-                                    Map.of(
-                                            "type", "TIMER",
-                                            "time", timeLeft + 1  // 시간 보정
-                                    ));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    },
-                    () -> {
-                        // 타이머 종료 시 Room 에 종료 알림 ( ALL )
-                        try {
-                            onlinePlayerManager.broadCastMessageToRoomUser(
-                                    timerRequest.getUser().getSession(),
-                                    timerRequest.getRoomId(),
-                                    null,
-                                    Map.of(
-                                            "type", "TIMER_PREPARE_END",
-                                            "msg", "시간이 종료되었습니다."
-                                    )
-                            );
-                            scheduler.shutdown();
-                            Thread.sleep(1000 * 1);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-            );
-
-            onlinePlayerManager.broadCastMessageToRoomUser(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
-                    "type", "TIMER_PREPARE_START"
-            ));
-            // Room 에 타이머 설정
-            room.setTimer(timer);
-            // 요청 시간만큼 시작
-            timer.start(null);
-        } catch (IllegalArgumentException e) {
-            onlinePlayerManager.sendToMessageUser(session, Map.of(
-                    "type", MessageDto.Type.ERROR.toString(),
-                    "msg", e.getMessage()
-            ));
-        }
-    }
+//    public void beforeStartGameTimer(WebSocketSession session, GameStartDto timerRequest) throws IOException {
+//        try {
+//            RoomStateDto room = onlinePlayerManager.getRooms().get(timerRequest.getRoomId());
+//            // 방이 존재하지 않음, 또는 해당 방에 있는 참가자가 아님, 방장이 아님
+//            if (!onlinePlayerManager.isAuthorized(session, room) || !onlinePlayerManager.isMaster(session, room)) new IllegalArgumentException("잘못된 요청입니다.");
+//            room.isPreparedStart();
+//            inGameService.handleGameStart(session, timerRequest);
+//
+//            // 새로운 Scheduler 생성
+//            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+//            // 타이머 인스턴스 생성
+//            GameTimerDto timer = new GameTimerDto(
+//                    scheduler,
+//                    timeLeft -> {
+//                        // 매 초마다 Room 에 타이머 전송 ( ALL )
+//                        try {
+//                            onlinePlayerManager.broadCastMessageToRoomUser(
+//                                    timerRequest.getUser().getSession(),
+//                                    timerRequest.getRoomId(),
+//                                    null,
+//                                    Map.of(
+//                                            "type", "TIMER",
+//                                            "time", timeLeft + 1  // 시간 보정
+//                                    ));
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+//                    },
+//                    () -> {
+//                        // 타이머 종료 시 Room 에 종료 알림 ( ALL )
+//                        try {
+//                            onlinePlayerManager.broadCastMessageToRoomUser(
+//                                    timerRequest.getUser().getSession(),
+//                                    timerRequest.getRoomId(),
+//                                    null,
+//                                    Map.of(
+//                                            "type", "TIMER_PREPARE_END",
+//                                            "msg", "시간이 종료되었습니다."
+//                                    )
+//                            );
+//                            scheduler.shutdown();
+//                            Thread.sleep(1000 * 1);
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//            );
+//
+//            onlinePlayerManager.broadCastMessageToRoomUser(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
+//                    "type", "TIMER_PREPARE_START"
+//            ));
+//            // Room 에 타이머 설정
+//            room.setTimer(timer);
+//            // 요청 시간만큼 시작
+//            timer.start(null);
+//        } catch (IllegalArgumentException e) {
+//            onlinePlayerManager.sendToMessageUser(session, Map.of(
+//                    "type", MessageDto.Type.ERROR.toString(),
+//                    "msg", e.getMessage()
+//            ));
+//        }
+//    }
 }

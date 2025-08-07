@@ -38,12 +38,13 @@ public class InGameService {
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void handleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
+        // 현재 방의 상태를 가져옴
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+        log.info("GAME START REQUEST : Room {}", room.getRoomId());
         try {
-            // 현재 방의 상태를 가져옴
-            RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
-            log.info("GAME START REQUEST : Room {}", room.getRoomId());
 //            // 1. 시작 조건을 확인
-//            room.isPreparedStart();
+            if(!onlinePlayerManager.isMaster(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            room.isPreparedStart();
             // 2. 인원 충족, 모두 준비 완료
             // 게임 시작 설정
             room.setStatus(RoomStateDto.Status.START);
@@ -81,6 +82,7 @@ public class InGameService {
             deliverKeywords(room);
             log.info("GAME STARTED : ROOM {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -191,6 +193,7 @@ public class InGameService {
             log.info("After turn change : {}", room.mappingRoomInfo());
             deliverKeywords(room);
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -262,6 +265,7 @@ public class InGameService {
             ));
             deliverKeywords(room);
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -297,6 +301,7 @@ public class InGameService {
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -326,6 +331,7 @@ public class InGameService {
                 onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
             }
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -345,17 +351,11 @@ public class InGameService {
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getRequestUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         }
-    }
-
-    // 들어오는 요청이 방장이 보낸 요청인지 확인
-    // 방장이라면 true
-    // 아니면 false
-    public Boolean isMasterRequest(WebSocketSession requestSession, RoomStateDto room) {
-        return room != null && room.getRoomMaster().getSession() == requestSession;
     }
 }
