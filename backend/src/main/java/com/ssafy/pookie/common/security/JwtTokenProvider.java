@@ -1,9 +1,6 @@
 package com.ssafy.pookie.common.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,8 +20,7 @@ public class JwtTokenProvider {
     // 생성자에서 설정값 주입
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-//            @Value("${jwt.access-token-expiration:604800000}") long accessTokenExpiration, // 7일
-            @Value("${jwt.access-token-expiration:600000}") long accessTokenExpiration, // 1분
+            @Value("${jwt.access-token-expiration:604800000}") long accessTokenExpiration, // 7일
             @Value("${jwt.refresh-token-expiration:604800000}") long refreshTokenExpiration // 7일
     ) {
 
@@ -140,9 +136,28 @@ public class JwtTokenProvider {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (ExpiredJwtException e) {
+            log.warn("토큰 만료: {}", e.getMessage());
+            throw new JwtException("TOKEN_EXPIRED", e);
         } catch (JwtException e) {
-            log.warn("토큰 파싱 실패: {}", e.getMessage());
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다.", e);
+            log.warn("토큰 검증 실패: {}", e.getMessage());
+            throw new JwtException("TOKEN_INVALID", e);
+        }
+    }
+
+    /**
+     * TODO: redis 도입하여 black list 인지 안에 존재하는지 등을 판단합니다.
+     */
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token); // 내부적으로 parseClaimsJws 수행
+            return true;
+        } catch (ExpiredJwtException e) {
+            log.warn("🔒 만료된 토큰입니다: {}", e.getMessage());
+            return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("🔒 유효하지 않은 토큰입니다: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -165,13 +180,6 @@ public class JwtTokenProvider {
     public String getNicknameFromToken(String token) {
         Claims claims = getClaims(token);
         return claims.get("nickname", String.class);
-    }
-
-    /**
-     * TODO: redis 도입하여 black list 인지 안에 존재하는지 등을 판단합니다.
-     */
-    public boolean validateToken(String refreshToken) {
-        return true;
     }
     
     public String getProviderFromToken(String token) {
