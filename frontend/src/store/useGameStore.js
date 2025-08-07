@@ -45,11 +45,11 @@ const useGameStore = create((set, get) => ({
 
 
     // 게임 시작할 때 전 게임 정보 초기화
-    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
-    setScore: (score) => {set({score:score})},
-    setWin: (Win) => {set({win:Win})},
-    setKeywordIdx: (keywordIdx) => {set({keywordIdx:keywordIdx})},
-    
+    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
+    setScore: (score) => { set({ score: score }) },
+    setWin: (Win) => { set({ win: Win }) },
+    setKeywordIdx: (keywordIdx) => { set({ keywordIdx: keywordIdx }) },
+
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
@@ -83,14 +83,14 @@ const useGameStore = create((set, get) => ({
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-    
+
         // 1) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
-    
+
         // 2초 후 게임 시작 모달 OFF → 턴 모달 ON
         setTimeout(() => {
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
-    
+
             // 3) 방장이면 이때 emitTimerStart 실행
             if (myIdx === master) {
                 setTimeout(() => {
@@ -197,6 +197,22 @@ const useGameStore = create((set, get) => ({
         set(() => ({
             repIdxList,
             norIdxList,
+            participants: updatedParticipants,
+        }));
+    },
+
+    setGameRoles2: ({ repIdxList }) => {
+        const participants = get().participants;
+
+        const updatedParticipants = participants.map((p) => {
+            const role = repIdxList.includes(p.userAccountId)
+                ? "REP"
+                : null;
+            return { ...p, role };
+        });
+
+        set(() => ({
+            repIdxList,
             participants: updatedParticipants,
         }));
     },

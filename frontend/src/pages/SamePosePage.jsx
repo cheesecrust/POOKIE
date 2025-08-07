@@ -60,6 +60,7 @@ const SamePosePage = () => {
 
   // norIdxList 가져오기
   const norIdxList = useGameStore((state) => state.norIdxList) || [];
+  const repIdxList = useGameStore((state) => state.repIdxList);
 
   // livekit
   const participants = useGameStore((state) => state.participants);
@@ -238,19 +239,27 @@ const SamePosePage = () => {
     connectLiveKit(user);
   }, [user, roomId]);
 
+  // 역할 부여 (SilentScreamPage fallback)
+  useEffect(() => {
+    const hasRole = participants.some((p) => p.role);
+    const hasEnoughData = repIdxList.length > 0;
+
+    if (!hasRole && hasEnoughData) {
+      useGameStore.getState().setGameRoles2({ repIdxList });
+      console.log("🛠 역할 수동 설정 완료: SamePosePage fallback");
+    }
+  }, [repIdxList, participants]);
+
   // livekit 렌더 함수
-  const renderVideoByRole = (roleGroup, positionStyles) => {
+  const renderVideoByRole = (roleGroup, sizeStyles) => {
     return roleGroup.map((p, idx) => {
       return (
-        <div
-          key={p.identity}
-          className={`absolute ${positionStyles[idx]?.position}`}
-        >
+        <div key={p.identity} className={sizeStyles[idx]}>
           <LiveKitVideo
             videoTrack={p.track}
             nickname={p.nickname}
             isLocal={p.isLocal}
-            containerClassName={positionStyles[idx]?.size}
+            containerClassName="w-full h-full"
             nicknameClassName="absolute bottom-4 left-4 text-white text-2xl"
           />
           {showModal && hideTargetIds.includes(p.userAccountId) && (
@@ -263,34 +272,16 @@ const SamePosePage = () => {
     });
   };
 
-  // 위치/크기 정의
   const repStyles = [
-    {
-      position: "top-0 left-20",
-      size: "w-100 h-75 rounded-lg shadow-lg",
-    },
-    {
-      position: "top-0 left-145",
-      size: "w-100 h-75 rounded-lg shadow-lg",
-    },
-    {
-      position: "top-0 right-20",
-      size: "w-100 h-75 rounded-lg shadow-lg",
-    },
+    "w-100 h-75 rounded-lg shadow-lg",
+    "w-100 h-75 rounded-lg shadow-lg",
+    "w-100 h-75 rounded-lg shadow-lg",
   ];
+
   const enemyStyles = [
-    {
-      position: "bottom-5 right-170",
-      size: "w-70 h-50 rounded-lg shadow-lg",
-    },
-    {
-      position: "bottom-5 right-85",
-      size: "w-70 h-50 rounded-lg shadow-lg",
-    },
-    {
-      position: "bottom-5 right-5",
-      size: "w-70 h-50 rounded-lg shadow-lg",
-    },
+    "w-75 h-50 rounded-lg shadow-lg",
+    "w-75 h-50 rounded-lg shadow-lg",
+    "w-75 h-50 rounded-lg shadow-lg",
   ];
 
   // 분류 후 자동 배치
@@ -355,16 +346,19 @@ const SamePosePage = () => {
         </section>
 
         {/* 현재 팀 캠 영역 (REP) */}
-        <section className="basis-4/9 relative w-full h-full bg-red-100">
+        <section className="basis-4/9 relative w-full h-full bg-red-100 flex justify-around items-center">
           {renderVideoByRole(repGroup, repStyles)}
         </section>
 
         {/* 상대 팀 캠 영역 (NOR) */}
-        <section className="basis-3/9 relative w-full h-[180px] mt-auto">
+        <section className="basis-3/9 relative w-full h-[180px] mt-auto flex justify-around items-end">
+          <div className="basis-1/3"></div>
           {/* <div className="absolute bottom-[70px] right-12 text-2xl font-bold">
             {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
           </div> */}
-          {renderVideoByRole(enemyGroup, enemyStyles)}
+          <div className="basis-2/3 flex flex-row justify-around p-4">
+            {renderVideoByRole(enemyGroup, enemyStyles)}
+          </div>
         </section>
 
         {/* Chatbox */}

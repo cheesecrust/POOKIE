@@ -75,7 +75,11 @@ const RoomCard = ({ room, onPasswordRequest }) => {
       style={{ backgroundImage: `url(${getBackgroundImage(room.gameType)})` }}
     >
       {/* 우측 상단 인원 수 */}
-      <div className="absolute top-3 right-4 text-black font-semibold text-md">
+      <div
+        className={`absolute top-3 right-4 font-semibold text-md ${
+          isFull ? "text-rose-500" : "text-black"
+        }`}
+      >
         {isFull ? "FULL" : `${participantCount} / 6`}
       </div>
 
