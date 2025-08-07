@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import SubmitInput from "../../atoms/input/SubmitInput";
 
 const SubmitModal = ({ isOpen, onClose, onSubmit }) => {
   const [text, setText] = useState("");
+  const inputRef = useRef(null)
 
   const handleSubmit = () => {
-    if (text.trim() !== "") {
       onSubmit(text);
       setText("");
-    }
+      onClose();
   };
 
   const handleKeyDown = (e) => {
@@ -16,6 +16,17 @@ const SubmitModal = ({ isOpen, onClose, onSubmit }) => {
       handleSubmit();
     }
   };
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current.focus()
+      }, 50)
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+  }, [isOpen]);  
 
   if (!isOpen) return null;
 
@@ -29,6 +40,7 @@ const SubmitModal = ({ isOpen, onClose, onSubmit }) => {
 
         {/* 인풋 영역 */}
         <SubmitInput
+          inputRef={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
