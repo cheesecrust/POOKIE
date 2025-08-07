@@ -24,14 +24,6 @@ export default async function handleGameMessage(msg, handlers) {
       handlers?.onTimer?.(msg);
       break;
 
-    case "TIMER_PREPARE_START":
-      handlers?.onTimerPrepareStart?.(msg);
-      break;
-
-    case "TIMER_PREPARE_END":
-      handlers?.onTimerPrepareEnd?.(msg);
-      break;
-
     case "GAME_TIMER_START":
       handlers?.onGameTimerStart?.(msg);
       break;
@@ -60,19 +52,21 @@ export default async function handleGameMessage(msg, handlers) {
       handlers?.onGamePassed?.(msg);
       break;
 
-
-
     case "WAITING_GAME_OVER":
-      console.log("게임 종료:", msg);
-      console.log("Livekit 초기화 시작")
+      // console.log("게임 종료:", msg);
+      // console.log("Livekit 초기화 시작")
 
-      const roomInstance = useGameStore.getState().roomInstance;
-      const resetLiveKit = useGameStore.getState().resetLiveKit;
+      // const roomInstance = useGameStore.getState().roomInstance;
+      // const resetLiveKit = useGameStore.getState().resetLiveKit;
 
-      // LiveKit 연결 해제 및 정보 초기화
-      cleanupLiveKit({ roomInstance, resetLiveKit });
-      console.log("📍 초기화 이후 상태")
-      console.log("participants:", useGameStore.getState().participants);
+      // // LiveKit 연결 해제 및 정보 초기화
+      // try {
+      //   cleanupLiveKit({ roomInstance, resetLiveKit });
+      // } catch (err) {
+      //   console.error("LiveKit 정리 중 오류 발생", err);
+      // }
+      
+      // console.log("📍 초기화 이후 상태");
       handlers?.onWaitingGameOver?.(msg);
       break;
 

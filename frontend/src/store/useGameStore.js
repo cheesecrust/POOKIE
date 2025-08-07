@@ -53,6 +53,9 @@ const useGameStore = create((set, get) => ({
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
+    isPassModalOpen: false,
+    isCorrectModalOpen: false,
+    isWrongModalOpen: false,
 
     showTurnChangeModal: () => {
         set({ isTurnModalOpen: true });
@@ -65,7 +68,10 @@ const useGameStore = create((set, get) => ({
     openGamestartModal: () => set({ isGamestartModalOpen: true }),
     closeGamestartModal: () => set({ isGamestartModalOpen: false }),
     openTurnModal: () => set({ isTurnModalOpen: true }),
-    closeTurnModal: () => set({ isTurnModalOpen: false }),
+    closeTurnModal: () => set({ isTurnModalOpen: false }), 
+    closePassModal: () => set({ isPassModalOpen: false }), // 패스 모달 닫기
+    closeCorrectModal: () => set({ isCorrectModalOpen: false }), // 답변 정답 모달 닫기
+    closeWrongModal: () => set({ isWrongModalOpen: false }), // 답변 오답 모달 닫기
 
     // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
     isTimerEnd: false,
@@ -75,11 +81,8 @@ const useGameStore = create((set, get) => ({
     resetIsTimerEnd: () => set({ isTimerEnd: false }),
 
     // 타이머 SET 함수
-    setTimerPrepareStart: () => set({}),
-    setTimerPrepareEnd: () => set({}),
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: () => set({ isTimerEnd: true }),
-    setTime: (time) => set({ time }),
 
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
@@ -115,6 +118,7 @@ const useGameStore = create((set, get) => ({
     setRoomInstance: (roomInstance) => set({ roomInstance }),
     setParticipants: (participants) => set({ participants }),
 
+    // 타이머 set
     setTime: (data) => set({ time: data.time }),
 
     setRoomInfo: (data) => set({ roomInfo: data }),
@@ -127,19 +131,32 @@ const useGameStore = create((set, get) => ({
         norIdxList: data.norIdxList,
     }),
 
-    setGameAnswerSubmitted: (data) => set((state) => ({
-        nowInfo: data.nowInfo,
-        keywordIdx: data.nowInfo.keywordIdx,
-        repIdx: data.nowInfo.repIdx,
-        score: data.answer ? (state.score + 1) : state.score,
-    })),
+    setGameAnswerSubmitted: (data) => {
+        set((state) => ({
+          nowInfo: data.nowInfo,
+          keywordIdx: data.nowInfo.keywordIdx,
+          repIdx: data.nowInfo.repIdx,
+          score: data.answer ? state.score + 1 : state.score,
+        }));
+      
+        // 모달 처리 따로
+        if (data.answer) {
+          set({ isCorrectModalOpen: true });
+          setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+        } else {
+          set({ isWrongModalOpen: true });
+          setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+        }
+    },
 
+    // 턴 끝 (레드 -> 블루 )
     setGameTurnOvered: (data) => set({
         turn: data.turn,
         tempTeamScore: data.tempTeamScore,
         round: data.round,
     }),
 
+    // 라운드 끝
     setGameRoundOvered: (data) => set({
         round: data.round,
         gameResult: data.gameResult,
@@ -147,17 +164,27 @@ const useGameStore = create((set, get) => ({
         // win: data.win,
     }),
 
+    // 라운드 시작
     setGameNewRound: (data) => set({
         turn: data.turn,
         round: data.round,
         teamScore: data.teamScore,
     }),
 
-    setGamePassed: (data) => set({
-        nowInfo: data.nowInfo,
-        keywordIdx: data.nowInfo.keywordIdx,
-        repIdx: data.nowInfo.repIdx,
-    }),
+    // 발화자 패스 
+    setGamePassed: (data) => {
+        set({
+          nowInfo: data.nowInfo,
+          keywordIdx: data.nowInfo.keywordIdx,
+          repIdx: data.nowInfo.repIdx,
+          isPassModalOpen: true,  // 모달 열기
+        });
+      
+        // 1초 뒤 자동으로 닫기
+        setTimeout(() => {
+          set({ isPassModalOpen: false });
+        }, 1000);
+      },
 
     // Livekit 관련
     addParticipant: (participant) =>
@@ -183,6 +210,7 @@ const useGameStore = create((set, get) => ({
             ),
         })),
 
+    // 일심동체 게임 역할
     setGameRoles: ({ repIdxList, norIdxList }) => {
         const participants = get().participants;
 
@@ -202,7 +230,8 @@ const useGameStore = create((set, get) => ({
         }));
     },
 
-    setWatingGameOver: (data) => set({
+    // 게임 종료 후 (3라운드 블루턴 끝)
+    setWaitingGameOver: (data) => set({
         win: data.gameResult.win,
         finalScore: data.gameResult.finalScore,
     }),
