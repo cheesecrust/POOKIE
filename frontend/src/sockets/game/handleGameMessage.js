@@ -3,11 +3,8 @@ import useGameStore from "../../store/useGameStore";
 import cleanupLiveKit from "../../utils/cleanupLiveKit";
 
 export default async function handleGameMessage(msg, handlers) {
-  const { type } = msg;
-
-
-    console.log("🟢 게임 메시지 수신:", msg);
-    const { type} = msg;
+  console.log("🟢 게임 메시지 수신:", msg);
+  const { type} = msg;
   
   switch (type) {
     // -----------------------------
