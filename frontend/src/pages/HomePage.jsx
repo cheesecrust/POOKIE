@@ -41,23 +41,16 @@ const HomePage = () => {
     }
   }, [isLoggedIn, navigate]);
 
-  // 소켓 연결 상태 확인 및 재연결
   useEffect(() => {
     if (!user || !isLoggedIn) return;
 
-    const socketState = getSocketState();
-    console.log("🔌 현재 소켓 상태:", socketState);
+    const reconnectIfNeeded = async () => {
+      const { initializeSocketConnection } = useAuthStore.getState();
+      await initializeSocketConnection(navigate);
+    };
 
-    // 소켓이 연결되지 않은 경우 재연결 시도
-    if (!isSocketConnected()) {
-      console.log("🔄 소켓이 연결되지 않음. 재연결 시도...");
-      
-      // loadUserFromStorage를 호출하여 소켓 재연결
-      loadUserFromStorage(navigate);
-    } else {
-      console.log("✅ 소켓이 이미 연결됨");
-    }
-  }, [user, isLoggedIn, navigate, loadUserFromStorage]);
+    reconnectIfNeeded();
+  }, [user, isLoggedIn, navigate]);
 
   // 강퇴 모달
   useEffect(() => {

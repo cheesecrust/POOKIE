@@ -1,7 +1,10 @@
 package com.ssafy.pookie.global.security.config;
 
 import com.ssafy.pookie.global.security.filter.JwtAuthenticationFilter;
+import com.ssafy.pookie.global.security.handler.JwtAccessDeniedHandler;
+import com.ssafy.pookie.global.security.handler.JwtAuthenticationEntryPoint;
 import com.ssafy.pookie.global.security.handler.OAuth2LoginSuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,8 +12,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -24,6 +25,8 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
@@ -66,7 +69,6 @@ public class SecurityConfig {
 
                 // Form 로그인 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
-
                 // CORS 설정 적용
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
@@ -81,19 +83,17 @@ public class SecurityConfig {
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig.disable())  // 개발 환경에서는 비활성화
                 )
 
-                // TODO: 예외처리
-                /*
                 .exceptionHandling(exception -> exception
                     .authenticationEntryPoint(jwtAuthenticationEntryPoint)  // 인증 실패 시
                     .accessDeniedHandler(jwtAccessDeniedHandler)            // 권한 부족 시
                 )
-                 */
-
                 // URL별 접근 권한 설정
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 없이 접근 가능한 URL
                         .requestMatchers(
-                                "/auth/**",           // 인증 관련 API,
+                                "/auth/signup",           // 인증 관련 API,
+                                "/auth/login",
+                                "/auth/refresh",
                                 "/oauth/**",               // 인증 관련 API 2 (일반 회원가입과 분리 url)
                                 "/oauth2/**",          // oauth2 관련
                                 "/public/**",         // 공개 API

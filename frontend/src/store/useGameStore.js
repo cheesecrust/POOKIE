@@ -41,17 +41,17 @@ const useGameStore = create((set, get) => ({
     roomInstance: null,
     participants: [],
 
-    setRoomId: (id) => set({roomId:id}),
+    setRoomId: (id) => set({ roomId: id }),
 
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
     setScore: (score) => { set({ score: score }) },
     setWin: (win) => { set({ win: win }) },
 
     // 게임 시작할 때 전 게임 정보 초기화
-    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
-    setScore: (score) => {set({score:score})},
-    setWin: (Win) => {set({win:Win})},
-    
+    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
+    setScore: (score) => { set({ score: score }) },
+    setWin: (Win) => { set({ win: Win }) },
+
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
@@ -87,23 +87,23 @@ const useGameStore = create((set, get) => ({
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
 
-        // 1) 방장이면 먼저 타이머 시작
-        if (myIdx === master) {
-            emitTimerStart({ roomId }); // 실제 타이머 시작
-        }
-
-        // 2) 게임 시작 모달 ON
+        // 1) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
 
+        // 2초 후 게임 시작 모달 OFF → 턴 모달 ON
         setTimeout(() => {
-            // 3) 게임 시작 모달 OFF, 턴 모달 ON
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
 
+            // 3) 방장이면 이때 emitTimerStart 실행
+            if (myIdx === master) {
+                setTimeout(() => {
+                    emitTimerStart({ roomId });
+                }, 2000)
+            }
+            // 1초 후 턴 모달 OFF
             setTimeout(() => {
-                // 4) 턴 모달 OFF
                 set({ isTurnModalOpen: false });
-            }, 1000);
-
+            }, 2000);
         }, 2000);
     },
 
@@ -117,7 +117,7 @@ const useGameStore = create((set, get) => ({
     setMaster: (master) => set({ master }),
     setRoomInstance: (roomInstance) => set({ roomInstance }),
     setParticipants: (participants) => set({ participants }),
-    
+
     setTime: (data) => set({ time: data.time }),
 
     setRoomInfo: (data) => set({ roomInfo: data }),
@@ -165,13 +165,13 @@ const useGameStore = create((set, get) => ({
     // Livekit 관련
     addParticipant: (participant) =>
         set((state) => {
-          const current = Array.isArray(state.participants) ? state.participants : [];
-          return {
-            participants: [
-              ...current.filter((p) => p.identity !== participant.identity),
-              participant,
-            ],
-          };
+            const current = Array.isArray(state.participants) ? state.participants : [];
+            return {
+                participants: [
+                    ...current.filter((p) => p.identity !== participant.identity),
+                    participant,
+                ],
+            };
         }),
 
     removeParticipant: (identity) =>
@@ -191,22 +191,19 @@ const useGameStore = create((set, get) => ({
 
         const updatedParticipants = participants.map((p) => {
             const role = repIdxList.includes(p.userAccountId)
-            ? "REP"
-            : norIdxList.includes(p.userAccountId)
-            ? "NOR"
-            : null;
+                ? "REP"
+                : norIdxList.includes(p.userAccountId)
+                    ? "NOR"
+                    : null;
             return { ...p, role };
         });
 
         set(() => ({
-                repIdxList,
-                norIdxList,
-                participants: updatedParticipants,
-            }));
-            
-            console.log("역할 부여 완료", updatedParticipants);
-            console.log("📌 repIdxList:", repIdxList, "📌 norIdxList:", norIdxList);
-        },
+            repIdxList,
+            norIdxList,
+            participants: updatedParticipants,
+        }));
+    },
 
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,

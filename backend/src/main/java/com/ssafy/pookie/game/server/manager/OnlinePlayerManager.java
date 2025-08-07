@@ -9,6 +9,7 @@ import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import com.ssafy.pookie.metrics.SocketMetrics;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class OnlinePlayerManager {
     private final UserAccountsRepository userAccountsRepository;
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
+    private final SocketMetrics socketMetrics;
 
     /*
         특정 유저에게만 Message 전달
@@ -75,7 +77,7 @@ public class OnlinePlayerManager {
         방장 X : false
      */
     public Boolean isMaster(WebSocketSession session, RoomStateDto room) {
-        return room.getRoomMaster().getSession() == session;
+        return room.getRoomMaster().getSession()==session;
     }
 
     // Lobby 에 있는 User 의 Status Update
@@ -134,6 +136,7 @@ public class OnlinePlayerManager {
             if(room.getSessions().contains(session)) {
                 UserDto leaveUser = room.removeUser(session);
                 if(room.getSessions().isEmpty()) {
+                    socketMetrics.recordRoomDestroyed(room.getGameType().toString());
                     removeRoomFromServer(room.getRoomId());
                 } else {
                     // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
