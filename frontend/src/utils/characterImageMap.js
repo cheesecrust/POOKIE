@@ -5,7 +5,7 @@ import chocopudding from '../assets/character/pooding_choco.png'
 import creampudding from '../assets/character/pooding_creambrulee.png'
 import greenteapudding from '../assets/character/pooding_matcha.png'
 import melonpudding from '../assets/character/pooding_melon.png'
-import milkpooding from '../assets/character/pooding_milk.png'
+import milkpudding from '../assets/character/pooding_milk.png'
 import greenpookie from '../assets/character/pookie_green.png'
 import redpookie from '../assets/character/pookie_red.png'
 import yellowpookie from '../assets/character/pookie_yellow.png'
@@ -19,7 +19,7 @@ const characterImageMap = {
     creampudding,
     greenteapudding,
     melonpudding,
-    milkpooding,
+    milkpudding,
     greenpookie,
     redpookie,
     yellowpookie,

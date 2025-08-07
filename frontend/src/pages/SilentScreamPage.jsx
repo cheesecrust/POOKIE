@@ -90,6 +90,7 @@ const SilentScreamPage = () => {
 
   // 1️. 첫 페이지 로딩
   useEffect(() => {
+    console.log("keywordIdx",keywordIdx)
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
@@ -112,30 +113,46 @@ const SilentScreamPage = () => {
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (myIdx === master)
       if (keywordIdx >= 15) 
-        if (turn === "RED")
-        {
-        emitTurnOver({ roomId,team:turn,score:score });
-      } 
-        else if (turn === "BLUE")
-        {
-        emitRoundOver({ roomId,team:turn,score:score });
-      }
+        if (myIdx === master){
+          if (turn === "RED")
+          {
+            emitTurnOver({ roomId,team:turn,score:score });
+            if(round <=3){
+              emitTimerStart({ roomId });
+            }
+
+          } 
+          else if (turn === "BLUE" )
+          {
+            emitRoundOver({ roomId,team:turn,score:score });
+            if(round <=2){
+              emitTimerStart({ roomId });
+            }
+          }
+        }
       // 추가 조건 : 타이머 끝났을 때 
-      if (isTimerEnd)
-      {
-        if (turn === "RED"){
-          emitTurnOver({ roomId,team:turn,score:score });
-          emitTimerStart({ roomId });
-        }
-        else if (turn === "BLUE"){
-          emitRoundOver({ roomId,team:turn,score:score });
-          emitTimerStart({ roomId });
-        }
-        resetGameTimerEnd();
+      if (isTimerEnd){  
+        if (myIdx === master){
+        
+          if (turn === "RED"){
+            emitTurnOver({ roomId,team:turn,score:score });
+            resetGameTimerEnd();
+            if(round <=3){
+              emitTimerStart({ roomId });
+            }
+          }
+          else if (turn === "BLUE"){
+            emitRoundOver({ roomId,team:turn,score:score });
+            resetGameTimerEnd();
+
+            if(round <=2){
+              emitTimerStart({ roomId });
+            }
+          }
+        
       }
-      
+      }
   }, [keywordIdx,isTimerEnd]);
   
   // esc 키 눌렀을 때 제출 모달 닫기
@@ -220,15 +237,12 @@ const SilentScreamPage = () => {
   const repGroup = participants.filter((p) => p.role === "REP");
   const norGroup = participants.filter((p) => p.role === "NOR");
   const enemyGroup = participants.filter((p) => p.role === null && p.team === enemyTeam);
-  console.log("repGroup", repGroup);
-  console.log("norGroup", norGroup);
-  console.log("enemyGroup", enemyGroup);
 
   // participants 확인
   useEffect(() => {
-    console.log("🔍 전체 participants 확인", participants);
+    // console.log("🔍 전체 participants 확인", participants);
     participants.forEach((p) => {
-      console.log(`[${p.identity}] userId: ${p.userAccountId}, role: ${p.role}, team: ${p.team}`);
+    // console.log(`[${p.identity}] userId: ${p.userAccountId}, role: ${p.role}, team: ${p.team}`);
     });
   }, [participants]);  
   
@@ -293,8 +307,8 @@ const SilentScreamPage = () => {
 
           <RoundInfo
             round={round}
-            redScore={teamScore?.red}
-            blueScore={teamScore?.blue}
+            redScore={teamScore?.RED}
+            blueScore={teamScore?.BLUE}
           />
 
         </div>

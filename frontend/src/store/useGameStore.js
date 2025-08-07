@@ -43,14 +43,12 @@ const useGameStore = create((set, get) => ({
 
     setRoomId: (id) => set({roomId:id}),
 
-    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
-    setScore: (score) => { set({ score: score }) },
-    setWin: (win) => { set({ win: win }) },
 
     // 게임 시작할 때 전 게임 정보 초기화
     setTeamScore: (teamScore) => {set({teamScore: teamScore})},
     setScore: (score) => {set({score:score})},
     setWin: (Win) => {set({win:Win})},
+    setKeywordIdx: (keywordIdx) => {set({keywordIdx:keywordIdx})},
     
     // 모달 상태 관리
     isGamestartModalOpen: false,
@@ -69,7 +67,6 @@ const useGameStore = create((set, get) => ({
     openTurnModal: () => set({ isTurnModalOpen: true }),
     closeTurnModal: () => set({ isTurnModalOpen: false }),
 
-
     // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
     isTimerEnd: false,
     gameTimerStarted: false,
@@ -86,28 +83,27 @@ const useGameStore = create((set, get) => ({
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-
-        // 1) 방장이면 먼저 타이머 시작
-        if (myIdx === master) {
-            emitTimerStart({ roomId }); // 실제 타이머 시작
-        }
-
-        // 2) 게임 시작 모달 ON
+    
+        // 1) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
-
+    
+        // 2초 후 게임 시작 모달 OFF → 턴 모달 ON
         setTimeout(() => {
-            // 3) 게임 시작 모달 OFF, 턴 모달 ON
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
-
+    
+            // 3) 방장이면 이때 emitTimerStart 실행
+            if (myIdx === master) {
+                setTimeout(() => {
+                    emitTimerStart({ roomId });
+                }, 2000)
+            }
+            // 1초 후 턴 모달 OFF
             setTimeout(() => {
-                // 4) 턴 모달 OFF
                 set({ isTurnModalOpen: false });
-            }, 1000);
-
+            }, 2000);
         }, 2000);
     },
 
-    setRoomId: (id) => set({ roomId: id }),
 
     setRtcToken: (token) => set({ rtctoken: token }),
     setTurn: (turn) => set({ turn }),
