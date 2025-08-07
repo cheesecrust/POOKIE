@@ -14,7 +14,6 @@ import coinImg from "../assets/item/coin.png";
 
 import axiosInstance from "../lib/axiosInstance";
 
-import characterImageMap from "../utils/characterImageMap";
 
 const MyRoomPage = () => {
 
@@ -105,9 +104,9 @@ const MyRoomPage = () => {
             {/* 캐릭터 이미지 */}
             <div className="relative w-full min-h-[300px] rounded-lg p-4 mt-4">
               <div className="w-full h-full flex items-center justify-center">
-                <img
+                <img  
                   src={
-                    characterImageMap[user?.repCharacter?.name] ||
+                    characterImageMap[userInfo?.repCharacter?.name] ||
                     characterImageMap.default
                   }
                   alt="대표 캐릭터"
