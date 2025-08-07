@@ -39,6 +39,10 @@ const SilentScreamPage = () => {
   // 턴,라운드
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
+
+  // 팀 추출
+  const myParticipant = participants.find(p => p.userAccountId === myIdx);
+  const myTeam = myParticipant?.team || null;
   
   // 타이머 
   const time = useGameStore((state) => state.time);
@@ -89,6 +93,7 @@ const SilentScreamPage = () => {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isWinModalOpen, setIsWinModalOpen] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
  
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -178,6 +183,27 @@ const SilentScreamPage = () => {
     };
   }, [isSubmitModalOpen]);
 
+  // Enter 키로 제출 모달 열기
+  useEffect(() => {
+    const handleEnterKey = (e) => {
+      if (e.key === "Enter") {
+        if (norIdxList.includes(myIdx) && !isSubmitModalOpen && !hasSubmitted) {
+          setIsSubmitModalOpen(true);
+          setHasSubmitted(true); // ✅ 한번 연 뒤에는 다시 안 열리게
+        }
+      }
+    };
+    window.addEventListener("keydown", handleEnterKey);
+    return () => {
+      window.removeEventListener("keydown", handleEnterKey);
+    };
+  }, [myIdx, norIdxList, isSubmitModalOpen, hasSubmitted]);
+  
+  // 턴이 바뀌거나 keywordIdx 바뀌면 리셋
+  useEffect(() => {
+    setHasSubmitted(false);
+  }, [round, keywordIdx]); // 상황에 따라 round 또는 keywordIdx 사용
+
   // Livekit 연결
   useEffect(() => {
     if (!user || !roomId || roomInstance || participants.length > 0) return;
@@ -185,6 +211,18 @@ const SilentScreamPage = () => {
 
     connectLiveKit(user);
   }, [user, roomId]);
+
+  // 역할 부여
+  useEffect(() => {
+    // 내가 받지 못한 유저일 경우 역할 수동 부여
+    const hasRole = participants.some((p) => p.role);
+    const hasEnoughData = repIdxList.length > 0 && norIdxList.length > 0;
+  
+    if (!hasRole && hasEnoughData) {
+      useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+      console.log("🛠 역할 수동 설정 완료: SilentScreamPage fallback");
+    }
+  }, [repIdxList, norIdxList, participants]);
 
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
@@ -209,32 +247,32 @@ const SilentScreamPage = () => {
   // 위치/크기 정의
   const repStyles = [
     {
-      position: "top-10 left-5",
-      size: "w-180 h-125 rounded-lg shadow-lg",
+      position: "top-20 left-5",
+      size: "w-160 h-125 rounded-lg shadow-lg",
     },
   ];
   const norStyles = [
     {
-      position: "top-10 left-195",
-      size: "w-90 h-60 rounded-lg shadow-lg",
+      position: "top-20 left-170",
+      size: "w-80 h-60 rounded-lg shadow-lg",
     },
     {
-      position: "top-75 left-195",
-      size: "w-90 h-60 rounded-lg shadow-lg",
+      position: "top-85 left-170",
+      size: "w-80 h-60 rounded-lg shadow-lg",
     },
   ];
   const enemyStyles = [
     {
-      position: "bottom-6 right-220",
-      size: "w-85 h-60 rounded-lg shadow-lg",
+      position: "bottom-6 right-142",
+      size: "w-65 h-50 rounded-lg shadow-lg",
     },
     {
-      position: "bottom-6 right-120",
-      size: "w-85 h-60 rounded-lg shadow-lg",
+      position: "bottom-6 right-72",
+      size: "w-65 h-50 rounded-lg shadow-lg",
     },
     {
-      position: "bottom-6 right-20",
-      size: "w-85 h-60 rounded-lg shadow-lg",
+      position: "bottom-6 right-2",
+      size: "w-65 h-50 rounded-lg shadow-lg",
     },
   ];
 
@@ -282,8 +320,11 @@ const SilentScreamPage = () => {
       {/*  모든 컨텐츠는 여기서 relative 위치로 올라감 */}
       <div className="relative z-10 w-full h-full flex flex-col items-center px-10">
         {/* 현재 팀 턴 */}
-        <div className="text-center text-3xl font-bold">
-          {turn === "RED" ? "RED TEAM TURN" : "BLUE TEAM TURN"}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-3xl font-bold">
+          <span className={turn === "RED" ? "text-red-500" : "text-blue-500"}>
+            {turn} TEAM
+          </span>{" "}
+          TURN
         </div>
 
         {/* 현재팀 캠 */}
@@ -295,21 +336,25 @@ const SilentScreamPage = () => {
 
         {/* 상대팀 캠 */}
         <div className="relative w-full h-[180px] mt-auto">
-          <div className="absolute bottom-70 right-12 text-2xl font-bold">
-            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
-          </div>
+          {/* 상대팀 턴 */}
+          <div className="absolute bottom-60 right-6 text-2xl font-bold">
+          <span className={enemyTeam === "RED" ? "text-red-500" : "text-blue-500"}>
+            {enemyTeam} TEAM
+          </span>
+        </div>
+
           {renderVideoByRole(enemyGroup, enemyStyles)}
         </div>
           
         {/* 타이머 */}
         {isTimerOpen && (
-          <div className="absolute top-12 right-64 z-20 scale-150">
+          <div className="absolute top-18 right-68 z-20 scale-150">
             <Timer seconds={time} />
           </div>
         )}
         
         {/* RoundInfo (우측 상단 고정) */}
-        <div className="absolute top-12 right-8 z-20 scale-150">
+        <div className="absolute top-16 right-12 z-20 scale-150">
 
           <RoundInfo
             round={round}
@@ -321,7 +366,7 @@ const SilentScreamPage = () => {
 
         {/* Keyword 카드 (발화자 + 상대팀 보임) */}
         {!norIdxList.includes(myIdx) && (
-          <div className="absolute top-28 right-40 z-20">
+          <div className="absolute top-32 right-42 z-20">
             <KeywordCard keyword={keywordList[keywordIdx]} />
           </div>
         )}
@@ -335,7 +380,14 @@ const SilentScreamPage = () => {
           {/* 정답 제출 버튼 */}
           {norIdxList.includes(myIdx) && (
 
-            <RightButton children="제출" onClick={() => setIsSubmitModalOpen(true)} />
+            <RightButton
+              children="제출"
+              onClick={() => {
+                if (!isSubmitModalOpen) {
+                  setIsSubmitModalOpen(true);
+                }
+              }}
+            />
           )}
 
           {/* 🔽 모든 유저에게 보이는 진행도 */}
@@ -346,8 +398,13 @@ const SilentScreamPage = () => {
         
 
         {/* ChatBox (우측 하단 고정) */}
-        <div className="absolute bottom-4 left-15 z-20 opacity-80">
-          <ChatBox width="550px" height="400px" />
+        <div className="absolute bottom-6 left-15 z-20 opacity-80">
+          <ChatBox
+            width="500px"
+            height="250px"
+            roomId={roomId}
+            team={myTeam}
+          />
         </div>
 
       </div>
@@ -366,7 +423,6 @@ const SilentScreamPage = () => {
         isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
         onSubmit={(inputAnswer) => {
-          if (!inputAnswer?.trim()) return;
           emitAnswerSubmit({roomId, round, norId:myIdx, keywordIdx, inputAnswer});
           setIsSubmitModalOpen(false);
         }}

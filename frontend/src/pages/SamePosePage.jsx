@@ -13,6 +13,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from "../store/useGameStore";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
+import connectLiveKit from "../utils/connectLiveKit";
 
 import {
   emitAnswerSubmit,
@@ -59,6 +60,11 @@ const SamePosePage = () => {
 
   // norIdxList 가져오기
   const norIdxList = useGameStore((state) => state.norIdxList) || [];
+  const repIdxList = useGameStore((state) => state.repIdxList);
+
+  // livekit
+  const participants = useGameStore((state) => state.participants);
+  const roomInstance = useGameStore((state) => state.roomInstance);
 
   // 점수 관련
   const teamScore = useGameStore((state) => state.teamScore);
@@ -128,7 +134,9 @@ const SamePosePage = () => {
 
   // 첫 페이지 로딩
   useEffect(() => {
-    handleTimerPrepareSequence(roomId);
+    setTimeout(() => {
+      handleTimerPrepareSequence(roomId);
+    }, 3000);
   }, [roomId]);
 
   // 턴 바뀔 때 턴 모달 띄움
@@ -223,119 +231,65 @@ const SamePosePage = () => {
     }
   }, [win, navigate, roomId, roomInfo]);
 
-  // livekit 연결
-  // useEffect(() => {
-  //   const connectLiveKit = async () => {
-  //     try {
-  //       const livekitUrl = import.meta.env.VITE_OPENVIDU_LIVEKIT_URL;
-  //       const token = useGameStore.getState().rtc_token;
-  //       if (!token) {
-  //         console.error("❌ RTC Token이 없습니다.");
-  //         return;
-  //       }
+  // Livekit 연결
+  useEffect(() => {
+    if (!user || !roomId || roomInstance || participants.length > 0) return;
+    console.log("🚀 LiveKit 연결 시작");
 
-  //       const newRoom = new Room();
-  //       await newRoom.connect(livekitUrl, token);
-  //       console.log("✅ LiveKit 연결 성공");
+    connectLiveKit(user);
+  }, [user, roomId]);
 
-  //       // 로컬 캠 시작
-  //       const videoTrack = await createLocalVideoTrack();
-  //       await newRoom.localParticipant.publishTrack(videoTrack);
-  //       setPublisherTrack({
-  //         track: videoTrack,
-  //         identity: user.id,
-  //         nickname: user.userNickname,
-  //         team: user.team,
-  //       });
+  // 역할 부여 (SilentScreamPage fallback)
+  useEffect(() => {
+    const hasRole = participants.some((p) => p.role);
+    const hasEnoughData = repIdxList.length > 0;
 
-  //       roomRef.current = newRoom;
+    if (!hasRole && hasEnoughData) {
+      useGameStore.getState().setGameRoles2({ repIdxList });
+      console.log("🛠 역할 수동 설정 완료: SamePosePage fallback");
+    }
+  }, [repIdxList, participants]);
 
-  //       const handleTrackSubscribed = (track, publication, participant) => {
-  //         // 🔇 오디오 트랙은 바로 끄기
-  //         if (track.kind === "audio") {
-  //           track.enabled = false;
-  //           return;
-  //         }
-  //         if (!participant || participant.isLocal) return;
+  // livekit 렌더 함수
+  const renderVideoByRole = (roleGroup, sizeStyles) => {
+    return roleGroup.map((p, idx) => {
+      return (
+        <div key={p.identity} className={sizeStyles[idx]}>
+          <LiveKitVideo
+            videoTrack={p.track}
+            nickname={p.nickname}
+            isLocal={p.isLocal}
+            containerClassName="w-full h-full"
+            nicknameClassName="absolute bottom-4 left-4 text-white text-2xl"
+          />
+          {showModal && hideTargetIds.includes(p.userAccountId) && (
+            <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
+              {countdown}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
-  //         const nickname = participant.metadata?.nickname || "unknown";
-  //         const team = participant.metadata?.team || "RED";
-  //         const newParticipant = {
-  //           track,
-  //           identity: participant.identity,
-  //           nickname,
-  //           team,
-  //         };
+  const repStyles = [
+    "w-100 h-75 rounded-lg shadow-lg",
+    "w-100 h-75 rounded-lg shadow-lg",
+    "w-100 h-75 rounded-lg shadow-lg",
+  ];
 
-  //         if (team === "RED") {
-  //           setRedTeam((prev) =>
-  //             prev.some((p) => p.identity === participant.identity)
-  //               ? prev
-  //               : [...prev, newParticipant]
-  //           );
-  //         } else {
-  //           setBlueTeam((prev) =>
-  //             prev.some((p) => p.identity === participant.identity)
-  //               ? prev
-  //               : [...prev, newParticipant]
-  //           );
-  //         }
-  //       };
+  const enemyStyles = [
+    "w-75 h-50 rounded-lg shadow-lg",
+    "w-75 h-50 rounded-lg shadow-lg",
+    "w-75 h-50 rounded-lg shadow-lg",
+  ];
 
-  //       // 기존 참가자 처리
-  //       for (const participant of newRoom.remoteParticipants.values()) {
-  //         for (const publication of participant.trackPublications.values()) {
-  //           if (
-  //             publication.isSubscribed &&
-  //             publication.track?.kind === "video"
-  //           ) {
-  //             handleTrackSubscribed(
-  //               publication.track,
-  //               publication,
-  //               participant
-  //             );
-  //           }
-  //         }
-  //         participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
-  //           handleTrackSubscribed(track, publication, participant);
-  //         });
-  //       }
-
-  //       // 새 참가자 처리
-  //       newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-  //         participant.on(RoomEvent.TrackSubscribed, (track, publication) => {
-  //           handleTrackSubscribed(track, publication, participant);
-  //         });
-  //       });
-
-  //       // 참가자 퇴장 처리
-  //       newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
-  //         setRedTeam((prev) =>
-  //           prev.filter((p) => p.identity !== participant.identity)
-  //         );
-  //         setBlueTeam((prev) =>
-  //           prev.filter((p) => p.identity !== participant.identity)
-  //         );
-  //       });
-  //     } catch (error) {
-  //       console.error("LiveKit 연결 실패:", error);
-  //     }
-  //   };
-
-  //   connectLiveKit();
-  // }, []);
-
-  // // 턴 변경 시 반대 팀 음소거 처리
-  // useEffect(() => {
-  //   if (!roomRef.current) return;
-  //   for (const participant of roomRef.current.remoteParticipants.values()) {
-  //     const team = participant.metadata?.team;
-  //     const shouldMute = turn === "RED" ? team === "BLUE" : team === "RED";
-  //     participant.audioTracks.forEach((pub) => {
-  //       if (pub.track) pub.track.enabled = !shouldMute;
-  //     });
-  //   }
-  // }, [turn]);
+  // 분류 후 자동 배치
+  const enemyTeam = turn === "RED" ? "BLUE" : "RED"; // 반대 팀 계산
+  const repGroup = participants.filter((p) => p.role === "REP");
+  const enemyGroup = participants.filter(
+    (p) => p.role === null && p.team === enemyTeam
+  );
 
   return (
     <>
@@ -361,10 +315,9 @@ const SamePosePage = () => {
             </button> */}
             </div>
 
+            {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
             <div>
-              {/* 턴정보 */}
-              {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
-              <div className="text-center text-2xl">
+              <div className="relative text-center text-2xl">
                 <span
                   className={turn === "RED" ? "text-red-500" : "text-blue-700"}
                 >
@@ -392,175 +345,26 @@ const SamePosePage = () => {
           </div>
         </section>
 
-        {isRedTurn ? (
-          <>
-            {/* RED TEAM */}
-            <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
-              {redTeam.map((p) => (
-                <div
-                  key={p.id}
-                  id={`player-${p.id}`}
-                  className="flex-1 h-full border border-red-500 bg-purple-300 rounded-lg relative flex items-center justify-center"
-                >
-                  {p.nickname} (id: {p.id})
-                  {showModal && hideTargetIds.includes(p.id) && (
-                    <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold">
-                      {countdown}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </section>
+        {/* 현재 팀 캠 영역 (REP) */}
+        <section className="basis-4/9 relative w-full h-full bg-red-100 flex justify-around items-center">
+          {renderVideoByRole(repGroup, repStyles)}
+        </section>
 
-            <section className="basis-3/9 flex flex-row gap-6 p-4">
-              {/* ChatBox 영역 */}
-              <div className="basis-1/3 relative">
-                <div className="absolute bottom-0 left-0">
-                  <ChatBox width="350px" height="250px" />
-                </div>
-              </div>
-
-              {/* Blue 팀 캠 영역 */}
-              <div className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 justify-center items-center">
-                {blueTeam.map((p) => (
-                  <div
-                    key={p.id}
-                    id={`player-${p.id}`}
-                    className="flex-1 h-full border border-blue-500 bg-cyan-300 rounded-lg relative flex items-center justify-center"
-                  >
-                    {p.nickname} (id: {p.id})
-                    {showModal && hideTargetIds.includes(p.id) && (
-                      <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                        {countdown}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        ) : (
-          <>
-            {/* BLUE TEAM (큰 화면) */}
-            <section className="basis-4/9 flex flex-row gap-6 bg-blue-100 p-4 justify-center items-center">
-              {blueTeam.map((p) => (
-                <div
-                  key={p.id}
-                  id={`player-${p.id}`}
-                  className="flex-1 h-full border border-blue-500 bg-cyan-300 rounded-lg relative flex items-center justify-center"
-                >
-                  {p.nickname} (id: {p.id})
-                  {showModal && hideTargetIds.includes(p.id) && (
-                    <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                      {countdown}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </section>
-
-            {/* RED TEAM (작은 화면) */}
-            <section className="basis-3/9 flex flex-row gap-6 p-4">
-              {/* ChatBox */}
-              <div className="basis-1/3 relative">
-                <div className="absolute bottom-0 left-0">
-                  <ChatBox width="350px" height="250px" />
-                </div>
-              </div>
-
-              <div className="basis-2/3 flex flex-wrap gap-6 bg-red-100 justify-center items-center">
-                {redTeam.map((p) => (
-                  <div
-                    key={p.id}
-                    id={`player-${p.id}`}
-                    className="flex-1 h-full border border-red-500 bg-purple-300 rounded-lg relative flex items-center justify-center"
-                  >
-                    {p.nickname} (id: {p.id})
-                    {showModal && hideTargetIds.includes(p.id) && (
-                      <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                        {countdown}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-
-        {/* 3:3 화면 구성 */}
-        {/* <section className="basis-4/9 flex flex-row gap-6 bg-red-100 p-4 justify-center items-center">
-        {" "} */}
-        {/* RED TEAM */}
-        {/* <div className="flex flex-wrap justify-center w-full bg-red-100 p-2">
-          {publisherTrack?.team === "RED" && (
-            <LiveKitVideo
-              videoTrack={publisherTrack.track}
-              isLocal={true}
-              nickname={publisherTrack.nickname}
-              containerClassName="w-40 h-32 border border-red-500 m-1"
-            />
-          )}
-          {redTeam.map((p) => (
-            <LiveKitVideo
-              key={p.identity}
-              videoTrack={p.track}
-              isLocal={false}
-              nickname={p.nickname}
-              containerClassName="w-40 h-32 border border-red-500 m-1"
-            />
-          ))}
-        </div> */}
-        {/* <div className="flex-1 h-full border border-red-500 bg-blue-300 rounded-lg"></div>
-        <div className="flex-1 h-full border border-red-500 bg-green-300 rounded-lg"></div>
-        <div className="flex-1 h-full border border-red-500 bg-yellow-300 rounded-lg"></div>
-      </section> */}
-
-        {/* <section className="basis-3/9 flex flex-row">
-        <div className="relative basis-1/3 ">
-          <div className="absolute bottom-0 left-0 ">
-            <ChatBox width="350px" height="250px" />
+        {/* 상대 팀 캠 영역 (NOR) */}
+        <section className="basis-3/9 relative w-full h-[180px] mt-auto flex justify-around items-end">
+          <div className="basis-1/3"></div>
+          {/* <div className="absolute bottom-[70px] right-12 text-2xl font-bold">
+            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
+          </div> */}
+          <div className="basis-2/3 flex flex-row justify-around p-4">
+            {renderVideoByRole(enemyGroup, enemyStyles)}
           </div>
-        </div> */}
+        </section>
 
-        {/* BLUE TEAM */}
-        {/* <section className="basis-2/3 flex flex-wrap gap-6 bg-blue-100 p-4 justify-center items-center">
-          <div className="flex-1 h-full border border-blue-500 bg-blue-300 rounded-lg"></div>
-          <div className="flex-1 h-full border border-blue-500 bg-green-300 rounded-lg"></div>
-          <div className="flex-1 h-full border border-blue-500 bg-yellow-300 rounded-lg"></div> */}
-
-        {/* {publisherTrack?.team === "BLUE" && (
-            <LiveKitVideo
-              videoTrack={publisherTrack.track}
-              isLocal={true}
-              nickname={publisherTrack.nickname}
-              containerClassName="w-40 h-32 border border-blue-500 m-1"
-            />
-          )} */}
-        {/* {blueTeam.map((p) => (
-            <LiveKitVideo
-              key={p.identity}
-              videoTrack={p.track}
-              isLocal={false}
-              nickname={p.nickname}
-              containerClassName="w-40 h-32 border border-blue-500 m-1"
-            />
-          ))} */}
-        {/* </section>
-      </section> */}
-
-        {/* 관련 */}
-
-        {/* 제출 모달은 동작이 맞았으면 true로 판단해서 true ? ${keyword}:"wrong"
-const inputAnswer = true ? ${keyword}:"wrong"
- 자동으로 제시어가 제출됨
-emitAnswerSubmit({
-  roomId,
-  round,
-    norId,
-   keywordIdx,
-   inputAnswer,
- }); */}
+        {/* Chatbox */}
+        <div className="absolute bottom-4 left-10 z-20 opacity-90">
+          <ChatBox width="350px" height="250px" />
+        </div>
 
         {/* GAME START 모달 */}
         <PopUpModal

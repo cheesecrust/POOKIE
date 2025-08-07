@@ -3,6 +3,7 @@ import useGameStore from "../../store/useGameStore";
 import cleanupLiveKit from "../../utils/cleanupLiveKit";
 
 export default async function handleGameMessage(msg, handlers) {
+  console.log("🟢 게임 메시지 수신:", msg);
   const { type } = msg;
   console.log("[GAME] 메시지 수신:", msg.type,msg);
   switch (type) {
@@ -16,7 +17,6 @@ export default async function handleGameMessage(msg, handlers) {
       //   return;
       // }
       useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
-      console.log("제시어:", msg);
       handlers?.onGameKeyword?.(msg);
       break;
 
