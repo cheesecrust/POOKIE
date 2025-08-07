@@ -95,6 +95,7 @@ const useAuthStore = create(
           await get().fetchUserInfo();
           await get().initializeSocketConnection(navigate);
         
+
           return { success: true };
         } catch (err) {
           console.error("로그인 에러:", err);
@@ -198,6 +199,7 @@ const useAuthStore = create(
           }
 
           await get().initializeSocketConnection(navigate);
+
         } catch (err) {
           console.error('자동 로그인 실패 (accessToken 만료)');
           set({ accessToken: null, isLoggedIn: false });
