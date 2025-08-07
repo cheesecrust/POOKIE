@@ -3,6 +3,7 @@ package com.ssafy.pookie.character.controller;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.ChangeRepPookieRequestDto;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
@@ -46,13 +47,13 @@ public class CharacterController {
      * 대표 푸키 조회
      */
     @GetMapping("/representative")
-    public ResponseEntity<Characters> getRepresentativePookie(
+    public ResponseEntity<RepCharacterResponseDto> getRepresentativePookie(
             @RequestHeader("Authorization") String authorization) {
         try {
             String token = authorization.replace("Bearer ", "");
             Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
             
-            Characters repPookie = characterService.getRepPookie(userAccountId);
+            RepCharacterResponseDto repPookie = characterService.getRepPookie(userAccountId);
             return ResponseEntity.ok(repPookie);
         } catch (Exception e) {
             log.error("대표 푸키 조회 실패: {}", e.getMessage());

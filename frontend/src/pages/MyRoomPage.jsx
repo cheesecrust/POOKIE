@@ -63,7 +63,7 @@ const MyRoomPage = () => {
           {/* 좌측 - 유저정보 + 캐릭터 */}
           <div className="w-full top-20  lg:w-1/3 xl:w-1/4 relative">
             {/* 유저 정보 박스 */}
-            <div className="bg-[#FDE1F0]  h-[340px] rounded-lg p-6 relative mb-6">
+            <div className="bg-[#FDE1F0]  h-[300px] rounded-lg p-6 relative mb-6">
               <h2 className="text-2xl font-bold mb-4 text-center">마이룸</h2>
 
               <div className="space-y-3">
@@ -74,7 +74,7 @@ const MyRoomPage = () => {
 
                 <div className="flex justify-between items-center p-2 rounded-md">
                   <span className="font-semibold">대표 캐릭터:</span>
-                  <span>{userInfo?.repCharacter?.name}</span>
+                  <span>{userInfo?.repCharacter?.characterName}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded-md">
@@ -91,12 +91,13 @@ const MyRoomPage = () => {
                     />
                   </div>
                 </div>
-                <div className="absolute bottom-1 right-1">
+                {/* 추후구현.. */}
+                {/* <div className="absolute bottom-1 right-1">
                   <RightButton
                     children="회원정보수정"
                     onClick={() => console.log("회원정보 수정")}
                   />
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -105,7 +106,7 @@ const MyRoomPage = () => {
               <div className="w-full h-full flex items-center justify-center">
                 <img  
                   src={
-                    characterImageMap[userInfo?.repCharacter?.name] ||
+                    characterImageMap[userInfo?.repCharacter?.characterName] ||
                     characterImageMap.default
                   }
                   alt="대표 캐릭터"
@@ -138,7 +139,7 @@ const MyRoomPage = () => {
           {/* 우측 - 탭 + 컨텐츠 영역 */}
           <div className="flex-1">
             {/* 탭 버튼 */}
-            <div className="flex  border-black mb-4">
+            <div className="flex  border-black ">
               {["도감", "상점", "인벤토리"].map((tab) => (
                 <button
                   key={tab}
@@ -171,7 +172,7 @@ const MyRoomPage = () => {
 
               {activeTab === "인벤토리" && (
                 <div className="text-center py-10">
-                  <InventoryList onUseSuccess={fetchAuthInfo}></InventoryList>
+                  <InventoryList onUseSuccess={fetchAuthInfo} refreshTrigger={activeTab}></InventoryList>
                 </div>
               )}
             </div>

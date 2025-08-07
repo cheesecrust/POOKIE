@@ -46,7 +46,7 @@ const SilentScreamPage = () => {
   
   // 타이머 
   const time = useGameStore((state) => state.time);
-  const isTimerEnd = useGameStore((state) => state.isTimerEnd);
+  const isTimerEnd = useGameStore((state) => state.isTimerEnd); // true값되면 타이머끝 턴,라운드오버타이밍
   const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
 
   // 맞히는 사람(제시어 x)
@@ -75,6 +75,12 @@ const SilentScreamPage = () => {
   const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
+  const isPassModalOpen = useGameStore((state) => state.isPassModalOpen); //패스 모달
+  const closePassModal = useGameStore((state) => state.closePassModal);
+  const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen); // 정답모달
+  const closeCorrectModal = useGameStore((state) => state.closeCorrectModal); 
+  const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);  // 오답모달달
+  const closeWrongModal = useGameStore((state) => state.closeWrongModal);
 
   // 첫 시작 모달
   const handleTimerPrepareSequence = useGameStore((state) => state.handleTimerPrepareSequence);
@@ -296,7 +302,7 @@ const SilentScreamPage = () => {
         // 게임 종료 후 대기방 복귀 - 정상 입장 플래그 설정
         sessionStorage.setItem('waitingPageNormalEntry', 'true');
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
-      }, 7000);
+      }, 5000);
 
       return () => clearTimeout(timeout);
     }
@@ -423,14 +429,6 @@ const SilentScreamPage = () => {
       />
     )}
 
-       {/* KEYWORD 모달
-      <KeywordModal 
-        isOpen={isKeywordModalOpen} 
-        onClose={() => setIsKeywordModalOpen(false)}
-        children={keyword}
-      >
-      </KeywordModal> */}
-
       {/* 턴 모달 */}
       <PopUpModal 
         isOpen={isTurnModalOpen} 
@@ -446,6 +444,33 @@ const SilentScreamPage = () => {
       >
        <p className="text-6xl font-bold font-pixel">{win === "DRAW" && "DRAW!" || win === "RED" && "RED TEAM WIN!" || win === "BLUE" && "BLUE TEAM WIN!"}</p>
       </PopUpModal>
+
+      
+      {/* PASS 모달 */}
+      <PopUpModal 
+        isOpen={isPassModalOpen} 
+        onClose={closePassModal}
+      >
+        <p className="text-6xl font-bold font-pixel">PASS</p>
+      </PopUpModal> 
+
+      {/* 정답 모달 */}
+      <PopUpModal 
+        isOpen={isCorrectModalOpen} 
+        onClose={closeCorrectModal}
+      >
+        <p className="text-6xl font-bold font-pixel">정답!!</p>
+      </PopUpModal>
+
+      {/* 오답 모달 */}
+      <PopUpModal 
+        isOpen={isWrongModalOpen} 
+        onClose={closeWrongModal}
+      >
+        <p className="text-6xl font-bold font-pixel">오답!!</p>
+      </PopUpModal>
+
+      
     </div>
 
   );

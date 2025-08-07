@@ -1,6 +1,7 @@
 package com.ssafy.pookie.character.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
@@ -126,14 +127,22 @@ public class CharacterService {
     /**
      * 대표 푸키 가져오기
      */
-    public Characters getRepPookie(Long userAccountId) {
+    public RepCharacterResponseDto getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
                 characterCatalogRepository.findByUserAccountIdAndIsRepresent(userAccountId, true);
 
         if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (catalog.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
 
-        return catalog.get(0).getCharacter();
+        Characters characters = catalog.get(0).getCharacter();
+        UserCharacters repUserCharacters = userCharactersRepository
+                            .findByUserAccountIdAndCharacterId(userAccountId, characters.getId())
+                            .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        RepCharacterResponseDto repCharacterDto = RepCharacterResponseDto
+                                                        .fromEntity(repUserCharacters);
+
+        return repCharacterDto;
     }
 
     /**

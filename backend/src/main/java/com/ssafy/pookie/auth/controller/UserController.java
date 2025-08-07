@@ -1,6 +1,7 @@
 package com.ssafy.pookie.auth.controller;
 
 import com.ssafy.pookie.auth.dto.*;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
 import jakarta.servlet.http.Cookie;
@@ -154,7 +155,7 @@ public class UserController {
     @GetMapping("/info")
     public ResponseEntity<ApiResponse<UserResponseDto>> getUserInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Characters userCharacter = characterService.getRepPookie(userDetails.getUserAccountId());
+        RepCharacterResponseDto userCharacter = characterService.getRepPookie(userDetails.getUserAccountId());
 
         UserResponseDto userResponseDto = UserResponseDto.builder()
                 .userAccountId(userDetails.getUserAccountId())
