@@ -58,28 +58,21 @@ public class UserController {
             HttpServletResponse response) {
         log.info("로그인 요청: email={}", loginRequest.getEmail());
 
-        try {
-            LoginResponseDto loginResponse = userService.login(loginRequest);
+        LoginResponseDto loginResponse = userService.login(loginRequest);
 
-            // Refresh Token → HttpOnly 쿠키
-            Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
-            refreshTokenCookie.setHttpOnly(true);
-            // TODO: 배포에서는 true
-            refreshTokenCookie.setSecure(false);
-            refreshTokenCookie.setPath("/");
-            refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
-            response.addCookie(refreshTokenCookie);
+        // 1. Refresh Token → HttpOnly 쿠키
+        Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(false); // TODO: 배포 시 true
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        response.addCookie(refreshTokenCookie);
 
-            // Access Token → 헤더
-            response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
-            log.info("로그인 성공: email={}", loginResponse.getEmail());
-            return ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
+        // 2. Access Token → 헤더
+        response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
 
-        } catch (Exception e) {
-            log.error("로그인 실패: email={}, error={}", loginRequest.getEmail(), e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("로그인 실패: " + e.getMessage()));
-        }
+        log.info("로그인 성공: email={}", loginResponse.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
     }
 
     /**
