@@ -38,7 +38,6 @@ const SamePosePage = () => {
   // 제시어
   const keywordIdx = useGameStore((state) => state.keywordIdx);
   const keywordList = useGameStore((state) => state.keywordList);
-  const keyword = keywordList?.[keywordIdx] ?? "";
 
   //타이머
   const time = useGameStore((state) => state.time);
@@ -55,7 +54,7 @@ const SamePosePage = () => {
 
   // 게임 시 나빼고 가려야 함
   const [hideTargetIds, setHideTargetIds] = useState([]);
-  const [countdown, setCountdown] = useState(null);
+  const [countdown, setCountdown] = useState("");
   const [showModal, setShowModal] = useState(false);
 
   // norIdxList 가져오기
@@ -84,20 +83,13 @@ const SamePosePage = () => {
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const showTurnChangeModal = useGameStore(
     (state) => state.showTurnChangeModal
-  ); // 턴 바뀔때 모달
+  );
 
-  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [isWinModalOpen, setIsWinModalOpen] = useState(false);
-
-  // 첫 시작 모달
+  // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
     (state) => state.handleTimerPrepareSequence
   );
-
-  const [isTimerOpen, setIsTimerOpen] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
-
-  const isFirstTimer = useRef(true); // 처음 타이머 수신시 hidemodal을 안띄우기 위함임
 
   // 팀끼리 사진 캡쳐
   const handleCapture = () => {
@@ -149,33 +141,26 @@ const SamePosePage = () => {
     }
   }, [turn]);
 
-  useEffect(() => {
-    updateHandlers({
-      onGameKeyword: (msg) => {
-        const gameStore = useGameStore.getState();
-
-        // 🔐 현재 keywordIdx와 받은 게 다를 때만 갱신
-        if (gameStore.keywordIdx !== msg.keywordIdx) {
-          console.log("📌 제시어 저장됨:", msg.keywordList[msg.keywordIdx]);
-          gameStore.setGameKeyword(msg);
-        } else {
-          console.log("⚠️ 제시어 동일 → 저장 생략");
-        }
-      },
-    });
-  }, []);
-
   // 타이머 모달 => hide모달로 유저 가리기
   useEffect(() => {
-    if (isFirstTimer.current) {
-      isFirstTimer.current = false;
-      return;
-    }
-    if (time < 5) {
+    if (time === 5) {
+      setCountdown(3);
       setShowModal(true);
     }
+
+    if (time === 4) {
+      setCountdown(2);
+    }
+
+    if (time === 3) {
+      setCountdown(1);
+    }
+
     if (time === 2) {
-      setShowModal(false);
+      setCountdown("찰 칵 !");
+      setTimeout(() => {
+        setShowModal(false);
+      }, 1000);
     }
   }, [time]);
 
@@ -185,17 +170,21 @@ const SamePosePage = () => {
       if (turn === "RED") {
         emitTurnOver({ roomId, team: turn, score });
         if (myIdx === master) {
-          emitTimerStart({ roomId });
+          setTimeout(() => {
+            emitTimerStart({ roomId });
+          }, 2000);
         }
       } else if (turn === "BLUE") {
         emitRoundOver({ roomId, team: turn, score });
         if (round < 3 && myIdx === master) {
-          emitTimerStart({ roomId });
+          setTimeout(() => {
+            emitTimerStart({ roomId });
+          }, 2000);
         }
       }
       resetGameTimerEnd();
     }
-  }, [keywordIdx, isTimerEnd, master, myIdx, round, roomId, score, turn]);
+  }, [isTimerEnd, master, myIdx, round, roomId, score, turn]);
 
   // hideModal 대상 계산 => 나중에 수정
   useEffect(() => {
@@ -357,7 +346,7 @@ const SamePosePage = () => {
         style={{ backgroundImage: `url(${background_same_pose})` }}
       >
         <section className="basis-3/9 flex flex-col p-4">
-          <div className="flex flex-row flex-1 items-center justify-between px-6">
+          <div className="flex flex-row flex-1 items-center justify-around px-6">
             <div className="flex flex-col text-sm text-gray-700 leading-tight w-[160px]">
               <span className="mb-2">제시어에 맞게 동작을 취하세요</span>
               <span className="text-xs">
@@ -374,7 +363,15 @@ const SamePosePage = () => {
 
             <div>
               {/* 턴정보 */}
-              <div className="text-center text-2xl">{`${turn} TEAM TURN`}</div>
+              {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
+              <div className="text-center text-2xl">
+                <span
+                  className={turn === "RED" ? "text-red-500" : "text-blue-700"}
+                >
+                  {turn}
+                </span>{" "}
+                <span className="text-black">TEAM TURN</span>
+              </div>
               {/* 제시어 */}
               <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[170px] gap-5 ">
                 <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
@@ -382,7 +379,7 @@ const SamePosePage = () => {
                   <p>제시어</p>
                 </div>
                 <p className="text-2xl font-semibold text-black mt-2">
-                  {keyword || "상대 팀 진행 중..."}
+                  {keywordList?.[keywordIdx] ?? "제시어 로딩 중..."}
                 </p>
               </div>
             </div>
@@ -408,7 +405,7 @@ const SamePosePage = () => {
                   {p.nickname} (id: {p.id})
                   {showModal && hideTargetIds.includes(p.id) && (
                     <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold">
-                      {countdown > 0 ? countdown : "찰 칵!"}
+                      {countdown}
                     </div>
                   )}
                 </div>
@@ -434,7 +431,7 @@ const SamePosePage = () => {
                     {p.nickname} (id: {p.id})
                     {showModal && hideTargetIds.includes(p.id) && (
                       <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                        {countdown > 0 ? countdown : "찰 칵!"}
+                        {countdown}
                       </div>
                     )}
                   </div>
@@ -455,7 +452,7 @@ const SamePosePage = () => {
                   {p.nickname} (id: {p.id})
                   {showModal && hideTargetIds.includes(p.id) && (
                     <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                      {countdown > 0 ? countdown : "찰칵!"}
+                      {countdown}
                     </div>
                   )}
                 </div>
@@ -481,7 +478,7 @@ const SamePosePage = () => {
                     {p.nickname} (id: {p.id})
                     {showModal && hideTargetIds.includes(p.id) && (
                       <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
-                        {countdown > 0 ? countdown : "찰칵!"}
+                        {countdown}
                       </div>
                     )}
                   </div>
