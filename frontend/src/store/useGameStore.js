@@ -296,22 +296,6 @@ const useGameStore = create((set, get) => ({
         }));
     },
 
-    setGameRoles2: ({ repIdxList }) => {
-        const participants = get().participants;
-
-        const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
-                ? "REP"
-                : null;
-            return { ...p, role };
-        });
-
-        set(() => ({
-            repIdxList,
-            participants: updatedParticipants,
-        }));
-    },
-
     setWatingGameOver: (data) => {
         console.log("🎉 게임 종료:", data);
         set({
