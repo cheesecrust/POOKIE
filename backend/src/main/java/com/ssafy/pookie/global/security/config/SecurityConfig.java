@@ -1,6 +1,8 @@
 package com.ssafy.pookie.global.security.config;
 
 import com.ssafy.pookie.global.security.filter.JwtAuthenticationFilter;
+import com.ssafy.pookie.global.security.handler.JwtAccessDeniedHandler;
+import com.ssafy.pookie.global.security.handler.JwtAuthenticationEntryPoint;
 import com.ssafy.pookie.global.security.handler.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,8 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
@@ -79,31 +83,16 @@ public class SecurityConfig {
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig.disable())  // 개발 환경에서는 비활성화
                 )
 
-                // TODO: 예외처리
-                /*
                 .exceptionHandling(exception -> exception
                     .authenticationEntryPoint(jwtAuthenticationEntryPoint)  // 인증 실패 시
                     .accessDeniedHandler(jwtAccessDeniedHandler)            // 권한 부족 시
-                )
-                 */
-                // 인증/인가 실패 예외 처리
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"error\": \"Unauthorized or token expired\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"error\": \"Forbidden\"}");
-                        })
                 )
                 // URL별 접근 권한 설정
                 .authorizeHttpRequests(authorize -> authorize
                         // 인증 없이 접근 가능한 URL
                         .requestMatchers(
-                                "/auth/**",           // 인증 관련 API,
+                                "/auth/signup",           // 인증 관련 API,
+                                "/auth/login",
                                 "/oauth/**",               // 인증 관련 API 2 (일반 회원가입과 분리 url)
                                 "/oauth2/**",          // oauth2 관련
                                 "/public/**",         // 공개 API

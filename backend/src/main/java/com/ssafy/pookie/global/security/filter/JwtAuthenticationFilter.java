@@ -4,6 +4,8 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.global.security.user.CustomUserDetails;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -48,15 +51,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     setAuthentication(request, token);
                 } else {
                     log.warn("유효하지 않은 JWT 토큰: {}", request.getRequestURI());
+                    sendUnauthorized(response, "INVALID_TOKEN");
+                    return;
                 }
             }
+            // 정상 흐름: 다음 필터로 진행
+            filterChain.doFilter(request, response);
 
-        } catch (Exception e) {
-            log.error("JWT 인증 처리 중 오류 발생: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.warn("❌ JWT 만료: {}", e.getMessage());
             SecurityContextHolder.clearContext();
+            sendUnauthorized(response, "TOKEN_EXPIRED");
+        } catch (JwtException e) {
+            log.warn("❌ JWT 검증 실패: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            sendUnauthorized(response, "INVALID_TOKEN");
         }
+    }
 
-        filterChain.doFilter(request, response);
+    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+//        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+//        response.setContentType("application/json;charset=UTF-8");
+//        response.getWriter().write("{\"error\": \"" + message + "\"}");
     }
 
     private String extractTokenFromRequest(HttpServletRequest request) {
@@ -82,6 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String nickname = userAccount.getNickname();
             String role = "USER"; // TODO: DB에서 조회
             int coin = userAccount.getCoin();
+
             // CustomUserDetails 생성
             CustomUserDetails userDetails = new CustomUserDetails(userAccountId, email, nickname, coin, role);
 
@@ -108,8 +125,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        // 1. WebSocket handshake 요청은 필터 제외
+        String upgradeHeader = request.getHeader("Upgrade");
+        if ("websocket".equalsIgnoreCase(upgradeHeader)) {
+            return true;
+        }
 
+        // 2. 그 외 일반 요청 중 제외할 경로들
+        String path = request.getRequestURI();
         String[] excludePaths = {
                 "/api/auth/",
                 "/api/public/",
