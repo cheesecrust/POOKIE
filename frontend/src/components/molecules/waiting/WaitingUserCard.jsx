@@ -59,7 +59,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       {/* 닉네임 */}
       <div
         className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-cyan-200" : "bg-red-50"
+          isMe ? "bg-yellow-200" : "bg-red-50"
         } rounded px-2 py-1 text-center`}
       >
         {user.userNickname}
