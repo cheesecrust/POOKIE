@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import background_myroom from "../assets/background/background_myroom.png";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
@@ -7,75 +7,109 @@ import characterImageMap from "../utils/characterImageMap";
 import RightButton from "../components/atoms/button/RightButton";
 import UserExp from "../components/atoms/user/UserExp";
 import TapButton from "../components/atoms/button/TapButton";
+import InventoryList from "../components/organisms/myRoom/InventoryList";
+import StoreList from "../components/organisms/myRoom/StoreList";
+
+import coinImg from "../assets/item/coin.png";
+
+import axiosInstance from "../lib/axiosInstance";
+
+import characterImageMap from "../utils/characterImageMap";
 
 const MyRoomPage = () => {
+
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("도감");
   const { user } = useAuthStore();
-  const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
+
+  // const [exp, setExp] = useState(null);
+  const [coin, setCoin] = useState(null);
+  const [step, setStep] = useState(null);
+
+  const fetchAuthInfo = async () => {
+    try {
+      const res = await axiosInstance.get("/auth/info");
+
+      console.log("AuthInfo",res.data.data);
+      setUserInfo(res.data.data);
+      setCoin(res.data.data.coin);
+      setStep(res.data.data.repCharacter.step);
+
+    } catch (err) {
+      console.log("AuthInfo 에러", err);
+    }
+  };
 
   const handleHomeClick = () => {
     navigate("/home");
   };
 
+  useEffect(() => {
+    fetchAuthInfo();
+  }, []);
+
   return (
-    <div className="relative w-full min-h-screen overflow-hidden font-['DungGeunMo'] bg-cover bg-center" 
-         style={{ backgroundImage: `url(${background_myroom})` }}>
-      
+    <div
+      className="relative w-full min-h-screen overflow-hidden font-['DungGeunMo'] bg-cover bg-center"
+      style={{ backgroundImage: `url(${background_myroom})` }}
+    >
       {/* 홈 버튼 */}
       <div className="absolute top-6 right-6">
-      <RightButton 
-        children="HOME"
-        onClick={() => navigate("/home")}
-      />
+        <RightButton children="HOME" onClick={() => navigate("/home")} />
       </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* 좌측 - 유저정보 + 캐릭터 */}
-          <div className="w-full lg:w-1/3 xl:w-1/4 relative">
+          <div className="w-full top-20  lg:w-1/3 xl:w-1/4 relative">
             {/* 유저 정보 박스 */}
-            <div className="bg-white border border-black border-2 h-[340px] rounded-lg p-6 relative mb-6">
+            <div className="bg-[#FDE1F0]  h-[340px] rounded-lg p-6 relative mb-6">
               <h2 className="text-2xl font-bold mb-4 text-center">마이룸</h2>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-2 rounded-md">
                   <span className="font-semibold">닉네임:</span>
-                  <span>{user?.nickname}</span>
+                  <span>{userInfo?.nickname}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center p-2 rounded-md">
                   <span className="font-semibold">대표 캐릭터:</span>
-                  <span>{user?.repCharacter?.name}</span>
+                  <span>{userInfo?.repCharacter?.name}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center p-2 rounded-md">
                   <span className="font-semibold">레벨:</span>
-                  <span>LV {user?.repCharacter?.level}</span>
+                  <span>LV {step+1}</span>
                 </div>
-                
+
                 <div className="p-2 rounded-md">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-semibold">Exp:</span>
-                    <UserExp step={user?.repCharacter?.step || 1} exp={user?.repCharacter?.exp || 0} />
+                    <UserExp
+                      step={step}
+                      exp={user?.repCharacter?.exp || 0}
+                    />
                   </div>
                 </div>
                 <div className="absolute bottom-1 right-1">
                   <RightButton
-                  children="회원정보수정"
-                  onClick={() => console.log("회원정보 수정")}
-                />
+                    children="회원정보수정"
+                    onClick={() => console.log("회원정보 수정")}
+                  />
                 </div>
-
               </div>
-              
-
             </div>
 
             {/* 캐릭터 이미지 */}
             <div className="relative w-full min-h-[300px] rounded-lg p-4 mt-4">
               <div className="w-full h-full flex items-center justify-center">
                 <img
-                  src={characterImageMap[user?.repCharacter?.name] || characterImageMap.default}
+                  src={
+                    characterImageMap[user?.repCharacter?.name] ||
+                    characterImageMap.default
+                  }
                   alt="대표 캐릭터"
                   className="max-w-full max-h-[250px] object-contain"
                   onError={(e) => {
@@ -87,18 +121,34 @@ const MyRoomPage = () => {
             </div>
           </div>
 
+          {/* 돈 영역 */}
+          <div className="absolute top-6 right-36 flex items-center gap-2">
+            {/* 코인 이미지 */}
+            <img
+              src={coinImg}
+              alt="coin"
+              className="w-10 h-10 object-contain"
+            />
+            {/* 돈 표시 칸 */}
+            <div className="w-[200px] h-[40px] flex justify-end items-center bg-white border-2 border-black rounded-full px-4 py-1 shadow-md">
+              <span className="font-bold text-lg tracking-widest">
+                {userInfo?.coin.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
           {/* 우측 - 탭 + 컨텐츠 영역 */}
           <div className="flex-1">
             {/* 탭 버튼 */}
-            <div className="flex border-b-2 border-black mb-4">
+            <div className="flex  border-black mb-4">
               {["도감", "상점", "인벤토리"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-6 py-3 font-bold text-lg relative ${
-                    activeTab === tab 
-                      ? 'bg-pink-300 text-black border-t-2 border-l-2 border-r-2 border-black rounded-t-lg' 
-                      : 'bg-white text-gray-600 hover:bg-pink-100'
+                    activeTab === tab
+                      ? "bg-pink-300 text-black border-t-2 border-l-2 border-r-2 border-black rounded-t-lg"
+                      : "bg-white text-gray-600 hover:bg-pink-100"
                   }`}
                 >
                   {tab}
@@ -110,25 +160,20 @@ const MyRoomPage = () => {
             </div>
 
             {/* 컨텐츠 영역 */}
-            <div className="bg-white/90 rounded-b-lg rounded-r-lg border-2 border-black p-6 min-h-[500px] shadow-inner">
+            <div className="bg-[#FDE1F0] rounded-b-lg rounded-r-lg  p-6 min-h-[600px] shadow-inner">
               {activeTab === "도감" && (
-                <div className="text-center py-10">
-                  <h3 className="text-2xl font-bold mb-4">캐릭터 도감</h3>
-                  <p className="text-gray-600">보유한 캐릭터들을 확인하세요!</p>
-                </div>
+                <div className="text-center py-10"></div>
               )}
-              
+
               {activeTab === "상점" && (
                 <div className="text-center py-10">
-                  <h3 className="text-2xl font-bold mb-4">상점</h3>
-                  <p className="text-gray-600">새로운 아이템을 구매하세요!</p>
+                  <StoreList onBuySuccess={fetchAuthInfo}></StoreList>
                 </div>
               )}
-              
+
               {activeTab === "인벤토리" && (
                 <div className="text-center py-10">
-                  <h3 className="text-2xl font-bold mb-4">인벤토리</h3>
-                  <p className="text-gray-600">보유한 아이템을 확인하세요!</p>
+                  <InventoryList onUseSuccess={fetchAuthInfo}></InventoryList>
                 </div>
               )}
             </div>
