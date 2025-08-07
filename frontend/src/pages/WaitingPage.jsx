@@ -40,6 +40,8 @@ const WaitingPage = () => {
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [kickModalOpen, setKickModalOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const isHost = room?.master?.id === user?.userAccountId;
 
@@ -206,12 +208,42 @@ const WaitingPage = () => {
       })()
     : Array(MAX_USERS).fill(null);
 
+  const handleStartGameClick = () => {
+    if (isStartEnabled()) {
+      handleStartGame();
+    }
+  };
+
+  // 게임 스타트 시 조건 충족 하지 못할 시 띄울 모달
+  const showTemporaryAlert = (message) => {
+    setAlertMessage(message);
+    setAlertVisible(true);
+
+    setTimeout(() => {
+      setAlertVisible(false);
+      setAlertMessage("");
+    }, 1000);
+  };
+
   // 게임 시작 버튼 활성화 조건
-  const isStartEnabled =
-    isHost &&
-    room?.RED.length === 3 &&
-    room?.BLUE.length === 3 &&
-    [...room.RED, ...room.BLUE].every((u) => u.status === "READY");
+  const isStartEnabled = () => {
+    const redCount = room?.RED.length || 0;
+    const blueCount = room?.BLUE.length || 0;
+    const allUsers = [...(room?.RED || []), ...(room?.BLUE || [])];
+    const allReady = allUsers.every((u) => u.status === "READY");
+
+    if (redCount !== 3 || blueCount !== 3) {
+      showTemporaryAlert("각 팀원은 3명이어야 합니다");
+      return false;
+    }
+
+    if (!allReady) {
+      showTemporaryAlert("게임은 6명이 모두 준비상태여야 시작할 수 있습니다");
+      return false;
+    }
+
+    return true;
+  };
 
   // UI
   return (
@@ -250,11 +282,14 @@ const WaitingPage = () => {
           </div>
 
           <div className="basis-2/5 flex flex-row gap-4 p-2 items-center justify-end">
-            <TeamToggleButton currentTeam={team} onClick={handleTeamToggle} />
+            <TeamToggleButton
+              currentTeam={team}
+              onClick={handleTeamToggle}
+              disabled={!isHost && isReady}
+            />
             {isHost ? (
               <ModalButton
-                onClick={handleStartGame}
-                disabled={!isStartEnabled}
+                onClick={handleStartGameClick}
                 className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
               >
                 START !
@@ -283,7 +318,6 @@ const WaitingPage = () => {
           </div>
         </div>
       </section>
-
       {/* 채팅과 카메라 */}
       <section className="basis-1/4 flex flex-col bg-rose-300">
         <div className="basis-1/8 m-4 flex justify-end items-center">
@@ -310,7 +344,6 @@ const WaitingPage = () => {
           </div>
         </div>
       </section>
-
       <RoomExitModal
         isOpen={isExitModalOpen}
         onConfirm={handleLeaveRoom}
@@ -322,6 +355,11 @@ const WaitingPage = () => {
         onConfirm={handleKickConfirm}
         onCancel={() => setKickModalOpen(false)}
       />
+      {alertVisible && (
+        <div className="fixed top-1/3 left-1/2 transform -translate-x-1/2 bg-[#FDE1F0] px-6 py-4 rounded-xl shadow-lg text-center z-50 animate-fade-in-out">
+          <p className="text-md font-semibold">{alertMessage}</p>
+        </div>
+      )}
     </div>
   );
 };

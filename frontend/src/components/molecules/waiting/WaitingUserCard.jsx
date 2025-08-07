@@ -53,7 +53,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
         )}
 
         {/* Ready 뱃지 */}
-        {user.isReady && <UserReady />}
+        {user.isReady && <UserReady team={user.team} />}
       </div>
 
       {/* 닉네임 */}

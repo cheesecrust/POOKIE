@@ -149,6 +149,22 @@ const SamePosePage = () => {
     }
   }, [turn]);
 
+  useEffect(() => {
+    updateHandlers({
+      onGameKeyword: (msg) => {
+        const gameStore = useGameStore.getState();
+
+        // 🔐 현재 keywordIdx와 받은 게 다를 때만 갱신
+        if (gameStore.keywordIdx !== msg.keywordIdx) {
+          console.log("📌 제시어 저장됨:", msg.keywordList[msg.keywordIdx]);
+          gameStore.setGameKeyword(msg);
+        } else {
+          console.log("⚠️ 제시어 동일 → 저장 생략");
+        }
+      },
+    });
+  }, []);
+
   // 타이머 모달 => hide모달로 유저 가리기
   useEffect(() => {
     if (isFirstTimer.current) {
