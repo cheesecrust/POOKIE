@@ -75,7 +75,8 @@ public class InGameService {
                                     "RED", 0,
                                     "BLUE", 0
                             ),
-                            "win", 0
+                            "win", 0,
+                            "keywordIdx", 0
                     )
             ));
             room.updateUserTeamInfo();
