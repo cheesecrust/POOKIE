@@ -75,6 +75,15 @@ const useAuthStore = create(
             onGamePassed: (data) => {
               useGameStore.getState().setGamePassed(data);
             },
+            onTimer: (data) => {
+              useGameStore.getState().setTime(data);
+            },
+            onGameTimerEnd: (data) => {
+              useGameStore.getState().setGameTimerEnd(data);
+            },
+            onWatingGameOver: (data) => {
+              useGameStore.getState().setGameResult(data);
+            },
           }
         });
       },

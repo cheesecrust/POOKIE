@@ -42,7 +42,7 @@ const SilentScreamPage = () => {
   
   // 타이머 
   const time = useGameStore((state) => state.time);
-  const isTimerEnd = useGameStore((state) => state.isTimerEnd);
+  const isTimerEnd = useGameStore((state) => state.isTimerEnd); // true값되면 타이머끝 턴,라운드오버타이밍
   const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
 
   // 맞히는 사람(제시어 x)

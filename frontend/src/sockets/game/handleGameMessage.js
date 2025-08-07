@@ -4,7 +4,7 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 
 export default async function handleGameMessage(msg, handlers) {
   const { type } = msg;
-
+  console.log("[GAME] 메시지 수신:", msg.type,msg);
   switch (type) {
     // -----------------------------
     // 응답(Response) 메시지
@@ -12,9 +12,9 @@ export default async function handleGameMessage(msg, handlers) {
     case "GAME_KEYWORD":
       // livekit 연결
       const { repIdxList, norIdxList, keywordList } = msg;
-      if (!keywordList || !Array.isArray(keywordList)) {
-        return;
-      }
+      // if (!keywordList || !Array.isArray(keywordList)) {
+      //   return;
+      // }
       useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       console.log("제시어:", msg);
       handlers?.onGameKeyword?.(msg);
@@ -60,10 +60,7 @@ export default async function handleGameMessage(msg, handlers) {
       handlers?.onGamePassed?.(msg);
       break;
 
-    case "WAITING_GAME_OVER":
-      console.log("게임 종료:", msg);
-      handlers?.onWaitingGameOver?.(msg);
-      break;
+
 
     case "WAITING_GAME_OVER":
       console.log("게임 종료:", msg);

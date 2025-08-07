@@ -79,6 +79,7 @@ const useGameStore = create((set, get) => ({
     setTimerPrepareEnd: () => set({}),
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: () => set({ isTimerEnd: true }),
+    setTime: (time) => set({ time }),
 
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
