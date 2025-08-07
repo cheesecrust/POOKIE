@@ -107,7 +107,7 @@ public class UserController {
      */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponseDto>> refreshToken(
-            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+            @CookieValue(value = "refreshToken", required = true) String refreshToken) {
         log.info("토큰 갱신 요청");
         try {
             if (refreshToken == null) {

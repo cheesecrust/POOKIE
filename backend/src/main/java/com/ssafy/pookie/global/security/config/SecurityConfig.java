@@ -93,6 +93,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/signup",           // 인증 관련 API,
                                 "/auth/login",
+                                "/auth/refresh",
                                 "/oauth/**",               // 인증 관련 API 2 (일반 회원가입과 분리 url)
                                 "/oauth2/**",          // oauth2 관련
                                 "/public/**",         // 공개 API
