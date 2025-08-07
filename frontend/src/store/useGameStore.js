@@ -28,7 +28,7 @@ const useGameStore = create((set, get) => ({
     nowInfo: null,
 
     tempTeamScore: null,
-    
+
     // 그림그리기 게임용 상태
     currentDrawTurn: 0, // 현재 그리기 턴 (0-1)
     maxDrawTurnsPerTeam: 2, // 팀당 최대 그리기 턴 수
@@ -49,11 +49,11 @@ const useGameStore = create((set, get) => ({
 
 
     // 게임 시작할 때 전 게임 정보 초기화
-    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
-    setScore: (score) => {set({score:score})},
-    setWin: (Win) => {set({win:Win})},
-    setKeywordIdx: (keywordIdx) => {set({keywordIdx:keywordIdx})},
-    
+    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
+    setScore: (score) => { set({ score: score }) },
+    setWin: (Win) => { set({ win: Win }) },
+    setKeywordIdx: (keywordIdx) => { set({ keywordIdx: keywordIdx }) },
+
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
@@ -87,19 +87,19 @@ const useGameStore = create((set, get) => ({
         // 다음 턴 처리 결과를 먼저 계산
         const result = get().nextDrawTurn();
         console.log("📊 nextDrawTurn 결과:", result);
-        
+
         // isTimerEnd와 턴 처리 결과를 함께 설정
-        set({ 
+        set({
             isTimerEnd: true,
             lastTurnResult: result // 마지막 턴 처리 결과 저장
         });
-        
+
         // 그림그리기 게임에서는 자동으로 다음 턴 처리
         const { roomId, master, turn, score, round } = get();
         const myIdx = useAuthStore.getState().user?.userAccountId;
-        
+
         console.log("🔔 GAME_TIMER_END 받음:", { roomId, master, myIdx, data, result, turn, score, round });
-        
+
         if (roomId && myIdx === master) {
             if (result?.roundComplete) {
                 console.log("🏁 BLUE 팀 완료, ROUND_OVER 호출");
@@ -133,14 +133,14 @@ const useGameStore = create((set, get) => ({
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-    
+
         // 1) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
-    
+
         // 2초 후 게임 시작 모달 OFF → 턴 모달 ON
         setTimeout(() => {
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
-    
+
             // 3) 방장이면 이때 emitTimerStart 실행
             if (myIdx === master) {
                 setTimeout(() => {
@@ -189,11 +189,11 @@ const useGameStore = create((set, get) => ({
             tempTeamScore: data.tempTeamScore,
             round: data.round,
         });
-        
+
         // TURN_OVER 후 자동으로 타이머 시작 (방장만)
         const { roomId, master } = get();
         const myIdx = useAuthStore.getState().user?.userAccountId;
-        
+
         if (myIdx === master && roomId) {
             console.log("🔄 TURN_OVER 완료, 자동 타이머 시작");
             setTimeout(() => {
@@ -216,13 +216,13 @@ const useGameStore = create((set, get) => ({
             teamScore: data.teamScore,
             currentDrawTurn: 0, // 새 라운드 시작 시 그리기 턴 초기화
         });
-        
+
         console.log("🆕 새 라운드 시작:", { round: data.round, turn: "RED" });
-        
+
         // NEW_ROUND 후 자동으로 타이머 시작 (방장만)
         const { roomId, master } = get();
         const myIdx = useAuthStore.getState().user?.userAccountId;
-        
+
         if (myIdx === master && roomId) {
             console.log("🆕 NEW_ROUND 완료, 자동 타이머 시작");
             setTimeout(() => {
@@ -280,6 +280,38 @@ const useGameStore = create((set, get) => ({
         }));
     },
 
+    setGameRoles2: ({ repIdxList }) => {
+        const participants = get().participants;
+
+        const updatedParticipants = participants.map((p) => {
+            const role = repIdxList.includes(p.userAccountId)
+                ? "REP"
+                : null;
+            return { ...p, role };
+        });
+
+        set(() => ({
+            repIdxList,
+            participants: updatedParticipants,
+        }));
+    },
+
+    setGameRoles2: ({ repIdxList }) => {
+        const participants = get().participants;
+
+        const updatedParticipants = participants.map((p) => {
+            const role = repIdxList.includes(p.userAccountId)
+                ? "REP"
+                : null;
+            return { ...p, role };
+        });
+
+        set(() => ({
+            repIdxList,
+            participants: updatedParticipants,
+        }));
+    },
+
     setWatingGameOver: (data) => {
         console.log("🎉 게임 종료:", data);
         set({
@@ -302,7 +334,7 @@ const useGameStore = create((set, get) => ({
     nextDrawTurn: () => {
         const { currentDrawTurn, maxDrawTurnsPerTeam, turn } = get();
         const newDrawTurn = currentDrawTurn + 1;
-        
+
         if (newDrawTurn >= maxDrawTurnsPerTeam) {
             // 팀의 2번 완료
             if (turn === "RED") {
@@ -338,9 +370,9 @@ const useGameStore = create((set, get) => ({
     autoStartNextTimer: (roomId) => {
         const master = get().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-        
+
         console.log("⏰ autoStartNextTimer 호출:", { roomId, master, myIdx, isMaster: myIdx === master });
-        
+
         if (myIdx === master) {
             console.log("🔄 방장이므로 1초 후 타이머 시작 예약");
             setTimeout(() => {
