@@ -180,6 +180,18 @@ const SilentScreamPage = () => {
     connectLiveKit(user);
   }, [user, roomId]);
 
+  // 역할 부여
+  useEffect(() => {
+    // 내가 받지 못한 유저일 경우 역할 수동 부여
+    const hasRole = participants.some((p) => p.role);
+    const hasEnoughData = repIdxList.length > 0 && norIdxList.length > 0;
+  
+    if (!hasRole && hasEnoughData) {
+      useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+      console.log("🛠 역할 수동 설정 완료: SilentScreamPage fallback");
+    }
+  }, [repIdxList, norIdxList, participants]);
+
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
     return roleGroup.map((p, idx) => {

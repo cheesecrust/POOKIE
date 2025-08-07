@@ -6,7 +6,7 @@ import Header from "../components/molecules/home/Header";
 import Footer from "../components/molecules/home/Footer";
 import SearchBar from "../components/molecules/home/SearchBar";
 import toggleLeft from "../assets/icon/toggle_left.png";
-import defaultCharacter from "../assets/character/pooding_milk.png";
+import defaultCharacter from "../assets/character/pookiepookie.png";
 import useAuthStore from "../store/useAuthStore";
 import useRoomStore from "../store/useRoomStore";
 import KickNoticeModal from "../components/molecules/home/KickNoticeModal";
