@@ -28,6 +28,10 @@ const useGameStore = create((set, get) => ({
     nowInfo: null,
 
     tempTeamScore: null,
+    
+    // 그림그리기 게임용 상태
+    currentDrawTurn: 0, // 현재 그리기 턴 (0-5)
+    maxDrawTurnsPerTeam: 6, // 팀당 최대 그리기 턴 수
 
     // gameResult 랑 teamScore 같은듯?
     score: 0, // 현재 라운드 팀 점수 
@@ -211,7 +215,67 @@ const useGameStore = create((set, get) => ({
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,
         finalScore: data.gameResult.finalScore,
-    })
+    }),
+
+    setGameStarted: (data) => set({
+        rtctoken: data.rtc_token,
+        turn: data.turn,
+        round: data.round,
+        teamScore: data.game_init?.teamScore || { RED: 0, BLUE: 0 },
+        score: data.game_init?.score || 0,
+        win: data.game_init?.win || 0,
+        currentDrawTurn: 0 // 게임 시작 시 초기화
+    }),
+
+    // 다음 그리기 턴으로 이동
+    nextDrawTurn: () => {
+        const { currentDrawTurn, maxDrawTurnsPerTeam, turn } = get();
+        const newDrawTurn = currentDrawTurn + 1;
+        
+        // 총 턴 수 계산 (RED 6번 + BLUE 6번 = 12번)
+        const totalTurns = turn === "RED" ? newDrawTurn : maxDrawTurnsPerTeam + newDrawTurn;
+        
+        if (totalTurns >= maxDrawTurnsPerTeam * 2) {
+            // 12번 모두 완료, 라운드 종료
+            console.log("🏁 라운드 완료, 게임 종료");
+            set({
+                currentDrawTurn: 0,
+                repIdx: 0
+            });
+            return { roundComplete: true };
+        } else if (newDrawTurn >= maxDrawTurnsPerTeam) {
+            // 6번 완료, 상대팀으로 전환
+            const nextTeam = turn === "RED" ? "BLUE" : "RED";
+            set({
+                turn: nextTeam,
+                currentDrawTurn: 0,
+                repIdx: 0 // 상대팀 첫 번째 그리는 사람으로 리셋
+            });
+            console.log("🔄 팀 전환:", nextTeam);
+            return { teamChanged: true };
+        } else {
+            // 같은 팀 내에서 다음 그리는 사람으로
+            set({
+                currentDrawTurn: newDrawTurn,
+                repIdx: newDrawTurn % get().repIdxList.length // 순환
+            });
+            console.log("🎨 다음 그리는 사람:", newDrawTurn);
+            return { nextPainter: true };
+        }
+    },
+
+    // 그림그리기 게임용 타이머 자동 시작
+    autoStartNextTimer: (roomId) => {
+        const master = get().master;
+        const myIdx = useAuthStore.getState().user?.userAccountId;
+        
+        if (myIdx === master) {
+            console.log("🔄 다음 타이머 자동 시작");
+            setTimeout(() => {
+                emitTimerStart({ roomId });
+            }, 1000); // 1초 후 다음 타이머 시작
+        }
+    }
 
 }))
 

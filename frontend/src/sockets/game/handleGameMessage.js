@@ -11,11 +11,10 @@ export default async function handleGameMessage(msg, handlers) {
       // 응답(Response) 메시지
       // -----------------------------
       case "GAME_KEYWORD":
-        // livekit 연결
+        // livekit 연결 및 역할 설정
         const { repIdxList, norIdxList } = msg;
+        console.log("🎯 GAME_KEYWORD 받음:", msg);
         useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
-
-        console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
         break;
       case "TIMER":
@@ -38,9 +37,6 @@ export default async function handleGameMessage(msg, handlers) {
         handlers?.onGameTimerEnd?.(msg);
         break;
 
-      case "GAME_KEYWORD":
-        handlers?.onGameKeyword?.(msg);
-        break;
 
       case "GAME_TURN_OVERED":
         handlers?.onGameTurnOvered?.(msg);

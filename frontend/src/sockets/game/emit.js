@@ -64,3 +64,11 @@ export const emitDrawEvent = ({ roomId, drawType, data }) => {
     }
   });
 };
+
+// 그리는 사람 변경 (이어그리기)
+export const emitPainterChange = ({ roomId, curRepIdx }) => {
+  sendMessage("GAME_PAINTER_CHANGE", {
+    roomId,
+    curRepIdx
+  });
+};
