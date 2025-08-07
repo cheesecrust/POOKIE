@@ -17,6 +17,7 @@ export default async function handleGameMessage(msg, handlers) {
       break;
 
     case "TIMER":
+      console.log("타이머:", msg);
       handlers?.onTimer?.(msg);
       break;
 
