@@ -5,19 +5,26 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 export default async function handleGameMessage(msg, handlers) {
   const { type } = msg;
 
+
+    console.log("🟢 게임 메시지 수신:", msg);
+    const { type} = msg;
+  
   switch (type) {
     // -----------------------------
     // 응답(Response) 메시지
     // -----------------------------
     case "GAME_KEYWORD":
-      // livekit 연결
+      // livekit 연결 및 역할 설정
       const { repIdxList, norIdxList, keywordList } = msg;
-      console.log("제시어:", msg);
+      if (!keywordList || !Array.isArray(keywordList)) {
+        return;
+      }
+      console.log("🎯 GAME_KEYWORD 받음:", msg);
+      useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       handlers?.onGameKeyword?.(msg);
       break;
 
     case "TIMER":
-      console.log("타이머:", msg);
       handlers?.onTimer?.(msg);
       break;
 

@@ -41,6 +41,13 @@ export const emitTimerStart = ({roomId}) => {
 });
 };
 
+// 키워드 요청 (팀 전환 시)
+export const emitKeywordRequest = ({roomId}) => {
+  sendMessage("GAME_KEYWORD_REQUEST", {
+    roomId,
+});
+};
+
 // 제시어 패스 (고요속의 외침)
 export const emitGamePass = ({roomId}) => {
   sendMessage("GAME_PASS", {
@@ -62,5 +69,13 @@ export const emitDrawEvent = ({ roomId, drawType, data }) => {
       brushSize: data.brushSize || 3,
       tool: data.tool || "pen"
     }
+  });
+};
+
+// 그리는 사람 변경 (이어그리기)
+export const emitPainterChange = ({ roomId, curRepIdx }) => {
+  sendMessage("GAME_PAINTER_CHANGE", {
+    roomId,
+    curRepIdx
   });
 };
