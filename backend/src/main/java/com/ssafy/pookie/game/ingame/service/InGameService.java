@@ -282,8 +282,9 @@ public class InGameService {
                     (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
 
             // 정답이 일치하는지 확인한다.
+            // 띄어쓰기 필터링
             Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
-                    .equals(request.getInputAnswer());
+                    .equals(request.getInputAnswer().replace(" ", ""));
             // 정답이라면, room 의 gameInfo, teamTeapScores Update
             if (isAnswer) {
                 room.updateTempScore();
@@ -291,6 +292,7 @@ public class InGameService {
             onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
                     "answer", isAnswer,
+                    "inputAnswer", request.getInputAnswer(),
                     "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
