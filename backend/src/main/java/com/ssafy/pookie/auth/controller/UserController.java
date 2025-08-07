@@ -1,8 +1,9 @@
 package com.ssafy.pookie.auth.controller;
 
 import com.ssafy.pookie.auth.dto.*;
-import com.ssafy.pookie.character.model.Characters;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.service.CharacterService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pookie.auth.service.UserService;
@@ -53,20 +54,25 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponseDto>> login(
-            @Valid @RequestBody LoginRequestDto loginRequest) {
+            @Valid @RequestBody LoginRequestDto loginRequest,
+            HttpServletResponse response) {
         log.info("로그인 요청: email={}", loginRequest.getEmail());
-        try {
-            LoginResponseDto response = userService.login(loginRequest);
 
-            log.info("로그인 성공: userId={}", response.getUserAccountId());
+        LoginResponseDto loginResponse = userService.login(loginRequest);
 
-            return ResponseEntity.ok(ApiResponse.success("로그인에 성공했습니다.", response));
+        // 1. Refresh Token → HttpOnly 쿠키
+        Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        response.addCookie(refreshTokenCookie);
 
-        } catch (Exception e) {
-            log.error("로그인 실패: email={}, error={}", loginRequest.getEmail(), e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("로그인에 실패했습니다: " + e.getMessage()));
-        }
+        // 2. Access Token → 헤더
+        response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
+
+        log.info("로그인 성공: email={}", loginResponse.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
     }
 
     /**
@@ -101,13 +107,15 @@ public class UserController {
      */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponseDto>> refreshToken(
-            @RequestHeader("Authorization") String refreshToken) {
+            @CookieValue(value = "refreshToken", required = true) String refreshToken) {
         log.info("토큰 갱신 요청");
         try {
-            String token = refreshToken.startsWith("Bearer ") ?
-                    refreshToken.substring(7) : refreshToken;
+            if (refreshToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Refresh Token이 없습니다."));
+            }
 
-            LoginResponseDto response = userService.refreshToken(token);
+            LoginResponseDto response = userService.refreshToken(refreshToken);
 
             log.info("토큰 갱신 성공");
 
@@ -146,7 +154,7 @@ public class UserController {
     @GetMapping("/info")
     public ResponseEntity<ApiResponse<UserResponseDto>> getUserInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Characters userCharacter = characterService.getRepPookie(userDetails.getUserAccountId());
+        RepCharacterResponseDto userCharacter = characterService.getRepPookie(userDetails.getUserAccountId());
 
         UserResponseDto userResponseDto = UserResponseDto.builder()
                 .userAccountId(userDetails.getUserAccountId())

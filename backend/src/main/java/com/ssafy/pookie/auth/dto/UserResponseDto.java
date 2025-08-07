@@ -1,6 +1,6 @@
 package com.ssafy.pookie.auth.dto;
 
-import com.ssafy.pookie.character.model.Characters;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,5 +11,5 @@ public class UserResponseDto {
     private String nickname;
     private String email;
     private int coin;
-    private Characters repCharacter;
+    private RepCharacterResponseDto repCharacter;
 }

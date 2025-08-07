@@ -75,7 +75,8 @@ public class InGameService {
                                     "RED", 0,
                                     "BLUE", 0
                             ),
-                            "win", 0
+                            "win", 0,
+                            "keywordIdx", 0
                     )
             ));
             room.updateUserTeamInfo();
@@ -119,14 +120,16 @@ public class InGameService {
         for(UserDto rep : room.getGameInfo().getRep()) {
             onlinePlayerManager.sendToMessageUser(rep.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
         }
-        for(UserDto nor : room.getGameInfo().getNormal()) {
-            onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
-        }
         RoomStateDto.Turn opposite = room.getTurn() == RoomStateDto.Turn.RED ? RoomStateDto.Turn.BLUE : RoomStateDto.Turn.RED;
         for(UserDto opp : room.getUsers().get(opposite.toString())) {
             onlinePlayerManager.sendToMessageUser(opp.getSession(), room.getGameInfo().mapGameInfoToRep(MessageDto.Type.GAME_KEYWORD.toString()));
         }
         log.info("keyword {} was send to {}", keywordList, room.getGameInfo().getRep().stream().map(e -> e.getUserEmail()).collect(Collectors.toList()));
+        // samepose 는 nor 에게 전달하지 않고 패스
+        if(room.getGameType().equals(RoomStateDto.GameType.SAMEPOSE)) return;
+        for(UserDto nor : room.getGameInfo().getNormal()) {
+            onlinePlayerManager.sendToMessageUser(nor.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_KEYWORD.toString()));
+        }
     }
     // 현재 팀의 대표자 뽑기 ( 발화자 )
     public void pickTeamRep(RoomStateDto room) {
