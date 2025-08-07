@@ -1,6 +1,4 @@
 // src/lib/axiosInstance.js
-// 사용 예시:
-// await axiosInstance.post('/auth/login', { email, password });
 
 import axios from "axios";
 import useAuthStore from "../store/useAuthStore";
