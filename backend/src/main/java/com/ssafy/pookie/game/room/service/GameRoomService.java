@@ -54,6 +54,7 @@ public class GameRoomService {
             } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())) throw new IllegalArgumentException("존재하지 않는 방입니다.");
 
             // 기존에 있던 방이라면 입장, 없던 방이라면 생성
+            socketMetrics.recordRoomJoin(joinDto.getGameType().toString(), joinDto.getUser().getTeam().toString());
             RoomStateDto room = createNewRoom(joinDto);
 
             if(create) {
