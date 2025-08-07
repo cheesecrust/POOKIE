@@ -1,26 +1,32 @@
 package com.ssafy.pookie.auth.controller;
 
 import com.ssafy.pookie.auth.dto.*;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
+import com.ssafy.pookie.character.service.CharacterService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pookie.auth.service.UserService;
 import com.ssafy.pookie.common.response.ApiResponse;
+import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class UserController {
 
     private final UserService userService;
+    private final CharacterService characterService;
+
     /**
      * 회원가입
      */
@@ -57,7 +63,7 @@ public class AuthController {
         // 1. Refresh Token → HttpOnly 쿠키
         Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
         refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(false); // TODO: 배포 시 true
+        refreshTokenCookie.setSecure(true);
         refreshTokenCookie.setPath("/");
         refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
         response.addCookie(refreshTokenCookie);
@@ -143,5 +149,21 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("이메일 중복 확인에 실패했습니다: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<ApiResponse<UserResponseDto>> getUserInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        RepCharacterResponseDto userCharacter = characterService.getRepPookie(userDetails.getUserAccountId());
+
+        UserResponseDto userResponseDto = UserResponseDto.builder()
+                .userAccountId(userDetails.getUserAccountId())
+                .email(userDetails.getEmail())
+                .nickname(userDetails.getNickname())
+                .coin(userDetails.getCoin())
+                .repCharacter(userCharacter)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success("사용자 정보", userResponseDto));
     }
 }
