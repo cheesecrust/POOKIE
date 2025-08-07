@@ -42,7 +42,8 @@ public class InGameService {
             // 현재 방의 상태를 가져옴
             RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
             log.info("GAME START REQUEST : Room {}", room.getRoomId());
-
+//            // 1. 시작 조건을 확인
+//            room.isPreparedStart();
             // 2. 인원 충족, 모두 준비 완료
             // 게임 시작 설정
             room.setStatus(RoomStateDto.Status.START);
@@ -230,7 +231,7 @@ public class InGameService {
             5. Turn 교환
          */
             RoomStateDto room = onlinePlayerManager.getRooms().get(gameResult.getRoomId());
-            if(!onlinePlayerManager.isMaster(session, room)) throw new IllegalArgumentException("잘못된 요청입니다.");
+            if(!onlinePlayerManager.isMaster(session, room) || room.getTurn().equals(RoomStateDto.Turn.RED)) throw new IllegalArgumentException("잘못된 요청입니다.");
             // 라운드 끝, 팀별 점수 집계
             // 클라이언트와 서버의 데이터를 교차 검증한다.
             if (!room.validationTempScore(gameResult)) {
@@ -281,8 +282,9 @@ public class InGameService {
                     (user) -> user.getUserAccountId().equals(request.getNorId())).findFirst().orElse(null) == null) throw new IllegalArgumentException("잘못된 요청입니다.");
 
             // 정답이 일치하는지 확인한다.
+            // 띄어쓰기 필터링
             Boolean isAnswer = room.getGameInfo().getKeywordList().get(request.getKeywordIdx())
-                    .equals(request.getInputAnswer());
+                    .equals(request.getInputAnswer().replace(" ", ""));
             // 정답이라면, room 의 gameInfo, teamTeapScores Update
             if (isAnswer) {
                 room.updateTempScore();
@@ -290,6 +292,7 @@ public class InGameService {
             onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
                     "answer", isAnswer,
+                    "inputAnswer", request.getInputAnswer(),
                     "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
