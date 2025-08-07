@@ -5,7 +5,7 @@ import InventoryCard from "../../molecules/myRoom/InventoryCard";
 
 
 
-const InventoryList = ({onUseSuccess}) => {
+const InventoryList = ({onUseSuccess,refreshTrigger}) => {
   const [inventoryItems, setInventoryItems] = useState([]);
 
   // 인벤토리 아이템 전체조회
@@ -24,10 +24,10 @@ const InventoryList = ({onUseSuccess}) => {
 
   useEffect(() => {
     fetchInventoryItems();
-  }, []);
+  }, [refreshTrigger]);
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 gap-6 place-items-center">
       {inventoryItems.length >0 ? (
         inventoryItems.map((item) => <InventoryCard key={item.idx} item={item} onUseSuccess={onUseSuccess} />)
       ) : (

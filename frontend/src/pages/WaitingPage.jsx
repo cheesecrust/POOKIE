@@ -152,6 +152,7 @@ const WaitingPage = () => {
   const userSlots = room
     ? (() => {
         // RED와 BLUE를 그대로 합침 (순서 보존)
+        console.log("room",room)
         const allUsers = [...room.RED, ...room.BLUE];
 
         //  그대로 순서대로 카드 정보 생성
