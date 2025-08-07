@@ -20,6 +20,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
@@ -129,12 +130,17 @@ public class OnlinePlayerManager {
         현재 유저 ( Session ) 이 속해있는 방에서 유저를 제거한다.
      */
     public void removeSessionFromRooms(WebSocketSession session) {
-        this.rooms.values().stream().forEach((room) -> {
+        this.rooms.values().forEach((room) -> {
             if(room.getSessions().contains(session)) {
-                room.removeUser(session);
+                UserDto leaveUser = room.removeUser(session);
                 if(room.getSessions().isEmpty()) {
                     removeRoomFromServer(room.getRoomId());
                 } else {
+                    // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
+                    if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
+                        log.info("REGRANT Master");
+                        regrantRoomMaster(room);
+                    }
                     room.getSessions().forEach((s) -> {
                         try {
                             sendToMessageUser(s, Map.of(
@@ -204,5 +210,19 @@ public class OnlinePlayerManager {
                 }
             }
         });
+    }
+
+    // 방장 재배정
+    public void regrantRoomMaster(RoomStateDto room) {
+        Map<String, List<UserDto>> user = room.getUsers();
+        String[] team = {"RED", "BLUE"};
+        int teamIdx = new Random().nextInt(2);
+        int playerIdx = new Random().nextInt(user.get(team[teamIdx]).isEmpty() ? 1 : user.get(team[teamIdx]).size());
+
+        if(user.get(team[teamIdx]).size() <= playerIdx) {
+            teamIdx = (teamIdx+1)%2;
+        }
+        user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
+        room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
     }
 }

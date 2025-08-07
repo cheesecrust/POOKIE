@@ -24,6 +24,9 @@ export default function LiveKitVideo({
   // Rep 시, 테두리 효과
   const borderClass = isRef ? "border-2 border-red-500" : "";
 
+  // track 없으면 null 반환
+  if (!videoTrack) return null;
+
   return (
     <div className={`${containerClassName} ${borderClass}`}>
       {/* 캠 비디오 */}

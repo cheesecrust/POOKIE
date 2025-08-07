@@ -1,6 +1,8 @@
 // src/sockets/common/game/handleGameMessage.js
+import useGameStore from "../../store/useGameStore";
 
 export default async function handleGameMessage(msg, handlers) {
+
     console.log("🟢 게임 메시지 수신:", msg);
     const { type} = msg;
   
@@ -8,58 +10,55 @@ export default async function handleGameMessage(msg, handlers) {
       // -----------------------------
       // 응답(Response) 메시지
       // -----------------------------
+      case "GAME_KEYWORD":
+        // livekit 연결
+        const { repIdxList, norIdxList } = msg;
+        useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+
+        console.log("제시어:", msg);
+        handlers?.onGameKeyword?.(msg);
+        break;
       case "TIMER":
-        console.log("Timer", msg);
         handlers?.onTimer?.(msg);
         break;
 
       case "TIMER_PREPARE_START":
-        console.log("첫 게임 시작 타이머:", msg);
         handlers?.onTimerPrepareStart?.(msg);
         break;
 
       case "TIMER_PREPARE_END":
-        console.log("첫 게임 시작 타이머 끝:", msg);
         handlers?.onTimerPrepareEnd?.(msg);
         break;
 
       case "GAME_TIMER_START":
-        console.log("게임 진행 타이머 시작:", msg);
         handlers?.onGameTimerStart?.(msg);
         break;
-      
+
       case "GAME_TIMER_END":
-        console.log("게임 진행 타이머 끝:", msg);
         handlers?.onGameTimerEnd?.(msg);
         break;
-      
+
       case "GAME_KEYWORD":
-        console.log("제시어:", msg);
         handlers?.onGameKeyword?.(msg);
         break;
 
       case "GAME_TURN_OVERED":
-        console.log("턴이 종료되었습니다:", msg);
         handlers?.onGameTurnOvered?.(msg);
         break;
-  
+
       case "GAME_ROUND_OVERED":
-        console.log("라운드 종료:", msg);
         handlers?.onGameRoundOvered?.(msg);
         break;
-  
+
       case "GAME_NEW_ROUND":
-        console.log("새로운 라운드 시작:", msg);
         handlers?.onGameNewRound?.(msg);
         break;
-  
+
       case "GAME_ANSWER_SUBMITTED":
-        console.log("정답 제출 결과:", msg);
         handlers?.onGameAnswerSubmitted?.(msg);
         break;
-      
+
       case "GAME_PASSED":
-        console.log("제시어 패스:", msg);
         handlers?.onGamePassed?.(msg);
         break;
 
@@ -72,7 +71,7 @@ export default async function handleGameMessage(msg, handlers) {
         console.log("그림 그리는 사람 변경:", msg);
         handlers?.onGamePainterChanged?.(msg);
         break;
-      
+
       case "GAME_DRAW_EVENT":
         console.log("그리기 이벤트 수신:", msg);
         handlers?.onDrawEvent?.(msg);
@@ -93,6 +92,5 @@ export default async function handleGameMessage(msg, handlers) {
       default:
         console.warn("[GAME] 처리되지 않은 메시지:", msg);
         break;
-    }
   }
-  
+}
