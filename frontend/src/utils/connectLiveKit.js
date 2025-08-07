@@ -89,7 +89,7 @@ const connectLiveKit = async (user) => {
     const roomInstance = new Room();
 
     // [이벤트 리스너] 기존 participant의 트랙 구독 처리
-    roomInstance.on(RoomEvent.TrackSubscribed, (track, participant) => {
+    roomInstance.on(RoomEvent.TrackSubscribed, (track, publication,participant) => {
       const participantId = participant.identity;
       console.log("✅ 기존 참가자 트랙 구독됨:", participantId);
       handleTrackSubscribed({ participantId, track, updateParticipant });
@@ -106,7 +106,11 @@ const connectLiveKit = async (user) => {
         handleTrackSubscribed({
           participantId,
           track,
-          updateParticipant
+          red,
+          blue,
+          repIdxList,
+          norIdxList,
+          updateParticipant,
         });
       });
     });
