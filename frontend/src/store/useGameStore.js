@@ -211,7 +211,19 @@ const useGameStore = create((set, get) => ({
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,
         finalScore: data.gameResult.finalScore,
-    })
+    }),
+
+    // Livekit 정보 초기화(track 포함)
+    resetLiveKit: () => set({
+        participants: [],
+        roomInstance: null,
+        red: null,
+        blue: null,
+        repIdxList: [],
+        norIdxList: [],
+        rtctoken: null,
+        roomId: null,
+    }),
 
 }))
 
