@@ -12,10 +12,6 @@ export default async function handleGameMessage(msg, handlers) {
     case "GAME_KEYWORD":
       // livekit 연결
       const { repIdxList, norIdxList, keywordList } = msg;
-      if (!keywordList || !Array.isArray(keywordList)) {
-        return;
-      }
-      useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       console.log("제시어:", msg);
       handlers?.onGameKeyword?.(msg);
       break;

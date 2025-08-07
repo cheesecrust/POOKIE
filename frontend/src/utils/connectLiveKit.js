@@ -5,13 +5,12 @@ import useGameStore from "../store/useGameStore";
 import axiosInstance from "../lib/axiosInstance";
 
 // [초기화 메서드] 게임 participant 전원 store에 선등록
-const registerAllParticipants = ({ red, blue, repIdxList, norIdxList, myUserId, addParticipant }) => {
+const registerAllParticipants = ({ red, blue, myUserId, addParticipant }) => {
   const allUsers = [...red, ...blue];
 
   allUsers.forEach((u) => {
     const identity = String(u.id); // livekit ID
     const team = red.some(r => r.id === u.id) ? "RED" : "BLUE";
-    const role = repIdxList.includes(u.id) ? "REP" : norIdxList.includes(u.id) ? "NOR" : null;
 
     // 전역에 'participant' 추가
     addParticipant({
@@ -20,7 +19,6 @@ const registerAllParticipants = ({ red, blue, repIdxList, norIdxList, myUserId, 
       userAccountId: u.id,
       nickname: u.nickname,
       team,
-      role,
       isLocal: u.id === myUserId, // 본인 여부 확인
     });
   });
@@ -51,8 +49,6 @@ const connectLiveKit = async (user) => {
     red,
     blue,
     roomId,
-    repIdxList,
-    norIdxList,
     addParticipant,
     updateParticipant,
     setRoomInstance,
@@ -71,8 +67,6 @@ const connectLiveKit = async (user) => {
     registerAllParticipants({
       red,
       blue,
-      repIdxList,
-      norIdxList,
       myUserId: user.userAccountId,
       addParticipant
     });
@@ -108,8 +102,6 @@ const connectLiveKit = async (user) => {
           track,
           red,
           blue,
-          repIdxList,
-          norIdxList,
           updateParticipant,
         });
       });

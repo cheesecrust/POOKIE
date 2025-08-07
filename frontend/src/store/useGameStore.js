@@ -43,15 +43,13 @@ const useGameStore = create((set, get) => ({
 
     setRoomId: (id) => set({ roomId: id }),
 
-    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
-    setScore: (score) => { set({ score: score }) },
-    setWin: (win) => { set({ win: win }) },
 
     // 게임 시작할 때 전 게임 정보 초기화
-    setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
-    setScore: (score) => { set({ score: score }) },
-    setWin: (Win) => { set({ win: Win }) },
-
+    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
+    setScore: (score) => {set({score:score})},
+    setWin: (Win) => {set({win:Win})},
+    setKeywordIdx: (keywordIdx) => {set({keywordIdx:keywordIdx})},
+    
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,
@@ -69,7 +67,6 @@ const useGameStore = create((set, get) => ({
     openTurnModal: () => set({ isTurnModalOpen: true }),
     closeTurnModal: () => set({ isTurnModalOpen: false }),
 
-
     // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
     isTimerEnd: false,
     gameTimerStarted: false,
@@ -86,14 +83,14 @@ const useGameStore = create((set, get) => ({
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
-
+    
         // 1) 게임 시작 모달 ON
         set({ isGamestartModalOpen: true });
-
+    
         // 2초 후 게임 시작 모달 OFF → 턴 모달 ON
         setTimeout(() => {
             set({ isGamestartModalOpen: false, isTurnModalOpen: true });
-
+    
             // 3) 방장이면 이때 emitTimerStart 실행
             if (myIdx === master) {
                 setTimeout(() => {
@@ -107,7 +104,6 @@ const useGameStore = create((set, get) => ({
         }, 2000);
     },
 
-    setRoomId: (id) => set({ roomId: id }),
 
     setRtcToken: (token) => set({ rtctoken: token }),
     setTurn: (turn) => set({ turn }),
