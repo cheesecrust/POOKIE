@@ -20,7 +20,7 @@
     </appender>
 
     <!-- root 로거: 콘솔만 출력 -->
-    <root level="info">
+    <root level="trace">
         <appender-ref ref="CONSOLE"/>
     </root>
 
