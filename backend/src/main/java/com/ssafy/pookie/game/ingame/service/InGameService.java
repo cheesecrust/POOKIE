@@ -146,7 +146,7 @@ public class InGameService {
                 rep = 1;
                 break;
             case "SKETCHRELAY":
-                rep = teamUsers.size()-1;
+                rep = Math.min(2, teamUsers.size()-1);
                 break;
         }
 
