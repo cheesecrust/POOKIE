@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { emitTimerStart } from '../sockets/game/emit';
+import { emitTimerStart, emitTurnOver, emitRoundOver } from '../sockets/game/emit';
 import useAuthStore from './useAuthStore';
 
 const useGameStore = create((set, get) => ({
@@ -30,8 +30,8 @@ const useGameStore = create((set, get) => ({
     tempTeamScore: null,
     
     // 그림그리기 게임용 상태
-    currentDrawTurn: 0, // 현재 그리기 턴 (0-5)
-    maxDrawTurnsPerTeam: 6, // 팀당 최대 그리기 턴 수
+    currentDrawTurn: 0, // 현재 그리기 턴 (0-1)
+    maxDrawTurnsPerTeam: 2, // 팀당 최대 그리기 턴 수
 
     // gameResult 랑 teamScore 같은듯?
     score: 0, // 현재 라운드 팀 점수 
@@ -77,15 +77,61 @@ const useGameStore = create((set, get) => ({
     // 타이머 끝을 알리는 상태 -> true 일경우 라운드,턴 오버버 
     isTimerEnd: false,
     gameTimerStarted: false,
+    lastTurnResult: null, // 마지막 턴 처리 결과
 
     // 타이머끝 상태 set 함수
-    resetIsTimerEnd: () => set({ isTimerEnd: false }),
+    resetIsTimerEnd: () => set({ isTimerEnd: false, lastTurnResult: null }),
 
     // 타이머 SET 함수
     setTimerPrepareStart: () => set({}),
     setTimerPrepareEnd: () => set({}),
     setGameTimerStart: () => set({ gameTimerStarted: true }),
-    setGameTimerEnd: () => set({ isTimerEnd: true }),
+    setGameTimerEnd: (data) => {
+        // 다음 턴 처리 결과를 먼저 계산
+        const result = get().nextDrawTurn();
+        console.log("📊 nextDrawTurn 결과:", result);
+        
+        // isTimerEnd와 턴 처리 결과를 함께 설정
+        set({ 
+            isTimerEnd: true,
+            lastTurnResult: result // 마지막 턴 처리 결과 저장
+        });
+        
+        // 그림그리기 게임에서는 자동으로 다음 턴 처리
+        const { roomId, master, turn, score, round } = get();
+        const myIdx = useAuthStore.getState().user?.userAccountId;
+        
+        console.log("🔔 GAME_TIMER_END 받음:", { roomId, master, myIdx, data, result, turn, score, round });
+        
+        if (roomId && myIdx === master) {
+            if (result?.roundComplete) {
+                console.log("🏁 BLUE 팀 완료, ROUND_OVER 호출");
+                emitRoundOver({
+                    roomId,
+                    team: "BLUE", // BLUE 팀이 완료된 상황
+                    score: score || 0
+                });
+                // 백엔드에서 라운드 증가 후 GAME_NEW_ROUND 또는 WAITING_GAME_OVER 응답
+            } else if (result?.teamChanged && result?.newTeam === "BLUE") {
+                // RED → BLUE 전환: TURN_OVER
+                console.log("🔄 RED → BLUE 전환, TURN_OVER 전송");
+                emitTurnOver({
+                    roomId,
+                    team: "RED", // 이전 팀
+                    score: score || 0
+                });
+                // 메시지 전송 후 백엔드에서 키워드와 함께 응답이 오면 자동으로 다음 타이머 시작
+            } else if (result?.nextPainter) {
+                // 같은 팀 내 턴 변경: 바로 타이머 시작
+                console.log("🎨 같은 팀 내 턴 변경, 바로 타이머 시작");
+                get().autoStartNextTimer(roomId);
+            }
+        } else if (!roomId) {
+            console.log("❌ roomId가 없음");
+        } else {
+            console.log("👥 방장이 아니므로 대기");
+        }
+    },
 
     handleTimerPrepareSequence: (roomId) => {
         const master = useGameStore.getState().master;
@@ -141,11 +187,24 @@ const useGameStore = create((set, get) => ({
         score: data.answer ? (state.score + 1) : state.score,
     })),
 
-    setGameTurnOvered: (data) => set({
-        turn: data.turn,
-        tempTeamScore: data.tempTeamScore,
-        round: data.round,
-    }),
+    setGameTurnOvered: (data) => {
+        set({
+            turn: data.turn,
+            tempTeamScore: data.tempTeamScore,
+            round: data.round,
+        });
+        
+        // TURN_OVER 후 자동으로 타이머 시작 (방장만)
+        const { roomId, master } = get();
+        const myIdx = useAuthStore.getState().user?.userAccountId;
+        
+        if (myIdx === master && roomId) {
+            console.log("🔄 TURN_OVER 완료, 자동 타이머 시작");
+            setTimeout(() => {
+                get().autoStartNextTimer(roomId);
+            }, 1000);
+        }
+    },
 
     setGameRoundOvered: (data) => set({
         round: data.round,
@@ -154,11 +213,27 @@ const useGameStore = create((set, get) => ({
         // win: data.win,
     }),
 
-    setGameNewRound: (data) => set({
-        turn: data.turn,
-        round: data.round,
-        teamScore: data.teamScore,
-    }),
+    setGameNewRound: (data) => {
+        set({
+            turn: "RED", // 새 라운드는 항상 RED팀부터 시작
+            round: data.round,
+            teamScore: data.teamScore,
+            currentDrawTurn: 0, // 새 라운드 시작 시 그리기 턴 초기화
+        });
+        
+        console.log("🆕 새 라운드 시작:", { round: data.round, turn: "RED" });
+        
+        // NEW_ROUND 후 자동으로 타이머 시작 (방장만)
+        const { roomId, master } = get();
+        const myIdx = useAuthStore.getState().user?.userAccountId;
+        
+        if (myIdx === master && roomId) {
+            console.log("🆕 NEW_ROUND 완료, 자동 타이머 시작");
+            setTimeout(() => {
+                get().autoStartNextTimer(roomId);
+            }, 1000);
+        }
+    },
 
     setGamePassed: (data) => set({
         nowInfo: data.nowInfo,
@@ -212,10 +287,13 @@ const useGameStore = create((set, get) => ({
             console.log("📌 repIdxList:", repIdxList, "📌 norIdxList:", norIdxList);
         },
 
-    setWatingGameOver: (data) => set({
-        win: data.gameResult.win,
-        finalScore: data.gameResult.finalScore,
-    }),
+    setWatingGameOver: (data) => {
+        console.log("🎉 게임 종료:", data);
+        set({
+            win: data.gameResult.win,
+            finalScore: data.gameResult.finalScore,
+        });
+    },
 
     setGameStarted: (data) => set({
         rtctoken: data.rtc_token,
@@ -232,34 +310,33 @@ const useGameStore = create((set, get) => ({
         const { currentDrawTurn, maxDrawTurnsPerTeam, turn } = get();
         const newDrawTurn = currentDrawTurn + 1;
         
-        // 총 턴 수 계산 (RED 6번 + BLUE 6번 = 12번)
-        const totalTurns = turn === "RED" ? newDrawTurn : maxDrawTurnsPerTeam + newDrawTurn;
-        
-        if (totalTurns >= maxDrawTurnsPerTeam * 2) {
-            // 12번 모두 완료, 라운드 종료
-            console.log("🏁 라운드 완료, 게임 종료");
-            set({
-                currentDrawTurn: 0,
-                repIdx: 0
-            });
-            return { roundComplete: true };
-        } else if (newDrawTurn >= maxDrawTurnsPerTeam) {
-            // 6번 완료, 상대팀으로 전환
-            const nextTeam = turn === "RED" ? "BLUE" : "RED";
-            set({
-                turn: nextTeam,
-                currentDrawTurn: 0,
-                repIdx: 0 // 상대팀 첫 번째 그리는 사람으로 리셋
-            });
-            console.log("🔄 팀 전환:", nextTeam);
-            return { teamChanged: true };
+        if (newDrawTurn >= maxDrawTurnsPerTeam) {
+            // 팀의 2번 완료
+            if (turn === "RED") {
+                // RED 팀 완료 → BLUE 팀으로 전환
+                set({
+                    turn: "BLUE",
+                    currentDrawTurn: 0,
+                    repIdx: 0
+                });
+                console.log("🔄 RED → BLUE 팀 전환");
+                return { teamChanged: true, newTeam: "BLUE" };
+            } else {
+                // BLUE 팀 완료 → 라운드 종료
+                set({
+                    currentDrawTurn: 0,
+                    repIdx: 0
+                });
+                console.log("🏁 BLUE 팀 완료, 라운드 종료");
+                return { roundComplete: true };
+            }
         } else {
             // 같은 팀 내에서 다음 그리는 사람으로
             set({
                 currentDrawTurn: newDrawTurn,
                 repIdx: newDrawTurn % get().repIdxList.length // 순환
             });
-            console.log("🎨 다음 그리는 사람:", newDrawTurn);
+            console.log("🎨 같은 팀 내 다음 그리는 사람:", newDrawTurn);
             return { nextPainter: true };
         }
     },
@@ -269,11 +346,16 @@ const useGameStore = create((set, get) => ({
         const master = get().master;
         const myIdx = useAuthStore.getState().user?.userAccountId;
         
+        console.log("⏰ autoStartNextTimer 호출:", { roomId, master, myIdx, isMaster: myIdx === master });
+        
         if (myIdx === master) {
-            console.log("🔄 다음 타이머 자동 시작");
+            console.log("🔄 방장이므로 1초 후 타이머 시작 예약");
             setTimeout(() => {
+                console.log("⚡ emitTimerStart 실행:", { roomId });
                 emitTimerStart({ roomId });
             }, 1000); // 1초 후 다음 타이머 시작
+        } else {
+            console.log("⛔ 방장이 아니므로 타이머 시작하지 않음");
         }
     }
 
