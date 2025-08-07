@@ -11,10 +11,8 @@ import InventoryList from "../components/organisms/myRoom/InventoryList";
 import StoreList from "../components/organisms/myRoom/StoreList";
 
 import coinImg from "../assets/item/coin.png";
-
 import axiosInstance from "../lib/axiosInstance";
 
-import characterImageMap from "../utils/characterImageMap";
 
 const MyRoomPage = () => {
 
@@ -107,7 +105,7 @@ const MyRoomPage = () => {
               <div className="w-full h-full flex items-center justify-center">
                 <img
                   src={
-                    characterImageMap[user?.repCharacter?.name] ||
+                    characterImageMap[userInfo?.repCharacter?.name] ||
                     characterImageMap.default
                   }
                   alt="대표 캐릭터"
