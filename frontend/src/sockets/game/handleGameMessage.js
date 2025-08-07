@@ -1,5 +1,6 @@
 // src/sockets/common/game/handleGameMessage.js
 import useGameStore from "../../store/useGameStore";
+import cleanupLiveKit from "../../utils/cleanupLiveKit";
 
 export default async function handleGameMessage(msg, handlers) {
   const { type } = msg;
@@ -61,6 +62,20 @@ export default async function handleGameMessage(msg, handlers) {
 
     case "WAITING_GAME_OVER":
       console.log("게임 종료:", msg);
+      handlers?.onWaitingGameOver?.(msg);
+      break;
+
+    case "WAITING_GAME_OVER":
+      console.log("게임 종료:", msg);
+      console.log("Livekit 초기화 시작")
+
+      const roomInstance = useGameStore.getState().roomInstance;
+      const resetLiveKit = useGameStore.getState().resetLiveKit;
+
+      // LiveKit 연결 해제 및 정보 초기화
+      cleanupLiveKit({ roomInstance, resetLiveKit });
+      console.log("📍 초기화 이후 상태")
+      console.log("participants:", useGameStore.getState().participants);
       handlers?.onWaitingGameOver?.(msg);
       break;
 
