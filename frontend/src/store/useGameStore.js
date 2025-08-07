@@ -47,6 +47,11 @@ const useGameStore = create((set, get) => ({
     setScore: (score) => { set({ score: score }) },
     setWin: (win) => { set({ win: win }) },
 
+    // 게임 시작할 때 전 게임 정보 초기화
+    setTeamScore: (teamScore) => {set({teamScore: teamScore})},
+    setScore: (score) => {set({score:score})},
+    setWin: (Win) => {set({win:Win})},
+    
     // 모달 상태 관리
     isGamestartModalOpen: false,
     isTurnModalOpen: false,

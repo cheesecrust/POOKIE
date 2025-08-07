@@ -235,7 +235,10 @@ const SilentScreamPage = () => {
  
   // 최종 누가 이겼는지
   useEffect(() => {
+    console.log(win);
+    console.log(isWinModalOpen);
     if (win) {
+      
       setIsWinModalOpen(true);
       const timeout = setTimeout(() => {
         // 게임 종료 후 대기방 복귀 - 정상 입장 플래그 설정
