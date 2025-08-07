@@ -95,6 +95,7 @@ public class GameRoomService {
                     ));
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -194,6 +195,7 @@ public class GameRoomService {
                     "roomList", gameServerService.existingRoomList()
             ));
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -215,6 +217,7 @@ public class GameRoomService {
                     "room", room.mappingRoomInfo()
             ));
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -235,6 +238,7 @@ public class GameRoomService {
                     "room", room.mappingRoomInfo()
             ));
         } catch (IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -253,6 +257,7 @@ public class GameRoomService {
             log.info("FORCED REMOVE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), removeTarget.getUserEmail());
 
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
@@ -277,6 +282,7 @@ public class GameRoomService {
             ));
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
+            log.error("reason : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(gameTypeChangeRequest.getRoomMaster().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
