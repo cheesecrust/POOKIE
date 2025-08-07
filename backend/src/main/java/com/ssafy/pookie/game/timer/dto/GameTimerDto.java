@@ -32,7 +32,7 @@ public class GameTimerDto {
     public void start(RoomStateDto.GameType gameType) {
         stop();     // 이전 타이머 정지
 
-        timeLeft.set(gameType != null ? runTime.get(gameType) : 3);  // 시간 설정
+        timeLeft.set((gameType != null ? runTime.get(gameType) : 3)+1);  // 시간 설정
 
         scheduledTask = scheduler.scheduleAtFixedRate(() -> {
             /*

@@ -12,6 +12,8 @@ import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
 import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.global.exception.CustomException;
+import com.ssafy.pookie.global.exception.constants.ErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -85,12 +87,12 @@ public class UserService {
         try {
             // 사용자 정보 조회
             Users user = usersRepository.findByEmail(loginRequest.getEmail())
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
             UserAccounts userAccount = user.getUserAccount();
 
-            log.info(user.getPassword() + " " + loginRequest.getPassword());
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                throw new Exception("비밀번호가 일치하지 않습니다.");
+                throw new CustomException(ErrorCode.INVALID_LOGIN);
             }
 
             // JWT 토큰 생성
@@ -106,7 +108,7 @@ public class UserService {
                     .build();
         } catch (Exception e) {
             log.error("로그인 실패: {}", e.getMessage());
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
     }
 

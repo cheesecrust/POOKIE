@@ -41,7 +41,7 @@ const useGameStore = create((set, get) => ({
     roomInstance: null,
     participants: [],
 
-    setRoomId: (id) => set({roomId:id}),
+    setRoomId: (id) => set({ roomId: id }),
 
 
     // 게임 시작할 때 전 게임 정보 초기화
@@ -113,7 +113,7 @@ const useGameStore = create((set, get) => ({
     setMaster: (master) => set({ master }),
     setRoomInstance: (roomInstance) => set({ roomInstance }),
     setParticipants: (participants) => set({ participants }),
-    
+
     setTime: (data) => set({ time: data.time }),
 
     setRoomInfo: (data) => set({ roomInfo: data }),
@@ -161,13 +161,13 @@ const useGameStore = create((set, get) => ({
     // Livekit 관련
     addParticipant: (participant) =>
         set((state) => {
-          const current = Array.isArray(state.participants) ? state.participants : [];
-          return {
-            participants: [
-              ...current.filter((p) => p.identity !== participant.identity),
-              participant,
-            ],
-          };
+            const current = Array.isArray(state.participants) ? state.participants : [];
+            return {
+                participants: [
+                    ...current.filter((p) => p.identity !== participant.identity),
+                    participant,
+                ],
+            };
         }),
 
     removeParticipant: (identity) =>
@@ -187,27 +187,36 @@ const useGameStore = create((set, get) => ({
 
         const updatedParticipants = participants.map((p) => {
             const role = repIdxList.includes(p.userAccountId)
-            ? "REP"
-            : norIdxList.includes(p.userAccountId)
-            ? "NOR"
-            : null;
+                ? "REP"
+                : norIdxList.includes(p.userAccountId)
+                    ? "NOR"
+                    : null;
             return { ...p, role };
         });
 
         set(() => ({
-                repIdxList,
-                norIdxList,
-                participants: updatedParticipants,
-            }));
-            
-            console.log("역할 부여 완료", updatedParticipants);
-            console.log("📌 repIdxList:", repIdxList, "📌 norIdxList:", norIdxList);
-        },
+            repIdxList,
+            norIdxList,
+            participants: updatedParticipants,
+        }));
+    },
 
     setWatingGameOver: (data) => set({
         win: data.gameResult.win,
         finalScore: data.gameResult.finalScore,
-    })
+    }),
+
+    // Livekit 정보 초기화(track 포함)
+    resetLiveKit: () => set({
+        participants: [],
+        roomInstance: null,
+        red: null,
+        blue: null,
+        repIdxList: [],
+        norIdxList: [],
+        rtctoken: null,
+        roomId: null,
+    }),
 
 }))
 
