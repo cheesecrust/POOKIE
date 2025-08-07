@@ -25,7 +25,7 @@
     </root>
 
     <!-- 사용자 코드 로그만 파일로 저장 (예: com.example.demo 패키지) -->
-    <logger name="com.example.demo" level="info" additivity="false">
+    <logger name="com.ssafy.pookie" level="info" additivity="false">
         <appender-ref ref="FILE"/>
     </logger>
 

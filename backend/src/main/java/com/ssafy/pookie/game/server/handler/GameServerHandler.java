@@ -98,8 +98,8 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case WAITING_GAME_START:
                     GameStartDto start = objectMapper.convertValue(msg.getPayload(), GameStartDto.class);
                     start.setUser(user);
-                    gameTimerService.beforeStartGameTimer(session, start);
-//                    inGameService.handleGameStart(session, start);
+//                    gameTimerService.beforeStartGameTimer(session, start);
+                    inGameService.handleGameStart(session, start);
                     break;
                 case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
@@ -136,7 +136,9 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case TIMER_START:
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
-                    gameTimerService.preTimer(timerRequest);
+//                    gameTimerService.preTimer(timerRequest);
+                    gameTimerService.gameStartTimer(onlinePlayerManager.getRooms()
+                                    .get(timerRequest.getRoomId()), timerRequest);
                     break;
                 // Draw
                 case GAME_DRAW:

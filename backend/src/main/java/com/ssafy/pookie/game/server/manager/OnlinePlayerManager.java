@@ -75,7 +75,7 @@ public class OnlinePlayerManager {
         방장 X : false
      */
     public Boolean isMaster(WebSocketSession session, RoomStateDto room) {
-        return room.getRoomMaster().getSession() == session;
+        return room.getRoomMaster().getSession()==session;
     }
 
     // Lobby 에 있는 User 의 Status Update
