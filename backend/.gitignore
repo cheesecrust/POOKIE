@@ -38,3 +38,5 @@ out/
 
 **/src/main/resources/*.properties
 
+/logs/**
+/logs/app.log
