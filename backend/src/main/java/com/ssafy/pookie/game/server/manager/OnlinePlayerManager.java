@@ -228,4 +228,8 @@ public class OnlinePlayerManager {
         user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
     }
+
+    public boolean isInvalid(WebSocketSession session) {
+        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+    }
 }
