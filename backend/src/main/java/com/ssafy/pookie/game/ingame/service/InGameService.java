@@ -201,6 +201,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.info("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -273,6 +276,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
     // Submit Answer ( 정답 제출 )
@@ -309,6 +315,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -339,6 +348,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -359,6 +371,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 }

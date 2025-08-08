@@ -101,6 +101,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -201,6 +204,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -223,6 +229,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -244,6 +253,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
     // 유저 강퇴 ( 방장만 )
@@ -263,6 +275,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
     }
 
@@ -288,6 +303,9 @@ public class GameRoomService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw e;
         }
 
     }
@@ -300,7 +318,12 @@ public class GameRoomService {
                 try {
                     onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
                 } catch (IOException e) {
+                    log.info("{}", e.getMessage());
                     e.printStackTrace();
+                    throw new RuntimeException();
+                } catch (Exception e) {
+                    log.error("{}", e.getMessage());
+                    throw e;
                 }
             }
         });
