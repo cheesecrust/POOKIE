@@ -3,7 +3,7 @@
 // <FriendMessageWrapper /> 로 상위 컴포넌트에서 import 해서 사용하시면됨
 
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PookieButton from "../../atoms/button/PookieButton";
 import FriendMessageModal from "./FriendMessageModal";
 
@@ -15,6 +15,26 @@ const FriendMessageWrapper = () => {
   const handleToggleModal = () => {
     setIsModalOpen(prev => !prev);
   };
+
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+
+    if (isModalOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    } else {
+      window.removeEventListener("keydown", handleKeyDown);
+    }
+
+    // cleanup
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModalOpen]);
 
   return (
     <>
