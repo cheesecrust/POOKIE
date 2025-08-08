@@ -100,6 +100,7 @@ const FriendMessageModal = ({onClose}) => {
           page: currentPage
         }
       });
+      console.log("받은 쪽지 api",res.data);
       const receivedMessage = res.data.data.content;
       const totalPage = res.data.data.totalPages;
       setReceivedMessages(receivedMessage);
