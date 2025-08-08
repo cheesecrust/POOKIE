@@ -6,13 +6,15 @@ const SubmitModal = ({ isOpen, onClose, onSubmit }) => {
   const inputRef = useRef(null)
 
   const handleSubmit = () => {
-      onSubmit(text);
-      setText("");
-      onClose();
+    if (text.trim() === "") return;
+    onSubmit(text);
+    setText("");
   };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
       handleSubmit();
     }
   };
