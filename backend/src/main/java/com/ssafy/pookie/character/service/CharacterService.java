@@ -1,6 +1,7 @@
 package com.ssafy.pookie.character.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
@@ -28,6 +29,7 @@ public class CharacterService {
 
     private final CharacterCatalogRepository characterCatalogRepository;
     private final CharactersRepository charactersRepository;
+    private final UserAccountsRepository userAccountsRepository;
     private final UserCharactersRepository userCharactersRepository;
 
     /**
@@ -110,8 +112,9 @@ public class CharacterService {
      */
     public List<CharacterCatalogResponseDto> getPookiesByUserId(Long userAccountId) {
         List<CharacterCatalogResponseDto> catalogDtos = CharacterCatalogResponseDto
-                                                                .fromEntity(characterCatalogRepository.findByUserAccountId(userAccountId));
-        log.info(catalogDtos.toString());
+                                                                .fromEntity(
+                                                                    characterCatalogRepository
+                                                                    .findByUserAccount_Id(userAccountId));
         return catalogDtos;
     }
 
@@ -120,7 +123,7 @@ public class CharacterService {
      */
     public Characters getGrowingPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
-                characterCatalogRepository.findByUserAccountIdAndIsGrowing(userAccountId, true);
+                characterCatalogRepository.findByUserAccount_IdAndIsGrowing(userAccountId, true);
 
         if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (catalog.isEmpty()) throw new CustomException(ErrorCode.GROWING_POKIE_NOT_FOUND);
@@ -133,7 +136,7 @@ public class CharacterService {
      */
     public RepCharacterResponseDto getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
-                characterCatalogRepository.findByUserAccountIdAndIsRepresent(userAccountId, true);
+                characterCatalogRepository.findByUserAccount_IdAndIsRepresent(userAccountId, true);
 
         if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (catalog.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
@@ -153,10 +156,16 @@ public class CharacterService {
      * 대표 푸키 바꾸기
      */
     @Transactional
-    public void changeRepPookie(UserAccounts userAccount, PookieType pookieType, int step) {
+    public void changeRepPookie(Long currentUserId, int characterCatalogId, int characterId) {
+        UserAccounts userAccount = userAccountsRepository.findById(currentUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+
         CharacterCatalog catalog = characterCatalogRepository
-                .findByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), step, pookieType)
+                .findOne(characterCatalogId, characterId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
+
+        if (catalog.isRepresent()) return ; // 이미 대표
 
         updateCatalogStates(userAccount, catalog.getCharacter(), true, catalog.isGrowing());
     }
@@ -211,7 +220,7 @@ public class CharacterService {
     private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, Characters newChar) {
 
         return characterCatalogRepository
-                .findByUserAccountIdAndCharacterStepAndCharacterType(userAccount.getId(), newChar.getStep(), newChar.getType())
+                .findByUserAccount_IdAndCharacter_StepAndCharacter_Type(userAccount.getId(), newChar.getStep(), newChar.getType())
                 .orElseGet(() -> {
 
                     CharacterCatalog catalog = CharacterCatalog.builder()

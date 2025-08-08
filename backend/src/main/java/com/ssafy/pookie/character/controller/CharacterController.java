@@ -1,14 +1,12 @@
 package com.ssafy.pookie.character.controller;
 
-import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.ChangeRepPookieRequestDto;
 import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
-import com.ssafy.pookie.character.model.CharacterCatalog;
-import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.global.exception.CustomException;
 import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,13 +68,11 @@ public class CharacterController {
             @RequestBody ChangeRepPookieRequestDto request) {
         try {
             Long currentUserId = userDetails.getUserAccountId();
-            UserAccounts userAccount = userAccountsRepository.findById(currentUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-            
-            characterService.changeRepPookie(userAccount, request.getPookieType(), request.getStep());
+
+            characterService.changeRepPookie(currentUserId, request.getId(), request.getCharacterId());
             
             return ResponseEntity.ok("대표 푸키가 성공적으로 변경되었습니다.");
-        } catch (RuntimeException e) {
+        } catch (CustomException e) {
             log.error("대표 푸키 변경 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
