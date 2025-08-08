@@ -46,8 +46,8 @@ const SilentScreamPage = () => {
   
   // 타이머 
   const time = useGameStore((state) => state.time);
-  const isTimerEnd = useGameStore((state) => state.isTimerEnd); // true값되면 타이머끝 턴,라운드오버타이밍
-  const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
+  const isSilentScreamTimerEnd = useGameStore((state) => state.isSilentScreamTimerEnd); // true값되면 타이머끝 턴,라운드오버타이밍
+  const resetIsSilentScreamTimerEnd = useGameStore((state) => state.resetIsSilentScreamTimerEnd);
 
   // 맞히는 사람(제시어 x)
   const norIdxList = useGameStore((state) => state.norIdxList);
@@ -66,9 +66,11 @@ const SilentScreamPage = () => {
   const roundResult = useGameStore((state) => state.roundResult);
   const gameResult = useGameStore((state) => state.gameResult);
   const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
+  const finalScore = useGameStore((state) => state.finalScore);
 
   // 최종 승자
   const win = useGameStore((state) => state.win);
+  
   // 모달
   const isGameStartModalOpen = useGameStore((state) => state.isGamestartModalOpen);
   const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
@@ -97,6 +99,7 @@ const SilentScreamPage = () => {
   const [isWinModalOpen, setIsWinModalOpen] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const hasSubmittedRef = useRef(false)
+  const [isFinalScoreOpen, setIsFinalScoreOpen] = useState(false);
  
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -146,20 +149,19 @@ const SilentScreamPage = () => {
           }
         }
       // 추가 조건 : 타이머 끝났을 때 
-      if (isTimerEnd){  
+      if (isSilentScreamTimerEnd){  
+        console.log("isSilentScreamTimerEnd",isSilentScreamTimerEnd)
         if (myIdx === master){
-        
+          resetIsSilentScreamTimerEnd();
+
           if (turn === "RED"){
             emitTurnOver({ roomId,team:turn,score:score });
-            resetGameTimerEnd();
             if(round <=3){
               emitTimerStart({ roomId });
             }
           }
           else if (turn === "BLUE"){
             emitRoundOver({ roomId,team:turn,score:score });
-            resetGameTimerEnd();
-
             if(round <=2){
               emitTimerStart({ roomId });
             }
@@ -167,7 +169,7 @@ const SilentScreamPage = () => {
         
       }
       }
-  }, [keywordIdx,isTimerEnd]);
+  }, [keywordIdx,isSilentScreamTimerEnd]);
   
   // esc 키 눌렀을 때 제출 모달 닫기
   useEffect(() => {
@@ -396,7 +398,16 @@ const SilentScreamPage = () => {
             redScore={teamScore?.RED}
             blueScore={teamScore?.BLUE}
           />
+        </div>
 
+        {/* 최종 RoundInfo */}
+        {isFinalScoreOpen && <div className="absolute bottom-16 right-12 z-20 scale-150">
+
+          <RoundInfo
+            round={round}
+            redScore={finalScore?.RED}
+            blueScore={finalScore?.BLUE}
+          />
         </div>
 
         {/* Keyword 카드 (발화자 + 상대팀 보임) */}
