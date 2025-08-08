@@ -28,10 +28,14 @@ public class GameChatService {
             }
             chatDto.sendChat(session, room);
         } catch(IllegalArgumentException e) {
+            log.error("{}",e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw new RuntimeException();
         }
     }
 }

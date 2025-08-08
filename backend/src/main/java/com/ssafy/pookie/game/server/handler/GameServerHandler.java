@@ -149,7 +149,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
-            e.printStackTrace();
+            log.error("{}",e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "Error",
