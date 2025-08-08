@@ -37,7 +37,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
 
         {/* 캐릭터 이미지 */}
         <img
-          src={characterImageMap[user?.repCharacter?.name] || pookiepookie}
+          src={user?.repImg || pookiepookie}
           alt="character"
           className="w-24 h-24 object-contain mb-1"
           onError={(e) => {
