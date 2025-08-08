@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { emitTimerStart, emitTurnOver, emitRoundOver } from '../sockets/game/emit';
 import useAuthStore from './useAuthStore';
 
+const BUBBLE_LIFETIME = 2500;
+
 const useGameStore = create((set, get) => ({
 
     master: null,
@@ -51,6 +53,47 @@ const useGameStore = create((set, get) => ({
 
     setRoomId: (id) => set({ roomId: id }),
 
+    // 말풍선 관련
+    bubbles: [],
+    addBubble: (bubble) => set((state) => ({ bubbles: [...state.bubbles, bubble] })),
+    removeBubble: (bubbleId) => set((state) => ({ bubbles: state.bubbles.filter((bubble) => bubble.id !== bubbleId) })),
+
+    // ✅ 서버 "GAME_ANSWER_SUBMITTED" 공통 처리기
+    processGameAnswerSubmitted: (msg) => {
+        const src = msg?.payload ?? msg;
+        const norId = src?.norId;
+        const inputAnswer = src?.inputAnswer;
+        const clientMsgId = src?.clientMsgId;
+
+        // 안전장치: 필수값 체크
+        if (!norId == null || typeof inputAnswer !== "string") {
+        console.warn("[STORE] ANSWER_SUBMITTED invalid payload:", msg);
+        return; // 다른 게임에 영향 X (no-op)
+        }
+
+        const { bubbles } = get();
+
+        // 중복 방지: clientMsgId가 있으면 그걸로 체크
+        if (clientMsgId && Array.isArray(bubbles) && bubbles.some(b => b.id === clientMsgId)) {
+        return;
+        }
+
+        const id = clientMsgId || `${Date.now()}-${norId}`;
+        const normalizedUserId = Number(norId);
+
+        // 버블 추가
+        get().addBubble({
+        id,
+        userId: normalizedUserId, // 렌더에서 p.userAccountId와 비교
+        text: inputAnswer,
+        ts: Date.now(),
+        });
+
+        // 일정 시간 뒤 자동 제거
+        setTimeout(() => {
+        get().removeBubble(id);
+        }, BUBBLE_LIFETIME);
+    },
 
     // 게임 시작할 때 전 게임 정보 초기화
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },

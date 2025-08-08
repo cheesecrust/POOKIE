@@ -35,7 +35,7 @@ export default function LiveKitVideo({
         autoPlay
         playsInline
         muted={isLocal}
-        className="flex-1 w-full h-full object-cover border-1 border-black"
+        className="flex-1 w-full h-full object-cover border-1 border-black scale-x-[-1]"
         />
         {/* 닉네임 표시 (하단 텍스트) */}
         {nickname && (

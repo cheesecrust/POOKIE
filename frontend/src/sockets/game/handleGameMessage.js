@@ -44,6 +44,7 @@ export default async function handleGameMessage(msg, handlers) {
       break;
 
     case "GAME_ANSWER_SUBMITTED":
+      useGameStore.getState().processGameAnswerSubmitted(msg);
       handlers?.onGameAnswerSubmitted?.(msg);
       break;
 

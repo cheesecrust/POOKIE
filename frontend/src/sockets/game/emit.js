@@ -1,4 +1,4 @@
-// src/sockets/common/game/emit.js
+// src/sockets/game/emit.js
 import { sendMessage } from "../websocket";
 
 // -----------------------------
@@ -24,13 +24,15 @@ export const emitRoundOver = ({roomId,team,score}) => {
 };
 
 // 정답 제출
-export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer}) => {
+export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer, clientMsgId }) => {
+  const _id = clientMsgId || `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
   sendMessage("GAME_ANSWER_SUBMIT", {
     roomId,
     round,
     norId,
     keywordIdx,
-    inputAnswer
+    inputAnswer,
+    clientMsgId: _id,
 });
 };
 
