@@ -32,7 +32,7 @@ const handleUseItem = async(item,onUseSuccess) => {
 
 const InventoryCard = ({ item,onUseSuccess }) => {
   return (
-    <div className=" bg-white rounded-lg p-4 flex flex-col items-center shadow-md hover:scale-105 transition-transform">
+    <div className=" w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md hover:scale-105 transition-transform">
       <img
         src={itemimage[item.image]}
         alt={item.itemName}

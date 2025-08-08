@@ -1,6 +1,6 @@
 import React from "react";
 
-const GameResultModal = ({ win, redTeam, blueTeam, onClose }) => {
+const GameResultModal = ({ win, redTeam = [], blueTeam = [], onClose }) => {
   const getCoinForPlayer = (team) => {
     if (win === "DRAW") return 100;
     if (win === team) return 300;
