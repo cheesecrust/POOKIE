@@ -32,10 +32,13 @@ public class MessageSenderManager {
                 onlinePlayerManager.sendToMessageUser(message.getSession(), message.getPayload());
             }
             log.info("Message 전송 완료 : \n{}", message.getPayload());
-        } catch (IllegalArgumentException e) {
-          log.error("Invalid Message : ", e.getMessage());
         } catch (Exception e) { // 전송 실패 -> 가장 우선순위로 실행
+            if(!onlinePlayerManager.isInvalid(message.getSession())) {
+                log.error("Invalid Message : \n{}\n{}", message.getSession(), message.getPayload());
+                return;
+            }
             log.error("Message 전송 실패 : \n{}\n{}", e.getMessage(), message.getPayload());
+            log.info("재시도합니다.");
             sendMessage.offerFirst(message);
         }
     }
