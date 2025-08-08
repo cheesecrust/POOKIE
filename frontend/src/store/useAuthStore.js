@@ -54,6 +54,9 @@ const useAuthStore = create(
             setIsReady: () => { },
 
             // game handler
+            onGameStarted: (data) => {
+              useGameStore.getState().setGameStarted(data);
+            },
             onGameKeyword: (data) => {
               useGameStore.getState().setGameKeyword(data);
             },
