@@ -233,7 +233,7 @@ const SamePosePage = () => {
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
-      }, 5000);
+      }, 4000);
 
       return () => {
         clearTimeout(modalTimeout);
