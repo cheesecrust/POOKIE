@@ -242,13 +242,16 @@ const useGameStore = create((set, get) => ({
             score: data.answer ? state.score + 1 : state.score,
         }));
 
-        // 모달 처리 따로
-        if (data.answer) {
-            set({ isCorrectModalOpen: true });
-            setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
-        } else {
-            set({ isWrongModalOpen: true });
-            setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+        // 고요속의 외침 
+        if (get().gameType === "SILENTSCREAM") {
+            // 모달 처리 따로
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            }
         }
     },
 
@@ -311,13 +314,13 @@ const useGameStore = create((set, get) => ({
             nowInfo: data.nowInfo,
             keywordIdx: data.nowInfo.keywordIdx,
             repIdx: data.nowInfo.repIdx,
-            isPassModalOpen: true,  // 모달 열기
         });
 
-        // 1초 뒤 자동으로 닫기
-        setTimeout(() => {
-            set({ isPassModalOpen: false });
-        }, 1000);
+        // 발화자 패스 모달
+        if (get().gameType === "SILENTSCREAM") {
+            set({ isPassModalOpen: true });
+            setTimeout(() => set({ isPassModalOpen: false }), 1000);
+        }
     },
 
     // Livekit 관련
