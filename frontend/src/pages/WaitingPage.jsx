@@ -18,6 +18,7 @@ import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
 import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggleButton";
+import characterImageMap from "../utils/characterImageMap";
 import useAuthStore from "../store/useAuthStore";
 import useGameStore from "../store/useGameStore";
 import {
@@ -226,7 +227,7 @@ const WaitingPage = () => {
           team: room.RED.some((r) => r.id === u.id) ? "red" : "blue",
           isReady: u.status === "READY",
           isHost: room.master?.id === u.id,
-          repImg: u.repImg,
+          repImg: characterImageMap[u?.repCharacter?.characterName] ?? characterImageMap.default,
         }));
 
         // 빈 슬롯 채우기
