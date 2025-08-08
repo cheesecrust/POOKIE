@@ -3,19 +3,19 @@
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif"
 import RoundInfo from "../components/molecules/games/RoundInfo";
 import ChatBox from "../components/molecules/common/ChatBox";
 import PopUpModal from "../components/atoms/modal/PopUpModal";
-import KeywordModal from "../components/atoms/modal/KeywordModal";
 import SubmitModal from "../components/molecules/games/SubmitModal";
 import PassButton from "../components/atoms/button/PassButton.jsx"
 import RightButton from "../components/atoms/button/RightButton.jsx"
 import Timer from "../components/molecules/games/Timer";
 import KeywordCard from "../components/atoms/modal/KeywordCard";
+import InputBubble from "../components/atoms/modal/InputBubble";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore'
@@ -75,6 +75,8 @@ const SilentScreamPage = () => {
   const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
+  const [bubbles, setBubbles] = useState([]);
+
   const isPassModalOpen = useGameStore((state) => state.isPassModalOpen); //패스 모달
   const closePassModal = useGameStore((state) => state.closePassModal);
   const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen); // 정답모달
@@ -94,6 +96,7 @@ const SilentScreamPage = () => {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isWinModalOpen, setIsWinModalOpen] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const hasSubmittedRef = useRef(false)
  
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -186,10 +189,13 @@ const SilentScreamPage = () => {
   // Enter 키로 제출 모달 열기
   useEffect(() => {
     const handleEnterKey = (e) => {
-      if (e.key === "Enter") {
-        if (norIdxList.includes(myIdx) && !isSubmitModalOpen && !hasSubmitted) {
+      if (isSubmitModalOpen) return;
+      if (e.key === "Enter" && !isSubmitModalOpen && !hasSubmittedRef.current) {
+        if (document.activeElement.tagName === "INPUT") return;
+        if (document.activeElement.tagName === "TEXTAREA") return;
+        if (norIdxList.includes(myIdx)) {
           setIsSubmitModalOpen(true);
-          setHasSubmitted(true); // ✅ 한번 연 뒤에는 다시 안 열리게
+          setHasSubmitted(true);
         }
       }
     };
@@ -197,7 +203,16 @@ const SilentScreamPage = () => {
     return () => {
       window.removeEventListener("keydown", handleEnterKey);
     };
-  }, [myIdx, norIdxList, isSubmitModalOpen, hasSubmitted]);
+  }, [myIdx, norIdxList, isSubmitModalOpen]);
+
+  // hasSubmitted 리셋
+  const handleSubmitModalClose = () => {
+    setIsSubmitModalOpen(false);
+    hasSubmittedRef.current = true;
+    setTimeout(() => {
+      hasSubmittedRef.current = false;
+    }, 300);
+  }
   
   // 턴이 바뀌거나 keywordIdx 바뀌면 리셋
   useEffect(() => {
@@ -224,7 +239,18 @@ const SilentScreamPage = () => {
     }
   }, [repIdxList, norIdxList, participants]);
 
-  // livekit 렌더 함수
+  // 말풍선 함수
+  const addBubble = (text, userId) => {
+    const newBubble = { id: Date.now(), text, userId };
+
+    setBubbles((prev) => [...prev, newBubble]);
+
+    setTimeout(() => {
+      setBubbles((prev) => prev.filter((b) => b.id !== newBubble.id));
+    }, 3000);
+  }
+
+  // livekit 렌더 + 말풍선 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
     return roleGroup.map((p, idx) => {
       return (
@@ -232,6 +258,7 @@ const SilentScreamPage = () => {
           key={p.identity}
           className={`absolute ${positionStyles[idx]?.position}`}
         >
+          {/* 라이브킷 비디오 */}
           <LiveKitVideo
             videoTrack={p.track}
             nickname={p.nickname}
@@ -239,6 +266,14 @@ const SilentScreamPage = () => {
             containerClassName={positionStyles[idx]?.size}
             nicknameClassName="absolute bottom-4 left-4 text-white text-2xl"
           />
+          {/* 말풍선 */}
+          {bubbles
+          .filter((b) => b.userId === p.userAccountId)
+          .map((bubble) => (
+            <div key={bubble.id} className="absolute -top-5 left-50 z-50">
+              <InputBubble text={bubble.text} />
+            </div>
+          ))}
         </div>
       );
     });
@@ -421,10 +456,19 @@ const SilentScreamPage = () => {
       {isSubmitModalOpen && (
       <SubmitModal 
         isOpen={isSubmitModalOpen}
-        onClose={() => setIsSubmitModalOpen(false)}
+        onClose={handleSubmitModalClose}
         onSubmit={(inputAnswer) => {
-          emitAnswerSubmit({roomId, round, norId:myIdx, keywordIdx, inputAnswer});
-          setIsSubmitModalOpen(false);
+          // 안전한 흐름 보장
+          try {
+            emitAnswerSubmit({ roomId, round, norId: myIdx, keywordIdx, inputAnswer });
+          } catch (e) {
+            console.error("❌ emit 실패:", e);
+          } finally {
+            handleSubmitModalClose(); // ✅ 무조건 닫는다!
+            setTimeout(() => {
+              addBubble(inputAnswer, myIdx);
+            }, 100);
+          }
         }}
       />
     )}
