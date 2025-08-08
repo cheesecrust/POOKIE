@@ -1,6 +1,7 @@
 package com.ssafy.pookie.character.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
@@ -107,8 +108,11 @@ public class CharacterService {
     /**
      * user의 도감 조회하기
      */
-    public List<CharacterCatalog> getPookiesByUserId(Long userAccountId) {
-        return characterCatalogRepository.findByUserAccountId(userAccountId);
+    public List<CharacterCatalogResponseDto> getPookiesByUserId(Long userAccountId) {
+        List<CharacterCatalogResponseDto> catalogDtos = CharacterCatalogResponseDto
+                                                                .fromEntity(characterCatalogRepository.findByUserAccountId(userAccountId));
+        log.info(catalogDtos.toString());
+        return catalogDtos;
     }
 
     /**

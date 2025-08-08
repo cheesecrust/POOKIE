@@ -3,20 +3,23 @@ package com.ssafy.pookie.character.controller;
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.ChangeRepPookieRequestDto;
+import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
+import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/character")
+@RequestMapping("/characters")
 @RequiredArgsConstructor
 @Slf4j
 public class CharacterController {
@@ -29,14 +32,13 @@ public class CharacterController {
      * 사용자의 모든 캐릭터 카탈로그 조회
      */
     @GetMapping("/catalog")
-    public ResponseEntity<List<CharacterCatalog>> getUserCharacterCatalog(
-            @RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<List<CharacterCatalogResponseDto>> getUserCharacterCatalog(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            String token = authorization.replace("Bearer ", "");
-            Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
+            Long currentUserId = userDetails.getUserAccountId();
             
-            List<CharacterCatalog> catalogs = characterService.getPookiesByUserId(userAccountId);
-            return ResponseEntity.ok(catalogs);
+            List<CharacterCatalogResponseDto> catalogResponseDtos = characterService.getPookiesByUserId(currentUserId);
+            return ResponseEntity.ok(catalogResponseDtos);
         } catch (Exception e) {
             log.error("캐릭터 카탈로그 조회 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
@@ -48,12 +50,10 @@ public class CharacterController {
      */
     @GetMapping("/representative")
     public ResponseEntity<RepCharacterResponseDto> getRepresentativePookie(
-            @RequestHeader("Authorization") String authorization) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            String token = authorization.replace("Bearer ", "");
-            Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
-            
-            RepCharacterResponseDto repPookie = characterService.getRepPookie(userAccountId);
+            Long currentUserId = userDetails.getUserAccountId();
+            RepCharacterResponseDto repPookie = characterService.getRepPookie(currentUserId);
             return ResponseEntity.ok(repPookie);
         } catch (Exception e) {
             log.error("대표 푸키 조회 실패: {}", e.getMessage());
@@ -66,13 +66,11 @@ public class CharacterController {
      */
     @PutMapping("/representative")
     public ResponseEntity<String> changeRepresentativePookie(
-            @RequestHeader("Authorization") String authorization,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody ChangeRepPookieRequestDto request) {
         try {
-            String token = authorization.replace("Bearer ", "");
-            Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
-            
-            UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
+            Long currentUserId = userDetails.getUserAccountId();
+            UserAccounts userAccount = userAccountsRepository.findById(currentUserId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             
             characterService.changeRepPookie(userAccount, request.getPookieType(), request.getStep());
@@ -92,12 +90,10 @@ public class CharacterController {
      */
     @GetMapping("/my-pookie")
     public ResponseEntity<Object> getMyPookie(
-            @RequestHeader("Authorization") String authorization) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            String token = authorization.replace("Bearer ", "");
-            Long userAccountId = jwtTokenProvider.getUserIdFromToken(token);
-            
-            var myPookie = characterService.findMyPookieByUserId(userAccountId);
+            Long currentUserId = userDetails.getUserAccountId();
+            var myPookie = characterService.findMyPookieByUserId(currentUserId);
             return ResponseEntity.ok(myPookie);
         } catch (Exception e) {
             log.error("내 푸키 조회 실패: {}", e.getMessage());
