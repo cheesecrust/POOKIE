@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Propagation;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -291,6 +292,7 @@ public class CharacterService {
     }
 
     private Characters getRandomCharacter(List<Characters> candidates) {
-        return candidates.get(new Random().nextInt(candidates.size()));
+        int idx = ThreadLocalRandom.current().nextInt(candidates.size());
+        return candidates.get(idx);
     }
 }
