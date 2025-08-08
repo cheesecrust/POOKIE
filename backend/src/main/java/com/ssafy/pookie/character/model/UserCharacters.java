@@ -46,10 +46,6 @@ public class UserCharacters {
         this.exp += addedExp;
     }
 
-    public void resetExp() {
-        this.exp = 0;
-    }
-
     public void setMaxExpForLevelUp(int maxExp) {
         this.exp = maxExp;
     }

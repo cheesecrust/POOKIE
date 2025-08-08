@@ -5,29 +5,23 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 export default async function handleGameMessage(msg, handlers) {
   console.log("🟢 게임 메시지 수신:", msg);
   const { type } = msg;
-
+  console.log("[GAME] 메시지 수신:", msg.type,msg);
   switch (type) {
     // -----------------------------
     // 응답(Response) 메시지
     // -----------------------------
     case "GAME_KEYWORD":
-      // livekit 연결 및 역할 설정
-      const { repIdxList, norIdxList } = msg;
-      console.log("🎯 GAME_KEYWORD 받음:", msg);
+      // livekit 연결
+      const { repIdxList, norIdxList, keywordList } = msg;
+      // if (!keywordList || !Array.isArray(keywordList)) {
+      //   return;
+      // }
       useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       handlers?.onGameKeyword?.(msg);
       break;
 
     case "TIMER":
       handlers?.onTimer?.(msg);
-      break;
-
-    case "TIMER_PREPARE_START":
-      handlers?.onTimerPrepareStart?.(msg);
-      break;
-
-    case "TIMER_PREPARE_END":
-      handlers?.onTimerPrepareEnd?.(msg);
       break;
 
     case "GAME_TIMER_START":
@@ -59,21 +53,20 @@ export default async function handleGameMessage(msg, handlers) {
       break;
 
     case "WAITING_GAME_OVER":
-      console.log("게임 종료:", msg);
-      handlers?.onWaitingGameOver?.(msg);
-      break;
+      // console.log("게임 종료:", msg);
+      // console.log("Livekit 초기화 시작")
 
-    case "WAITING_GAME_OVER":
-      console.log("게임 종료:", msg);
-      console.log("Livekit 초기화 시작")
+      // const roomInstance = useGameStore.getState().roomInstance;
+      // const resetLiveKit = useGameStore.getState().resetLiveKit;
 
-      const roomInstance = useGameStore.getState().roomInstance;
-      const resetLiveKit = useGameStore.getState().resetLiveKit;
-
-      // LiveKit 연결 해제 및 정보 초기화
-      cleanupLiveKit({ roomInstance, resetLiveKit });
-      console.log("📍 초기화 이후 상태")
-      console.log("participants:", useGameStore.getState().participants);
+      // // LiveKit 연결 해제 및 정보 초기화
+      // try {
+      //   cleanupLiveKit({ roomInstance, resetLiveKit });
+      // } catch (err) {
+      //   console.error("LiveKit 정리 중 오류 발생", err);
+      // }
+      
+      // console.log("📍 초기화 이후 상태");
       handlers?.onWaitingGameOver?.(msg);
       break;
 

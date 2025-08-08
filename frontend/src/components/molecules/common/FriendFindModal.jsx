@@ -25,11 +25,15 @@ const FriendFindModal = ({ onClose }) => {
     if (nickname.trim()) {
       handleSearch()
     }
-  }, [currentPage]);
+  }, [currentPage,nickname]);
+
 
   // 검색 함수
   const handleSearch = async () => {
     if (!nickname.trim()) return;
+
+    setCurrentPage(0);
+
     try {
       const res = await axiosInstance.get(`/friends/candidate?search=${nickname}&size=6&page=${currentPage}`);
       // 백엔드가 해당 nickname을 포함한 유저들의 data 리턴 
@@ -57,6 +61,8 @@ const FriendFindModal = ({ onClose }) => {
         addresseeId: userId, 
         addresseeNickname: nickname, 
       });
+      console.log(userId)
+      console.log(nickname)
       console.log("친구 요청 완료!");
       onClose();
     } catch (err) {

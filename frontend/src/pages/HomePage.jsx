@@ -150,7 +150,7 @@ const HomePage = () => {
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
-                src={characterImageMap[user?.repCharacter?.name] || defaultCharacter}
+                src={characterImageMap[user?.repCharacter?.characterName] || defaultCharacter}
                 alt="대표캐릭터"
                 className="w-32 h-32 object-contain"
               />
