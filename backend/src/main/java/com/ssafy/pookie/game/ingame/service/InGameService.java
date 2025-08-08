@@ -305,6 +305,7 @@ public class InGameService {
             onlinePlayerManager.broadCastMessageToRoomUser(request.getUser().getSession(), request.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_ANSWER_SUBMITTED.toString(),
                     "answer", isAnswer,
+                    "norId", request.getUser().getUserAccountId(),
                     "inputAnswer", request.getInputAnswer(),
                     "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
