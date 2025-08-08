@@ -108,7 +108,9 @@ const LogInPage = () => {
           </ModalButton>
         </div>
       )}
-
+      <p className="absolute bottom-30 left-1/2 transform -translate-x-1/2 text-white text-2xl">
+        <b>F11</b> 을 눌러 전체화면 사용을 권장합니다
+      </p>
       <p
         className="absolute bottom-10 left-1/2 transform -translate-x-1/2 
                text-black text-xl text-center whitespace-pre-line w-[300px] leading-tight"
