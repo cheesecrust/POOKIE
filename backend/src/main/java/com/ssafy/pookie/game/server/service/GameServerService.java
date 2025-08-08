@@ -2,6 +2,7 @@ package com.ssafy.pookie.game.server.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.*;
@@ -24,6 +25,7 @@ public class GameServerService {
     private final UserAccountsRepository userAccountsRepository;
     // Lobby User Management
     private final NotificationService notificationService;
+    private final MessageSenderManager messageSenderManager;
 
     /*
         유저가 게임 Lobby 로 접속 시
@@ -52,7 +54,7 @@ public class GameServerService {
         onlinePlayerManager.getLobby().put(userDto.getUserAccountId(), lobbyUserDto);
         log.info("User {} entered lobby", userDto.getUserNickname());
         // ToClient
-        onlinePlayerManager.sendToMessageUser(session, Map.of(
+        messageSenderManager.sendMessageToUser(session, Map.of(
                 "type", "ON",
                 "msg", "연결되었습니다.",
                 "user", Map.of(
