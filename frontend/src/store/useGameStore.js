@@ -55,7 +55,7 @@ const useGameStore = create((set, get) => ({
     // 게임 시작할 때 전 게임 정보 초기화
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
     setScore: (score) => { set({ score: score }) },
-    setWin: (Win) => { set({ win: Win }) },
+    setWin: (win) => { set({ win: win }) },
     setKeywordIdx: (keywordIdx) => { set({ keywordIdx: keywordIdx }) },
 
     // 모달 상태 관리
@@ -76,7 +76,7 @@ const useGameStore = create((set, get) => ({
     openGamestartModal: () => set({ isGamestartModalOpen: true }),
     closeGamestartModal: () => set({ isGamestartModalOpen: false }),
     openTurnModal: () => set({ isTurnModalOpen: true }),
-    closeTurnModal: () => set({ isTurnModalOpen: false }), 
+    closeTurnModal: () => set({ isTurnModalOpen: false }),
     closePassModal: () => set({ isPassModalOpen: false }), // 패스 모달 닫기
     closeCorrectModal: () => set({ isCorrectModalOpen: false }), // 답변 정답 모달 닫기
     closeWrongModal: () => set({ isWrongModalOpen: false }), // 답변 오답 모달 닫기
@@ -96,8 +96,8 @@ const useGameStore = create((set, get) => ({
     // 타이머 SET 함수
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: (data) => {
-        set({ isSilentScreamTimerEnd : true });
-        
+        set({ isSilentScreamTimerEnd: true });
+
         // // 다음 턴 처리 결과를 먼저 계산
         // const result = get().nextDrawTurn();
         // console.log("📊 nextDrawTurn 결과:", result);
@@ -193,19 +193,19 @@ const useGameStore = create((set, get) => ({
 
     setGameAnswerSubmitted: (data) => {
         set((state) => ({
-          nowInfo: data.nowInfo,
-          keywordIdx: data.nowInfo.keywordIdx,
-          repIdx: data.nowInfo.repIdx,
-          score: data.answer ? state.score + 1 : state.score,
+            nowInfo: data.nowInfo,
+            keywordIdx: data.nowInfo.keywordIdx,
+            repIdx: data.nowInfo.repIdx,
+            score: data.answer ? state.score + 1 : state.score,
         }));
-      
+
         // 모달 처리 따로
         if (data.answer) {
-          set({ isCorrectModalOpen: true });
-          setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            set({ isCorrectModalOpen: true });
+            setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
         } else {
-          set({ isWrongModalOpen: true });
-          setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            set({ isWrongModalOpen: true });
+            setTimeout(() => set({ isWrongModalOpen: false }), 1000);
         }
     },
 
@@ -265,17 +265,17 @@ const useGameStore = create((set, get) => ({
     // 발화자 패스 
     setGamePassed: (data) => {
         set({
-          nowInfo: data.nowInfo,
-          keywordIdx: data.nowInfo.keywordIdx,
-          repIdx: data.nowInfo.repIdx,
-          isPassModalOpen: true,  // 모달 열기
+            nowInfo: data.nowInfo,
+            keywordIdx: data.nowInfo.keywordIdx,
+            repIdx: data.nowInfo.repIdx,
+            isPassModalOpen: true,  // 모달 열기
         });
-      
+
         // 1초 뒤 자동으로 닫기
         setTimeout(() => {
-          set({ isPassModalOpen: false });
+            set({ isPassModalOpen: false });
         }, 1000);
-      },
+    },
 
     // Livekit 관련
     addParticipant: (participant) =>
