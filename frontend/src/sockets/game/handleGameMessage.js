@@ -45,42 +45,9 @@ export default async function handleGameMessage(msg, handlers) {
       break;
 
     case "GAME_ANSWER_SUBMITTED":
-      const src = msg.payload ?? msg;
-      const { norId, inputAnswer, clientMsgId } = src;
-      const { bubbles, addBubble, removeBubble } = useGameStore.getState();
-
-      
-      // 안전장치: 필수값 없으면 무시
-      if (!norId || typeof inputAnswer !== "string") {
-        console.warn("[GAME] ANSWER_SUBMITTED payload invalid:", msg);
-        handlers?.onGameAnswerSubmitted?.(msg);
-        break;
-      }
-
-      // 중복 방지
-      if (clientMsgId && Array.isArray(bubbles) && bubbles.some(b => b.id === clientMsgId)) {
-        handlers?.onGameAnswerSubmitted?.(msg);
-        break;
-      }
-
-      const id = clientMsgId || `${Date.now()}-${norId}`;
-      const normalizedUserId = Number.isNaN(Number(norId)) ? String(norId) : Number(norId);
-
-        addBubble({
-          id,
-          userId: normalizedUserId,        // 네 렌더에서 p.userAccountId와 비교하니 필드 맞춤
-          text: inputAnswer,
-          ts: Date.now(),
-        });
-
-        // 2.5초 후 자동 제거 (원하는 시간으로 조절)
-        setTimeout(() => {
-          // 최신 스토어에서 제거 호출 (클로저 안전)
-          useGameStore.getState().removeBubble(id);
-        }, 2500);
-
-        handlers?.onGameAnswerSubmitted?.(msg);
-        break;
+      useGameStore.getState().processGameAnswerSubmitted(msg);
+      handlers?.onGameAnswerSubmitted?.(msg);
+      break;
 
     case "GAME_PASSED":
       handlers?.onGamePassed?.(msg);
