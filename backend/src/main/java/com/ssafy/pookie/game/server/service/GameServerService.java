@@ -61,7 +61,7 @@ public class GameServerService {
                         "userId", userDto.getUserAccountId(),
                         "userEmail", userDto.getUserEmail(),
                         "userNickname", userDto.getUserNickname(),
-                        "repImg", userDto.getReqImg() == null ? "" : userDto.getReqImg()
+                        "repCharacter", userDto.getRepCharacter() == null ? "정보가 없습니다." : userDto.getRepCharacter()
                 ),
                 "globalStatus", lobbyUserDto.getStatus().toString(),
                 "roomList", existingRoomList()

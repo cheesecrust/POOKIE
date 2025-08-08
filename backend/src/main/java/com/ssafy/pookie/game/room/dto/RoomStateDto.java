@@ -208,14 +208,14 @@ public class RoomStateDto {
                 "email", this.getRoomMaster().getUserEmail(),
                 "nickname", this.getRoomMaster().getUserNickname(),
                 "grant", this.getRoomMaster().getGrant().toString(),
-                "repImg", this.getRoomMaster().getReqImg() == null ? "" : this.getRoomMaster().getReqImg()
+                "repCharacter", this.getRoomMaster().getRepCharacter() == null ? "정보가 없습니다." : this.getRoomMaster().getRepCharacter()
         ));
         roomInfo.put("RED", this.getUsers().get("RED") == null ? List.of() :
                 this.getUsers().get("RED").stream().map(user -> Map.of(
                         "id", user.getUserAccountId(),
                         "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
-                        "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                        "repCharacter", this.getRoomMaster().getRepCharacter() == null ? "정보가 없습니다." : this.getRoomMaster().getRepCharacter(),
                         "status", user.getStatus().toString()
                 )).collect(Collectors.toList())
         );
@@ -224,7 +224,7 @@ public class RoomStateDto {
                         "id", user.getUserAccountId(),
                         "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
-                        "repImg", user.getReqImg() == null ? "" : user.getReqImg(),
+                        "repCharacter", this.getRoomMaster().getRepCharacter() == null ? "정보가 없습니다." : this.getRoomMaster().getRepCharacter(),
                         "status", user.getStatus().toString()
                 )).collect(Collectors.toList())
         );
