@@ -35,32 +35,34 @@ const LogInPage = () => {
       newAudio.loop = true;
       newAudio.volume = 0.3;
 
-      newAudio
-        .play()
+      newAudio.play()
         .then(() => {
           setAudio(newAudio);
           setStoreStarted(true);
-          setStarted(true);
         })
         .catch((err) => {
-          console.warn("🎵 새로고침 후 음악 재생 실패:", err);
+          console.warn("새로고침 후 음악 재생 실패", err)
           setStoreStarted(false);
-          setStarted(false);
         });
     } else if (!storeStarted) {
       setStoreStarted(false);
-      setStarted(false);
     }
   }, [storeStarted, currentSrc, audio, setAudio]);
 
   // 로그인 모달 열기 + 음악 재생
   const handleStart = () => {
+    if (audio && !audio.paused) {
+      setStoreStarted(true);
+      setStarted(true);
+      setShowLogin(true);
+      return;
+    }
+
     const newAudio = new Audio(mainTheme); // themesong1
     newAudio.loop = true;
     newAudio.volume = 0.3;
 
-    newAudio
-      .play()
+    newAudio.play()
       .then(() => {
         if (audio) {
           audio.pause();
