@@ -11,6 +11,7 @@ import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.room.dto.JoinDto;
 import com.ssafy.pookie.game.room.dto.RoomGameTypeChangeRequestDto;
 import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
@@ -46,6 +47,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameRoomService gameRoomService;
     private final InGameService inGameService;
     private final SocketMetrics socketMetrics;
+    private final MessageSenderManager messageSenderManager;
 
     private final ObjectMapper objectMapper;
     private final DrawService drawService;
@@ -151,7 +153,11 @@ public class GameServerHandler extends TextWebSocketHandler {
         } catch(Exception e) {
             log.error("{}",e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
-            onlinePlayerManager.sendToMessageUser(session, Map.of(
+//            onlinePlayerManager.sendToMessageUser(session, Map.of(
+//                    "type", "Error",
+//                    "msg", "요청처리 중 문제가 발생하였습니다."
+//            ));
+            messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));
