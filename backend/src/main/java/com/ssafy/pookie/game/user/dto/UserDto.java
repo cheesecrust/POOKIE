@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,7 +33,7 @@ public class UserDto {
     private Grant grant = Grant.NONE;
     private Team team = Team.NONE;
     private Status status = Status.NONE;
-    private String reqImg;
+    private RepCharacterResponseDto repCharacter;
 
     public void setGrant(Grant grant) {
         this.grant = grant;
