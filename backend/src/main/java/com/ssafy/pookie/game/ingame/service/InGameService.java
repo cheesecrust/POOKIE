@@ -257,7 +257,7 @@ public class InGameService {
             room.turnChange();
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
-                room.resetRoom();
+                room.resetAfterGameOver();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
