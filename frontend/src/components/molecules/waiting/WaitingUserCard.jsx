@@ -23,7 +23,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       onRightClickKick?.(user);
     }
   };
-  console.log(user);
+
   return (
     <div
       className="flex flex-col items-center"

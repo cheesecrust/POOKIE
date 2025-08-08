@@ -12,6 +12,10 @@ const useGameStore = create((set, get) => ({
     roomId: null,
     roomInfo: null,
 
+    // 게임 타입
+    gameType: null,
+    setGameType: (gameType) => set({ gameType }),
+
     // 팀 유저 정보
     red: null,
     blue: null,
@@ -94,7 +98,7 @@ const useGameStore = create((set, get) => ({
     // 게임 시작할 때 전 게임 정보 초기화
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },
     setScore: (score) => { set({ score: score }) },
-    setWin: (Win) => { set({ win: Win }) },
+    setWin: (win) => { set({ win: win }) },
     setKeywordIdx: (keywordIdx) => { set({ keywordIdx: keywordIdx }) },
 
     // 모달 상태 관리
@@ -115,7 +119,7 @@ const useGameStore = create((set, get) => ({
     openGamestartModal: () => set({ isGamestartModalOpen: true }),
     closeGamestartModal: () => set({ isGamestartModalOpen: false }),
     openTurnModal: () => set({ isTurnModalOpen: true }),
-    closeTurnModal: () => set({ isTurnModalOpen: false }), 
+    closeTurnModal: () => set({ isTurnModalOpen: false }),
     closePassModal: () => set({ isPassModalOpen: false }), // 패스 모달 닫기
     closeCorrectModal: () => set({ isCorrectModalOpen: false }), // 답변 정답 모달 닫기
     closeWrongModal: () => set({ isWrongModalOpen: false }), // 답변 오답 모달 닫기
@@ -125,56 +129,62 @@ const useGameStore = create((set, get) => ({
     gameTimerStarted: false,
     lastTurnResult: null, // 마지막 턴 처리 결과
 
-    // 타이머끝 상태 set 함수
-    resetIsTimerEnd: () => set({ isTimerEnd: false, lastTurnResult: null }),
+    // 고요속의 외침 타이머 끝 상태 -> true 일경우 라운드,턴 오버버 
+    isSilentScreamTimerEnd: false,
+    // 고요속의 외침 타이머 상태 초기화
+    resetIsSilentScreamTimerEnd: () => set({ isSilentScreamTimerEnd: false }),
 
+    // 타이머 끝 상태 set 함수
+    resetIsTimerEnd: () => set({ isTimerEnd: false, lastTurnResult: null }),
     // 타이머 SET 함수
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: (data) => {
-        // 다음 턴 처리 결과를 먼저 계산
-        const result = get().nextDrawTurn();
-        console.log("📊 nextDrawTurn 결과:", result);
+        set({ isSilentScreamTimerEnd: true });
 
-        // isTimerEnd와 턴 처리 결과를 함께 설정
-        set({
-            isTimerEnd: true,
-            lastTurnResult: result // 마지막 턴 처리 결과 저장
-        });
+        // // 다음 턴 처리 결과를 먼저 계산
+        // const result = get().nextDrawTurn();
+        // console.log("📊 nextDrawTurn 결과:", result);
 
-        // 그림그리기 게임에서는 자동으로 다음 턴 처리
-        const { roomId, master, turn, score, round } = get();
-        const myIdx = useAuthStore.getState().user?.userAccountId;
+        // // isTimerEnd와 턴 처리 결과를 함께 설정
+        // set({
+        //     isTimerEnd: true,
+        //     lastTurnResult: result // 마지막 턴 처리 결과 저장
+        // });
 
-        console.log("🔔 GAME_TIMER_END 받음:", { roomId, master, myIdx, data, result, turn, score, round });
+        // // 그림그리기 게임에서는 자동으로 다음 턴 처리
+        // const { roomId, master, turn, score, round } = get();
+        // const myIdx = useAuthStore.getState().user?.userAccountId;
 
-        if (roomId && myIdx === master) {
-            if (result?.roundComplete) {
-                console.log("🏁 BLUE 팀 완료, ROUND_OVER 호출");
-                emitRoundOver({
-                    roomId,
-                    team: "BLUE", // BLUE 팀이 완료된 상황
-                    score: score || 0
-                });
-                // 백엔드에서 라운드 증가 후 GAME_NEW_ROUND 또는 WAITING_GAME_OVER 응답
-            } else if (result?.teamChanged && result?.newTeam === "BLUE") {
-                // RED → BLUE 전환: TURN_OVER
-                console.log("🔄 RED → BLUE 전환, TURN_OVER 전송");
-                emitTurnOver({
-                    roomId,
-                    team: "RED", // 이전 팀
-                    score: score || 0
-                });
-                // 메시지 전송 후 백엔드에서 키워드와 함께 응답이 오면 자동으로 다음 타이머 시작
-            } else if (result?.nextPainter) {
-                // 같은 팀 내 턴 변경: 바로 타이머 시작
-                console.log("🎨 같은 팀 내 턴 변경, 바로 타이머 시작");
-                get().autoStartNextTimer(roomId);
-            }
-        } else if (!roomId) {
-            console.log("❌ roomId가 없음");
-        } else {
-            console.log("👥 방장이 아니므로 대기");
-        }
+        // console.log("🔔 GAME_TIMER_END 받음:", { roomId, master, myIdx, data, result, turn, score, round });
+
+        // if (roomId && myIdx === master) {
+        //     if (result?.roundComplete) {
+        //         console.log("🏁 BLUE 팀 완료, ROUND_OVER 호출");
+        //         emitRoundOver({
+        //             roomId,
+        //             team: "BLUE", // BLUE 팀이 완료된 상황
+        //             score: score || 0
+        //         });
+        //         // 백엔드에서 라운드 증가 후 GAME_NEW_ROUND 또는 WAITING_GAME_OVER 응답
+        //     } else if (result?.teamChanged && result?.newTeam === "BLUE") {
+        //         // RED → BLUE 전환: TURN_OVER
+        //         console.log("🔄 RED → BLUE 전환, TURN_OVER 전송");
+        //         emitTurnOver({
+        //             roomId,
+        //             team: "RED", // 이전 팀
+        //             score: score || 0
+        //         });
+        //         // 메시지 전송 후 백엔드에서 키워드와 함께 응답이 오면 자동으로 다음 타이머 시작
+        //     } else if (result?.nextPainter) {
+        //         // 같은 팀 내 턴 변경: 바로 타이머 시작
+        //         console.log("🎨 같은 팀 내 턴 변경, 바로 타이머 시작");
+        //         get().autoStartNextTimer(roomId);
+        //     }
+        // } else if (!roomId) {
+        //     console.log("❌ roomId가 없음");
+        // } else {
+        //     console.log("👥 방장이 아니므로 대기");
+        // }
     },
 
     handleTimerPrepareSequence: (roomId) => {
@@ -226,19 +236,19 @@ const useGameStore = create((set, get) => ({
 
     setGameAnswerSubmitted: (data) => {
         set((state) => ({
-          nowInfo: data.nowInfo,
-          keywordIdx: data.nowInfo.keywordIdx,
-          repIdx: data.nowInfo.repIdx,
-          score: data.answer ? state.score + 1 : state.score,
+            nowInfo: data.nowInfo,
+            keywordIdx: data.nowInfo.keywordIdx,
+            repIdx: data.nowInfo.repIdx,
+            score: data.answer ? state.score + 1 : state.score,
         }));
-      
+
         // 모달 처리 따로
         if (data.answer) {
-          set({ isCorrectModalOpen: true });
-          setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            set({ isCorrectModalOpen: true });
+            setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
         } else {
-          set({ isWrongModalOpen: true });
-          setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            set({ isWrongModalOpen: true });
+            setTimeout(() => set({ isWrongModalOpen: false }), 1000);
         }
     },
 
@@ -249,15 +259,17 @@ const useGameStore = create((set, get) => ({
             round: data.round,
         });
 
-        // TURN_OVER 후 자동으로 타이머 시작 (방장만)
-        const { roomId, master } = get();
-        const myIdx = useAuthStore.getState().user?.userAccountId;
+        if (get().gameType === "SKETCHRELAY") {
+            // TURN_OVER 후 자동으로 타이머 시작 (방장만)
+            const { roomId, master } = get();
+            const myIdx = useAuthStore.getState().user?.userAccountId;
 
-        if (myIdx === master && roomId) {
-            console.log("🔄 TURN_OVER 완료, 자동 타이머 시작");
-            setTimeout(() => {
-                get().autoStartNextTimer(roomId);
-            }, 1000);
+            if (myIdx === master && roomId) {
+                console.log("🔄 TURN_OVER 완료, 자동 타이머 시작");
+                setTimeout(() => {
+                    get().autoStartNextTimer(roomId);
+                }, 1000);
+            }
         }
     },
 
@@ -277,34 +289,36 @@ const useGameStore = create((set, get) => ({
             currentDrawTurn: 0, // 새 라운드 시작 시 그리기 턴 초기화
         });
 
-        console.log("🆕 새 라운드 시작:", { round: data.round, turn: "RED" });
+        if (get().gameType === "SKETCHRELAY") {
+            console.log("🆕 새 라운드 시작:", { round: data.round, turn: "RED" });
 
-        // NEW_ROUND 후 자동으로 타이머 시작 (방장만)
-        const { roomId, master } = get();
-        const myIdx = useAuthStore.getState().user?.userAccountId;
+            // NEW_ROUND 후 자동으로 타이머 시작 (방장만)
+            const { roomId, master } = get();
+            const myIdx = useAuthStore.getState().user?.userAccountId;
 
-        if (myIdx === master && roomId) {
-            console.log("🆕 NEW_ROUND 완료, 자동 타이머 시작");
-            setTimeout(() => {
-                get().autoStartNextTimer(roomId);
-            }, 1000);
+            if (myIdx === master && roomId) {
+                console.log("🆕 NEW_ROUND 완료, 자동 타이머 시작");
+                setTimeout(() => {
+                    get().autoStartNextTimer(roomId);
+                }, 1000);
+            }
         }
     },
 
     // 발화자 패스 
     setGamePassed: (data) => {
         set({
-          nowInfo: data.nowInfo,
-          keywordIdx: data.nowInfo.keywordIdx,
-          repIdx: data.nowInfo.repIdx,
-          isPassModalOpen: true,  // 모달 열기
+            nowInfo: data.nowInfo,
+            keywordIdx: data.nowInfo.keywordIdx,
+            repIdx: data.nowInfo.repIdx,
+            isPassModalOpen: true,  // 모달 열기
         });
-      
+
         // 1초 뒤 자동으로 닫기
         setTimeout(() => {
-          set({ isPassModalOpen: false });
+            set({ isPassModalOpen: false });
         }, 1000);
-      },
+    },
 
     // Livekit 관련
     addParticipant: (participant) =>
@@ -366,7 +380,7 @@ const useGameStore = create((set, get) => ({
         }));
     },
 
-    setWatingGameOver: (data) => {
+    setWaitingGameOver: (data) => {
         console.log("🎉 게임 종료:", data);
         set({
             win: data.gameResult.win,

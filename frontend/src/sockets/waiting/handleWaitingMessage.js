@@ -24,7 +24,8 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setTeamScore,
         setScore,
         setWin,
-        setKeywordIdx,
+        setKeywordIdx,  
+        setGameType,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -81,6 +82,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setBlue(room.BLUE);
             setMaster(room.master.id)
             setRoomInfo(room)
+            setGameType(room.gameType)
 
             setWin(game_init.win)
             setTeamScore(game_init.teamScore)
