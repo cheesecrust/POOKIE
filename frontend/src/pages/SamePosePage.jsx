@@ -42,8 +42,12 @@ const SamePosePage = () => {
 
   //타이머
   const time = useGameStore((state) => state.time);
-  const isTimerEnd = useGameStore((state) => state.isTimerEnd);
-  const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
+
+  // 일심동체용 타이머
+  const isSamePoseTimerEnd = useGameStore((state) => state.isSamePoseTimerEnd);
+  const resetSamePoseTimerEnd = useGameStore(
+    (state) => state.resetIsSamePoseTimerEnd
+  );
 
   // 팀 구분
   const redTeam = useGameStore((state) => state.red) || [];
@@ -95,7 +99,7 @@ const SamePosePage = () => {
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const showTurnChangeModal = useGameStore(
     (state) => state.showTurnChangeModal
-  );
+  ); // 턴 바뀔때 모달
 
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
@@ -180,7 +184,7 @@ const SamePosePage = () => {
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (isTimerEnd) {
+    if (isSamePoseTimerEnd) {
       if (turn === "RED") {
         emitTurnOver({ roomId, team: turn, score });
         if (myIdx === master) {
@@ -196,9 +200,9 @@ const SamePosePage = () => {
           }, 2000);
         }
       }
-      resetGameTimerEnd();
+      resetSamePoseTimerEnd();
     }
-  }, [isTimerEnd, master, myIdx, round, roomId, score, turn]);
+  }, [isSamePoseTimerEnd, master, myIdx, round, roomId, score, turn]);
 
   // hideModal 대상 계산 => 나중에 수정
   useEffect(() => {

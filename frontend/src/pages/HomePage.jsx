@@ -137,7 +137,7 @@ const HomePage = () => {
                 방 생성하기
               </ModalButton>
               <ModalButton
-                onClick={() => setRoomCreateModalOpen(true)}
+                onClick={() => alert("서비스 준비 중입니다🤍")}
                 className="px-6 py-2 rounded-full shadow-md hover:brightness-95"
               >
                 혼자 하기
@@ -146,13 +146,13 @@ const HomePage = () => {
           </div>
 
           {/* 오른쪽: 유저 프로필 */}
-          <div className="bg-white p-4 rounded-xl border shadow-sm w-[40%] text-sm text-left flex flex-row gap-4 items-center">
+          <div className="bg-white p-4 rounded-xl border-2 shadow-sm w-[40%] text-sm text-left flex flex-row gap-4 items-center">
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
                 src={characterImageMap[user?.repCharacter?.characterName] || defaultCharacter}
                 alt="대표캐릭터"
-                className="w-32 h-32 object-contain"
+                className="w-40 h-40 object-contain"
               />
             </div>
 
@@ -160,17 +160,13 @@ const HomePage = () => {
             <div className="flex flex-col justify-between flex-grow h-full">
               {/* 유저 정보 */}
               <div className="flex flex-col gap-1">
-                <p className="font-semibold">
+                <p className="font-semibold text-xl">
                   닉네임 : {user?.nickname}
                 </p>
-                <p>EXP : {user?.repCharacter.step}</p>
-                <div className="bg-black h-2 rounded mt-1 mb-2 w-full">
-                  <div className="bg-[#F4C0C0] h-full w-[100%] rounded"></div>
-                </div>
               </div>
 
               {/* 마이페이지 버튼 (하단 고정) */}
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-center mr-2 mt-4">
                 <ModalButton
                   onClick={async () => {
                     navigate("/myroom");
