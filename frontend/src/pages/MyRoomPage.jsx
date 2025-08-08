@@ -172,7 +172,7 @@ const MyRoomPage = () => {
 
               {activeTab === "인벤토리" && (
                 <div className="text-center py-10">
-                  <InventoryList onUseSuccess={fetchAuthInfo} refreshTrigger={activeTab}></InventoryList>
+                  <InventoryList  onUseSuccess={fetchAuthInfo} refreshTrigger={activeTab}></InventoryList>
                 </div>
               )}
             </div>

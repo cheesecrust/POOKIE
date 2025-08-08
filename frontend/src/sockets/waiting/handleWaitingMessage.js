@@ -24,7 +24,7 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setTeamScore,
         setScore,
         setWin,
-        setKeywordIdx,  
+        setKeywordIdx,
         setGameType,
         resetIsSamePoseTimerEnd,
         resetIsSilentScreamTimerEnd,
@@ -44,6 +44,10 @@ const handleWaitingMessage = (data, handlers = {}) => {
         const me = room[myTeam]?.find((u) => u.id === user.userAccountId);
         setIsReady(me?.status === "READY");
     };
+
+    // if (data?.type === "WAITING_GAME_OVER") {
+    //     updateClientState(data.room);
+    // }
 
     switch (data.type) {
 

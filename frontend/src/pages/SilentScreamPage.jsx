@@ -16,6 +16,7 @@ import RightButton from "../components/atoms/button/RightButton.jsx";
 import Timer from "../components/molecules/games/Timer";
 import KeywordCard from "../components/atoms/modal/KeywordCard";
 import InputBubble from "../components/atoms/modal/InputBubble";
+import GameResultModal from "../components/organisms/games/GameResultModal";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from "../store/useGameStore";
@@ -80,6 +81,10 @@ const SilentScreamPage = () => {
 
   // 최종 승자
   const win = useGameStore((state) => state.win);
+
+  // 팀정보 
+  const redTeam = useGameStore((state) => state.red) || [];
+  const blueTeam = useGameStore((state) => state.blue) || [];
 
   // 모달
   const isGameStartModalOpen = useGameStore(
@@ -509,17 +514,15 @@ const SilentScreamPage = () => {
         </p>
       </PopUpModal>
 
+
       {/* 최종 승자 모달 */}
-      <PopUpModal
-        isOpen={isWinModalOpen}
-        onClose={() => setIsWinModalOpen(false)}
-      >
-        <p className="text-6xl font-bold font-pixel">
-          {(win === "DRAW" && "DRAW!") ||
-            (win === "RED" && "RED TEAM WIN!") ||
-            (win === "BLUE" && "BLUE TEAM WIN!")}
-        </p>
-      </PopUpModal>
+      {isWinModalOpen && (
+        <GameResultModal win={win} 
+        redTeam={redTeam} 
+        blueTeam={blueTeam} 
+        isOpen={isWinModalOpen} 
+        onClose={() => setIsWinModalOpen(false)} />)}
+
 
       {/* PASS 모달 */}
       <PopUpModal isOpen={isPassModalOpen} onClose={closePassModal}>

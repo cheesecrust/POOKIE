@@ -48,6 +48,7 @@ export const connectSocket = ({
   socket.onmessage = async (e) => {
     try {
       const msg = JSON.parse(e.data)
+      console.log("[WebSocket MESSAGE]", msg);
       // 일반 메시지 처리
       const mergedHandlers = { ...handlers, ...currentHandlers };
       await handleSocketMessage(msg, mergedHandlers);
@@ -103,15 +104,15 @@ const handleTokenExpirationAndReconnect = async () => {
  */
 export const sendMessage = (type, data) => {
   console.log("🔊 sendMessage 호출:", { type, data, socketState: socket?.readyState });
-  
+
   if (socket?.readyState === WebSocket.OPEN) {
     const message = { type, payload: data };
     socket.send(JSON.stringify(message));
     console.log("✅ 소켓 메시지 전송 완료:", message);
   } else {
-    console.warn("❌ WebSocket이 열려있지 않음:", { 
-      type, 
-      payload: data, 
+    console.warn("❌ WebSocket이 열려있지 않음:", {
+      type,
+      payload: data,
       socketExists: !!socket,
       readyState: socket?.readyState,
       CONNECTING: WebSocket.CONNECTING,
