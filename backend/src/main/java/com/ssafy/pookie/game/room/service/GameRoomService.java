@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.room.service;
 
 import com.ssafy.pookie.character.repository.CharacterCatalogRepository;
+import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
@@ -28,7 +29,7 @@ public class GameRoomService {
     private final GameServerService gameServerService;
     private final SocketMetrics socketMetrics;
     private final MessageSenderManager messageSenderManager;
-    private final CharacterCatalogRepository characterCatalogRepository;
+    private final CharacterService characterService;
     /*
         유저가 게임 대기방으로 접속시
      */
@@ -81,9 +82,8 @@ public class GameRoomService {
                 joinDto.getUser().setGrant(UserDto.Grant.PLAYER);
             }
             joinDto.getUser().setStatus(UserDto.Status.READY);
-            joinDto.getUser().setReqImg(characterCatalogRepository
-                    .findByUserAccount_IdAndIsRepresent(joinDto.getUser()
-                            .getUserAccountId(), true).get(0).getCharacter().getName());
+            joinDto.getUser().setReqImg(characterService.getRepPookie(joinDto.getUser().getUserAccountId())
+                    .getCharacterName());
             // 세션 설정
             // 게임 설정
             // 각 팀에 유저 배치
