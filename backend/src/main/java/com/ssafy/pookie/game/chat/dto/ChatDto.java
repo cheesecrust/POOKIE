@@ -1,10 +1,11 @@
 package com.ssafy.pookie.game.chat.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.Data;
-import org.springframework.web.socket.TextMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
@@ -23,25 +24,14 @@ public class ChatDto {
         this.timeStamp = LocalDateTime.now();
     }
 
-    public void sendChat(WebSocketSession session, RoomStateDto room) throws IOException {
+    public void sendChat(WebSocketSession session, RoomStateDto room, MessageSenderManager manager) throws IOException {
         // 전체 채팅
         if(this.getTeam() == null || this.getTeam().toString().isEmpty() || this.getTeam() == UserDto.Team.NONE) {
-            for(WebSocketSession s : room.getSessions()) {
-//                if(s == session) continue;        // 자기 자신 제외 로직
-                s.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(mappingMessage())));
+            for(WebSocketSession s : room.getSessions()) {      // 자기 자신을 포함하여 전송
+                manager.sendMessageToUser(s, mappingMessage());
             }
         } else {
-            room.getUsers().get(this.team.toString()).stream().forEach((user) -> {
-//                if (user.getTeam() == this.team && user.getSession() != session) {
-                if (user.getTeam() == this.team) {
-                    try {
-                        user.getSession()
-                                .sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(mappingMessage())));
-                    } catch (IOException e) {
-                        throw new IllegalArgumentException("채팅 전송 도중 오류가 발생하였습니다.");
-                    }
-                }
-            });
+            manager.sendMessageBroadCast(session, this.roomId, this.team, mappingMessage());
         }
     }
 
