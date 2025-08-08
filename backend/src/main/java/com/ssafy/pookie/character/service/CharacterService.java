@@ -4,6 +4,7 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
+import com.ssafy.pookie.character.dto.UserCharactersResponseDto;
 import com.ssafy.pookie.character.model.CharacterCatalog;
 import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
@@ -18,7 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -32,95 +35,20 @@ public class CharacterService {
     private final UserAccountsRepository userAccountsRepository;
     private final UserCharactersRepository userCharactersRepository;
 
-    /**
-     * 현재 키우는 푸키 레벨업
-     */
-    @Transactional
-    public UserCharacters levelUpMyPookie(Long userAccountId, UserCharacters userCharacter, int requiredExpForStepUp) {
-        // 레벨업 조건 미충족 시 그대로 반환
-        if (userCharacter.getExp() < requiredExpForStepUp) {
-            log.info("현재 step에서 최대 경험치 이상이므로 step up(level up) 진행 안합니다.");
-            return userCharacter;
-        }
+    // ----------------------------
+    // 조회 계열
+    // ----------------------------
 
-        // 경험치 max로 고정(초과할 수 없으므로)
-        userCharacter.setMaxExpForLevelUp(requiredExpForStepUp);
-        userCharactersRepository.save(userCharacter);
-
-        int currentStep = userCharacter.getCharacter().getStep();
-        PookieType currentType = userCharacter.getCharacter().getType();
-
-        List<Characters> candidates = null;
-        log.info("현재 step: {}: ", currentStep);
-        // 도감 등록할 새로운 캐릭터
-        Characters nextChar = null;
-        if (currentStep == 0) {
-            candidates = charactersRepository.findByStep(1);
-        } else if (currentStep == 1) {
-            candidates = charactersRepository.findCharactersByTypeAndStep(currentType, 2);
-        }
-
-        if (candidates != null && !candidates.isEmpty()) {
-            // 다음 캐릭터 랜덤 선택
-            nextChar = getRandomCharacter(candidates);
-
-            // user character에 저장
-            UserCharacters newUserCharacter = UserCharacters.builder()
-                                                    .userAccount(userCharacter.getUserAccount())
-                                                    .character(nextChar)
-                                                    .exp(0)
-                                                    .isDrop(false)
-                                                    .build();
-            userCharactersRepository.save(newUserCharacter);
-
-            // 도감 등록 및 상태 업데이트
-            setPookieCatalogIfNotExists(userCharacter.getUserAccount(), nextChar);
-        }
-
-        if (currentStep == 0) {
-            updateCatalogStates(userCharacter.getUserAccount(), nextChar, true, true);
-        } else if (currentStep == 1) {
-            // 레벨 1 -> 2로 최종 진화했을 경우 키우는
-            // 최종 진화 → 성장 종료 (새로운 푸키 받기는 버튼으로 처리)
-
-            updateCatalogStates(userCharacter.getUserAccount(), nextChar, true, false);
-        }
-
-        return userCharactersRepository.save(userCharacter);
-    }
-
-    /**
-     * 도감 상태 업데이트 (대표/성장 동기화)
-     */
-    @Transactional
-    public void updateCatalogStates(UserAccounts user, Characters character, boolean represent, boolean growing) {
-
-       log.info("도감 상태 업데이트 시작합니다.");
-        // 기존 대표/성장 상태 초기화 (bulk update)
-        characterCatalogRepository.resetAllRepresent(user.getId());
-        characterCatalogRepository.resetAllGrowing(user.getId());
-        log.info("도감 상태 대표, 성장 모두 false로 두었습니다.");
-
-        // bulk update
-        characterCatalogRepository.updateCatalogState(user.getId(), character.getId(), represent, growing);
-        log.info("현재 user account: {} 에서 캐릭터 이름: {}을 현재 도감 상태 대표: {}, 성장: {} 두었습니다."
-                , user.getNickname(), character.getName(), represent, growing);
-    }
-
-    /**
-     * user의 도감 조회하기
-     */
+    /** user의 도감 조회하기 */
+    @Transactional(readOnly = true)
     public List<CharacterCatalogResponseDto> getPookiesByUserId(Long userAccountId) {
-        List<CharacterCatalogResponseDto> catalogDtos = CharacterCatalogResponseDto
-                                                                .fromEntity(
-                                                                    characterCatalogRepository
-                                                                    .findByUserAccount_Id(userAccountId));
-        return catalogDtos;
+        return CharacterCatalogResponseDto.fromEntity(
+                characterCatalogRepository.findByUserAccount_Id(userAccountId)
+        );
     }
 
-    /**
-     * 성장하는 푸키 가져오기
-     */
+    /** 성장하는 푸키(종) 가져오기 */
+    @Transactional(readOnly = true)
     public Characters getGrowingPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
                 characterCatalogRepository.findByUserAccount_IdAndIsGrowing(userAccountId, true);
@@ -131,9 +59,8 @@ public class CharacterService {
         return catalog.get(0).getCharacter();
     }
 
-    /**
-     * 대표 푸키 가져오기
-     */
+    /** 대표 푸키(개체) 가져오기 */
+    @Transactional(readOnly = true)
     public RepCharacterResponseDto getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
                 characterCatalogRepository.findByUserAccount_IdAndIsRepresent(userAccountId, true);
@@ -141,131 +68,229 @@ public class CharacterService {
         if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         if (catalog.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
 
-        Characters characters = catalog.get(0).getCharacter();
+        int characterId = catalog.get(0).getCharacter().getId();
+
+        // 같은 종 개체가 여러 개일 수 있으니 "활성 최신" 한 개체를 고른다.
         UserCharacters repUserCharacters = userCharactersRepository
-                            .findByUserAccountIdAndCharacterId(userAccountId, characters.getId())
-                            .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
+                .findTopByUserAccount_IdAndCharacter_IdAndIsDropFalseOrderByCreatedAtDesc(userAccountId, characterId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        RepCharacterResponseDto repCharacterDto = RepCharacterResponseDto
-                                                        .fromEntity(repUserCharacters);
-
-        return repCharacterDto;
+        return RepCharacterResponseDto.fromEntity(repUserCharacters);
     }
 
-    /**
-     * 대표 푸키 바꾸기
-     */
+    /** 나의 푸키 조회하기 (growing → 대표 → 활성 최신) */
+    @Transactional(readOnly = true)
+    public UserCharactersResponseDto findMyPookieByUserId(Long userAccountId) {
+        // 1) growing 우선
+        List<CharacterCatalog> growing = characterCatalogRepository
+                .findByUserAccount_IdAndIsGrowing(userAccountId, true);
+        if (!growing.isEmpty()) {
+            int characterId = growing.get(0).getCharacter().getId();
+            UserCharacters uc = userCharactersRepository
+                    .findTopByUserAccount_IdAndCharacter_IdAndIsDropFalseOrderByCreatedAtDesc(userAccountId, characterId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.GROWING_POKIE_NOT_FOUND));
+            return UserCharactersResponseDto.fromEntity(uc);
+        }
+
+        // 2) 대표 다음
+        List<CharacterCatalog> reps = characterCatalogRepository
+                .findByUserAccount_IdAndIsRepresent(userAccountId, true);
+        if (!reps.isEmpty()) {
+            int characterId = reps.get(0).getCharacter().getId();
+            UserCharacters uc = userCharactersRepository
+                    .findTopByUserAccount_IdAndCharacter_IdAndIsDropFalseOrderByCreatedAtDesc(userAccountId, characterId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.REP_POKIE_NOT_FOUND));
+            return UserCharactersResponseDto.fromEntity(uc);
+        }
+
+        // 3) 마지막 fallback: 유저의 활성 최신 개체 하나
+        UserCharacters latest = userCharactersRepository.findByUserAccount_IdAndIsDrop(userAccountId, false).stream()
+                .max(Comparator.comparing(UserCharacters::getCreatedAt))
+                .orElseThrow(() -> new CustomException(ErrorCode.REP_POKIE_NOT_FOUND));
+
+        return UserCharactersResponseDto.fromEntity(latest);
+    }
+
+    // ----------------------------
+    // 상태 변경 계열
+    // ----------------------------
+
+    /** 대표 푸키 바꾸기 (도감 플래그 기반) */
     @Transactional
     public void changeRepPookie(Long currentUserId, int characterCatalogId, int characterId) {
         UserAccounts userAccount = userAccountsRepository.findById(currentUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-
         CharacterCatalog catalog = characterCatalogRepository
                 .findOne(characterCatalogId, characterId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        if (catalog.isRepresent()) return ; // 이미 대표
+        if (catalog.isRepresent()) return; // 이미 대표면 무시
 
         updateCatalogStates(userAccount, catalog.getCharacter(), true, catalog.isGrowing());
     }
 
-    /**
-     * 나의 푸키 조회하기
-     */
-    public UserCharacters findMyPookieByUserId(Long userAccountId) {
-        List<UserCharacters> userCharacters =
-                userCharactersRepository.findUserCharactersByUserAccountIdAndIsDrop(userAccountId, false);
-
-        if (userCharacters.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
-        if (userCharacters.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
-
-        return userCharacters.get(0);
+    /** Base 푸키 새로 지급하기 (기존 사용자에게) */
+    @Transactional
+    public UserCharactersResponseDto setUserNewPookie(Long userAccountId) {
+        UserAccounts userAccount = userAccountsRepository.findById(userAccountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return setUserInitPookie(userAccount);
     }
 
-    /**
-     * 푸키 지급하기 (처음 지급 or 새로운 푸키 받기)
-     */
+    /** Base 푸키 지급하기 (처음 지급 or 새로운 푸키 받기)  */
     @Transactional
-    public Characters setUserInitPookie(UserAccounts userAccount) {
-        Characters character = charactersRepository.findCharactersByType(PookieType.BASE)
-                .stream()
-                .findFirst()
+    public UserCharactersResponseDto setUserInitPookie(UserAccounts userAccount) {
+        // 1) 지급 가능 여부 검증
+        boolean hasAnyCharacter = userCharactersRepository.existsByUserAccount_Id(userAccount.getId());
+        boolean hasGrowingCatalog = characterCatalogRepository.existsByUserAccount_IdAndIsGrowingTrue(userAccount.getId());
+
+        if (hasAnyCharacter && hasGrowingCatalog) {
+            throw new CustomException(ErrorCode.POOKIE_ALREADY_GROWING);
+        }
+
+        // 2) BASE 종
+        Characters base = charactersRepository.findCharactersByType(PookieType.BASE)
+                .stream().findFirst()
                 .orElseThrow(() -> new CustomException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        // UserCharacters 저장
-        UserCharacters initChar = UserCharacters.builder()
-                .userAccount(userAccount)
-                .character(character)
-                .exp(0)
-                .isDrop(false)
-                .build();
+        // 3) UserCharacters upsert (여러 개 허용 정책, 기존 있으면 exp만 초기화)
+        UserCharacters uc = userCharactersRepository
+                .findByUserAccount_IdAndCharacter_Id(userAccount.getId(), base.getId())
+                .map(ex -> { ex.resetExp(); return ex; })
+                .orElseGet(() -> UserCharacters.builder()
+                        .userAccount(userAccount).character(base)
+                        .exp(0).isDrop(false)
+                        .build());
 
-        // CharacterCatalog 등록 (없으면 생성)
-        CharacterCatalog catalog = setPookieCatalogIfNotExists(userAccount,
-                        userCharactersRepository.save(initChar).getCharacter());
+        uc = userCharactersRepository.save(uc);
 
-        // 대표 & 성장 캐릭터로 지정
-        updateCatalogStates(userAccount, catalog.getCharacter(), true, true);
+        // 4) 도감 upsert
+        setPookieCatalogIfNotExists(userAccount, base);
 
-        log.info("✅ 첫 푸키 지급 완료: userId={}, characterId={}, step={}, isRep={}, isGrowing={}",
-                userAccount.getId(), character.getId(), character.getStep(), catalog.isRepresent(), catalog.isGrowing());
+        // 5) 도감 플래그: 대표/성장 = true/true
+        updateCatalogStates(userAccount, base, true, true);
 
-        return character;
+        log.info("✅ Base 지급 완료: userId={}, characterId={}, step={}, rep={}, grow={}",
+                userAccount.getId(), base.getId(), base.getStep(), true, true);
+
+        return UserCharactersResponseDto.fromEntity(uc);
     }
 
-    /**
-     * 도감에 푸키 등록 (없으면 새로 생성)
-     */
-    private CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, Characters newChar) {
-
-        return characterCatalogRepository
-                .findByUserAccount_IdAndCharacter_StepAndCharacter_Type(userAccount.getId(), newChar.getStep(), newChar.getType())
-                .orElseGet(() -> {
-
-                    CharacterCatalog catalog = CharacterCatalog.builder()
-                            .userAccount(userAccount)
-                            .character(newChar)
-                            .isRepresent(false)
-                            .isGrowing(false)
-                            .build();
-
-                    return characterCatalogRepository.save(catalog);
-                });
-    }
-
-    /**
-     * 아이템 사용 시 경험치 추가 및 필요 시 레벨업
-     */
+    /** 아이템 사용 → exp 증가 → 필요 시 레벨업 → DTO 반환 */
     @Transactional(rollbackFor = Exception.class)
-    public UserCharacters feedMyPookie(Long userAccountId, int expFromItem) {
+    public UserCharactersResponseDto feedMyPookie(Long userAccountId, int expFromItem) {
         Characters growingPookieCharacter = getGrowingPookie(userAccountId);
 
+        // 같은 종 개체가 여러 개일 수 있으니 "활성 최신"을 선택
         UserCharacters userCharacter = userCharactersRepository
-                .findByUserAccountIdAndCharacterId(userAccountId, growingPookieCharacter.getId())
+                .findTopByUserAccount_IdAndCharacter_IdAndIsDropFalseOrderByCreatedAtDesc(
+                        userAccountId, growingPookieCharacter.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.REP_POKIE_NOT_FOUND));
 
         int currentStep = userCharacter.getCharacter().getStep();
-        log.info("현재 대표 캐릭터에게 아이템을 사용합니다. 대표 캐릭터: {}, 현재 경험치: {}, 현재 step: {}"
-                , userCharacter.getCharacter(), userCharacter.getExp(), currentStep);
-
         userCharacter.upExp(expFromItem);
 
-        log.info("현재 대표 캐릭터에게 아이템을 사용했습니다. 대표 캐릭터: {}, 현재 경험치: {}, 현재 step: {}"
-                , userCharacter.getCharacter(), userCharacter.getExp(), currentStep);
-
         int requiredExpForStepUp = ExpThreshold.getRequiredExpForStep(currentStep);
-        log.info("현재 step에서 레벨업 가능한 최대 경험치 이상: {}", requiredExpForStepUp);
+        log.info("피딩: userId={}, characterId={}, step={}, expAfter={}, required={}",
+                userAccountId, userCharacter.getCharacter().getId(), currentStep, userCharacter.getExp(), requiredExpForStepUp);
+
         if (userCharacter.getExp() >= requiredExpForStepUp) {
-            log.info("현재 step에서 최대 경험치 이상이므로 step up(level up) 진행합니다.");
+            // 레벨업 진행
             return levelUpMyPookie(userAccountId, userCharacter, requiredExpForStepUp);
         }
 
-        return userCharactersRepository.save(userCharacter);
+        return UserCharactersResponseDto.fromEntity(userCharactersRepository.save(userCharacter));
+    }
+
+    /** 현재 키우는 푸키 레벨업 → DTO 반환 */
+    @Transactional
+    public UserCharactersResponseDto levelUpMyPookie(Long userAccountId, UserCharacters userCharacter, int requiredExpForStepUp) {
+        if (userCharacter.getExp() < requiredExpForStepUp) {
+            log.info("레벨업 조건 미달: userId={}, exp={}, required={}", userAccountId, userCharacter.getExp(), requiredExpForStepUp);
+            return UserCharactersResponseDto.fromEntity(userCharacter);
+        }
+
+        // cap exp
+        userCharacter.setMaxExpForLevelUp(requiredExpForStepUp);
+        userCharactersRepository.save(userCharacter);
+
+        int currentStep = userCharacter.getCharacter().getStep();
+        PookieType currentType = userCharacter.getCharacter().getType();
+
+        List<Characters> candidates = (currentStep == 0)
+                ? charactersRepository.findByStep(1)
+                : charactersRepository.findCharactersByTypeAndStep(currentType, 2);
+
+        if (candidates == null || candidates.isEmpty()) {
+            return UserCharactersResponseDto.fromEntity(userCharacter); // 더 이상 진화 없음
+        }
+
+        Characters nextChar = getRandomCharacter(candidates);
+
+        // 새 개체 생성(여러 개 허용)
+        UserCharacters newUserCharacter = UserCharacters.builder()
+                .userAccount(userCharacter.getUserAccount())
+                .character(nextChar)
+                .exp(0)
+                .isDrop(false)
+                .build();
+        newUserCharacter = userCharactersRepository.save(newUserCharacter);
+
+        // 도감 upsert
+        setPookieCatalogIfNotExists(userCharacter.getUserAccount(), nextChar);
+
+        // 플래그 전이 정책
+        if (currentStep == 0) {
+            updateCatalogStates(userCharacter.getUserAccount(), nextChar, true, true);
+        } else if (currentStep == 1) {
+            updateCatalogStates(userCharacter.getUserAccount(), nextChar, true, false);
+        }
+
+        log.info("레벨업 완료: userId={}, fromCharId={}, toCharId={}, fromStep={}, toStep(?)",
+                userAccountId, userCharacter.getCharacter().getId(), nextChar.getId(), currentStep, nextChar.getStep());
+
+        // 다음 개체를 응답으로 주는 게 UX에 자연스러움
+        return UserCharactersResponseDto.fromEntity(newUserCharacter);
+    }
+
+    // ----------------------------
+    // 내부 유틸
+    // ----------------------------
+
+    /** 도감에 푸키 등록 (없으면 생성) */
+    @Transactional(propagation = Propagation.MANDATORY)
+    protected CharacterCatalog setPookieCatalogIfNotExists(UserAccounts userAccount, Characters newChar) {
+        return characterCatalogRepository
+                .findByUserAccount_IdAndCharacter_Id(userAccount.getId(), newChar.getId())
+                .orElseGet(() -> characterCatalogRepository.save(
+                        CharacterCatalog.builder()
+                                .userAccount(userAccount)
+                                .character(newChar)
+                                .isRepresent(false)
+                                .isGrowing(false)
+                                .build()
+                ));
+    }
+
+    /** 도감 상태 업데이트 (대표/성장 동기화) : reset → set */
+    @Transactional(propagation = Propagation.MANDATORY)
+    protected void updateCatalogStates(UserAccounts user, Characters character, boolean represent, boolean growing) {
+        // 도감 행 보장
+        setPookieCatalogIfNotExists(user, character);
+
+        // reset → set
+        characterCatalogRepository.resetAllRepresent(user.getId());
+        characterCatalogRepository.resetAllGrowing(user.getId());
+
+        characterCatalogRepository.updateCatalogState(user.getId(), character.getId(), represent, growing);
+
+        // Lazy 필드 접근 피해서 id로만 로깅
+        log.info("도감 상태 업데이트: userId={}, characterId={}, rep={}, grow={}",
+                user.getId(), character.getId(), represent, growing);
     }
 
     private Characters getRandomCharacter(List<Characters> candidates) {
-        Random random = new Random();
-        return candidates.get(random.nextInt(candidates.size()));
+        return candidates.get(new Random().nextInt(candidates.size()));
     }
 }

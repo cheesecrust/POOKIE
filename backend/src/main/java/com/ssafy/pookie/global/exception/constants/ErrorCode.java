@@ -24,6 +24,8 @@ public enum ErrorCode {
     REP_POKIE_NOT_FOUND(HttpStatus.NOT_FOUND, "대표 캐릭터를 찾을 수 없습니다."),
     GROWING_POKIE_NOT_FOUND(HttpStatus.NOT_FOUND, "성장하는 캐릭터를 찾을 수 없습니다."),
     CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 푸키를 찾을 수 없습니다."),
+    POOKIE_ALREADY_GROWING(HttpStatus.BAD_REQUEST, "성장 중인 푸키가 있으므로 새로운 푸키 발급이 불가합니다."),
+
     INVALID_USER_ACCOUNT(HttpStatus.BAD_REQUEST, "UserAccount가 아직 DB에 저장되지 않았습니다."),
 
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다.");
