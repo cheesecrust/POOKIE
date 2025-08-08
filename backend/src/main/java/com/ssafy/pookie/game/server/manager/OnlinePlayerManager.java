@@ -246,4 +246,8 @@ public class OnlinePlayerManager {
             }
         }
     }
+
+    public boolean isInvalid(WebSocketSession session) {
+        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+    }
 }
