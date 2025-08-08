@@ -67,15 +67,15 @@ const useGameStore = create((set, get) => ({
 
         // 안전장치: 필수값 체크
         if (!norId == null || typeof inputAnswer !== "string") {
-        console.warn("[STORE] ANSWER_SUBMITTED invalid payload:", msg);
-        return; // 다른 게임에 영향 X (no-op)
+            console.warn("[STORE] ANSWER_SUBMITTED invalid payload:", msg);
+            return; // 다른 게임에 영향 X (no-op)
         }
 
         const { bubbles } = get();
 
         // 중복 방지: clientMsgId가 있으면 그걸로 체크
         if (clientMsgId && Array.isArray(bubbles) && bubbles.some(b => b.id === clientMsgId)) {
-        return;
+            return;
         }
 
         const id = clientMsgId || `${Date.now()}-${norId}`;
@@ -83,15 +83,15 @@ const useGameStore = create((set, get) => ({
 
         // 버블 추가
         get().addBubble({
-        id,
-        userId: normalizedUserId, // 렌더에서 p.userAccountId와 비교
-        text: inputAnswer,
-        ts: Date.now(),
+            id,
+            userId: normalizedUserId, // 렌더에서 p.userAccountId와 비교
+            text: inputAnswer,
+            ts: Date.now(),
         });
 
         // 일정 시간 뒤 자동 제거
         setTimeout(() => {
-        get().removeBubble(id);
+            get().removeBubble(id);
         }, BUBBLE_LIFETIME);
     },
 
@@ -129,6 +129,10 @@ const useGameStore = create((set, get) => ({
     gameTimerStarted: false,
     lastTurnResult: null, // 마지막 턴 처리 결과
 
+    // 일심동체용 타이머
+    isSamePoseTimerEnd: false,
+    // 일심동체 타이머 끝 상태 초기화
+    resetIsSamePoseTimerEnd: () => set({ isSamePoseTimerEnd: false }),
     // 고요속의 외침 타이머 끝 상태 -> true 일경우 라운드,턴 오버버 
     isSilentScreamTimerEnd: false,
     // 고요속의 외침 타이머 상태 초기화
@@ -139,7 +143,7 @@ const useGameStore = create((set, get) => ({
     // 타이머 SET 함수
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: (data) => {
-        set({ isSilentScreamTimerEnd: true });
+        set({ isSilentScreamTimerEnd: true, isSamePoseTimerEnd: true });
 
         // // 다음 턴 처리 결과를 먼저 계산
         // const result = get().nextDrawTurn();
