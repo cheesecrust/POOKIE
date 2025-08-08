@@ -411,6 +411,10 @@ const useGameStore = create((set, get) => ({
         currentDrawTurn: 0 // 게임 시작 시 초기화
     }),
 
+    setInterrupt: (data) => set({
+        interrupt: data,
+    }),
+
     // 다음 그리기 턴으로 이동
     nextDrawTurn: () => {
         const { currentDrawTurn, maxDrawTurnsPerTeam, turn } = get();

@@ -80,6 +80,11 @@ export default async function handleGameMessage(msg, handlers) {
       handlers?.onDrawEvent?.(msg);
       break;
 
+    case "INTERRUPT":
+      console.log("INTERRUPT 메시지 수신:", msg);
+      handlers?.onInterrupt?.(msg);
+      break;
+
     default:
       console.warn("[GAME] 처리되지 않은 메시지:", msg);
       break;
