@@ -151,7 +151,7 @@ public class InGameService {
                 rep = 1;
                 break;
             case "SKETCHRELAY":
-                rep = teamUsers.size()-1;
+                rep = Math.min(2, teamUsers.size()-1);
                 break;
         }
 
@@ -257,7 +257,7 @@ public class InGameService {
             room.turnChange();
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
-                room.resetRoom();
+                room.resetAfterGameOver();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
