@@ -50,6 +50,12 @@ const SamePosePage = () => {
   const blueTeam = useGameStore((state) => state.blue) || [];
   const [publisherTrack, setPublisherTrack] = useState(null);
 
+  const myTeam = redTeam.some((player) => player.userAccountId === myIdx)
+    ? "RED"
+    : blueTeam.some((player) => player.userAccountId === myIdx)
+      ? "BLUE"
+      : null;
+
   // 턴에 따라 위치 변환
   const isRedTurn = turn === "RED";
 
@@ -332,7 +338,7 @@ const SamePosePage = () => {
                   <p>제시어</p>
                 </div>
                 <p className="text-2xl font-semibold text-black mt-2">
-                  {keywordList?.[keywordIdx] ?? "제시어 로딩 중..."}
+                  {keywordList?.[keywordIdx] ?? "제시어를 가져오는 중..."}
                 </p>
               </div>
             </div>
@@ -363,7 +369,7 @@ const SamePosePage = () => {
 
         {/* Chatbox */}
         <div className="absolute bottom-4 left-10 z-20 opacity-90">
-          <ChatBox width="350px" height="250px" />
+          <ChatBox width="350px" height="250px" roomId={roomId} team={myTeam} />
         </div>
 
         {/* GAME START 모달 */}
