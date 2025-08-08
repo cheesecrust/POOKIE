@@ -215,7 +215,7 @@ public class RoomStateDto {
                         "id", user.getUserAccountId(),
                         "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
-                        "repCharacter", this.getRoomMaster().getRepCharacter() == null ? "정보가 없습니다." : this.getRoomMaster().getRepCharacter(),
+                        "repCharacter", user.getRepCharacter() == null ? "정보가 없습니다." : user.getRepCharacter(),
                         "status", user.getStatus().toString()
                 )).collect(Collectors.toList())
         );
@@ -224,7 +224,7 @@ public class RoomStateDto {
                         "id", user.getUserAccountId(),
                         "email", user.getUserEmail(),
                         "nickname", user.getUserNickname(),
-                        "repCharacter", this.getRoomMaster().getRepCharacter() == null ? "정보가 없습니다." : this.getRoomMaster().getRepCharacter(),
+                        "repCharacter", user.getRepCharacter() == null ? "정보가 없습니다." : user.getRepCharacter(),
                         "status", user.getStatus().toString()
                 )).collect(Collectors.toList())
         );
