@@ -102,11 +102,23 @@ const handleTokenExpirationAndReconnect = async () => {
  * WebSocket 메시지 전송
  */
 export const sendMessage = (type, data) => {
+  console.log("🔊 sendMessage 호출:", { type, data, socketState: socket?.readyState });
+  
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type, payload: data }));
-    console.log("보낸 소켓 메시지:", { type, payload: data });
+    const message = { type, payload: data };
+    socket.send(JSON.stringify(message));
+    console.log("✅ 소켓 메시지 전송 완료:", message);
   } else {
-    console.warn("[X] WebSocket is not open:", { type, payload: data });
+    console.warn("❌ WebSocket이 열려있지 않음:", { 
+      type, 
+      payload: data, 
+      socketExists: !!socket,
+      readyState: socket?.readyState,
+      CONNECTING: WebSocket.CONNECTING,
+      OPEN: WebSocket.OPEN,
+      CLOSING: WebSocket.CLOSING,
+      CLOSED: WebSocket.CLOSED
+    });
   }
 };
 

@@ -5,6 +5,7 @@ import UserReady from "../../atoms/user/UserReady";
 import pookiepookie from "../../../assets/character/pookiepookie.png";
 import crown from "../../../assets/icon/crown.png";
 import KickButton from "../../atoms/button/KickButton";
+import characterImageMap from "../../../utils/characterImageMap";
 
 const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
   const borderColor =
@@ -36,7 +37,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
 
         {/* 캐릭터 이미지 */}
         <img
-          src={user.reqImg || pookiepookie}
+          src={characterImageMap[user?.repCharacter?.name] || pookiepookie}
           alt="character"
           className="w-24 h-24 object-contain mb-1"
           onError={(e) => {
@@ -53,13 +54,13 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
         )}
 
         {/* Ready 뱃지 */}
-        {user.isReady && <UserReady />}
+        {user.isReady && <UserReady team={user.team} />}
       </div>
 
       {/* 닉네임 */}
       <div
         className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-cyan-200" : "bg-red-50"
+          isMe ? "bg-violet-200" : "bg-red-50"
         } rounded px-2 py-1 text-center`}
       >
         {user.userNickname}

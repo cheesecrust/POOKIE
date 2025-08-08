@@ -23,10 +23,11 @@
 
 import submitButton from "../../../assets/icon/submit_left.png"
 
-const SubmitInput = ({ value, onChange, onKeyDown, onClick, placeholder }) => {
+const SubmitInput = ({ inputRef, value, onChange, onKeyDown, onClick, placeholder }) => {
     return (
         <div className="relative w-[500px]">
           <input
+            ref={inputRef}
             type="text"
             value={value}
             onChange={onChange}

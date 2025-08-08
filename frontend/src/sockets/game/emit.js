@@ -1,4 +1,4 @@
-// src/sockets/common/game/emit.js
+// src/sockets/game/emit.js
 import { sendMessage } from "../websocket";
 
 // -----------------------------
@@ -24,19 +24,28 @@ export const emitRoundOver = ({roomId,team,score}) => {
 };
 
 // 정답 제출
-export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer}) => {
+export const emitAnswerSubmit = ({roomId,round,norId,keywordIdx,inputAnswer, clientMsgId }) => {
+  const _id = clientMsgId || `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
   sendMessage("GAME_ANSWER_SUBMIT", {
     roomId,
     round,
     norId,
     keywordIdx,
-    inputAnswer
+    inputAnswer,
+    clientMsgId: _id,
 });
 };
 
 // 타이머 시작
 export const emitTimerStart = ({roomId}) => {
   sendMessage("TIMER_START", {
+    roomId,
+});
+};
+
+// 키워드 요청 (팀 전환 시)
+export const emitKeywordRequest = ({roomId}) => {
+  sendMessage("GAME_KEYWORD_REQUEST", {
     roomId,
 });
 };
@@ -62,5 +71,13 @@ export const emitDrawEvent = ({ roomId, drawType, data }) => {
       brushSize: data.brushSize || 3,
       tool: data.tool || "pen"
     }
+  });
+};
+
+// 그리는 사람 변경 (이어그리기)
+export const emitPainterChange = ({ roomId, curRepIdx }) => {
+  sendMessage("GAME_PAINTER_CHANGE", {
+    roomId,
+    curRepIdx
   });
 };

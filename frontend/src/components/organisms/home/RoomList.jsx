@@ -15,7 +15,11 @@ const RoomList = ({ roomList, keyword }) => {
 
   // roomList prop 변경 디버깅
   useEffect(() => {
-    console.log("📋 RoomList roomList prop 변경됨:", roomList?.length || 0, "개 방");
+    console.log(
+      "📋 RoomList roomList prop 변경됨:",
+      roomList?.length || 0,
+      "개 방"
+    );
     console.log("📋 RoomList roomList 데이터:", roomList);
   }, [roomList]);
 
@@ -29,7 +33,7 @@ const RoomList = ({ roomList, keyword }) => {
     }
     if (activeTab === "all") return roomList;
     if (activeTab === "waiting") {
-      return roomList.filter((room) => room.teamInfo?.total < 6);
+      return roomList.filter((room) => room.teamInfo?.TOTAL < 6);
     }
     return roomList.filter(
       (room) => room.gameType?.toLowerCase() === activeTab
@@ -63,7 +67,7 @@ const RoomList = ({ roomList, keyword }) => {
   // ✅ 비밀번호 제출 시 emit
   const handlePasswordSubmit = (roomPw) => {
     if (!secureRoom) return;
-    
+
     // 콜백 처리
     secureRoom.onConfirm?.(roomPw);
     setRoomPasswordModalOpen(false);
@@ -72,7 +76,11 @@ const RoomList = ({ roomList, keyword }) => {
 
   // ✅ roomList undefined 방어
   if (!Array.isArray(roomList)) {
-    return <p className="text-center mt-8 text-gray-500">방 정보를 불러오는 중입니다...</p>;
+    return (
+      <p className="text-center mt-8 text-gray-500">
+        방 정보를 불러오는 중입니다...
+      </p>
+    );
   }
 
   return (
