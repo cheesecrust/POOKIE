@@ -47,6 +47,11 @@ const useGameStore = create((set, get) => ({
 
     setRoomId: (id) => set({ roomId: id }),
 
+    // 말풍선 관련
+    bubbles: [],
+    addBubble: (bubble) => set((state) => ({ bubbles: [...state.bubbles, bubble] })),
+    removeBubble: (bubbleId) => set((state) => ({ bubbles: state.bubbles.filter((bubble) => bubble.id !== bubbleId) })),
+
 
     // 게임 시작할 때 전 게임 정보 초기화
     setTeamScore: (teamScore) => { set({ teamScore: teamScore }) },

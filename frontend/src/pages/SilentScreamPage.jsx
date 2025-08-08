@@ -75,7 +75,11 @@ const SilentScreamPage = () => {
   const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
-  const [bubbles, setBubbles] = useState([]);
+  
+  // 말풍선
+  const bubbles = useGameStore((state) => state.bubbles);
+  const addBubbleStore = useGameStore((state) => state.addBubble);
+  const removeBubbleStore = useGameStore((state) => state.removeBubble);
 
   const isPassModalOpen = useGameStore((state) => state.isPassModalOpen); //패스 모달
   const closePassModal = useGameStore((state) => state.closePassModal);
@@ -239,17 +243,6 @@ const SilentScreamPage = () => {
     }
   }, [repIdxList, norIdxList, participants]);
 
-  // 말풍선 함수
-  const addBubble = (text, userId) => {
-    const newBubble = { id: Date.now(), text, userId };
-
-    setBubbles((prev) => [...prev, newBubble]);
-
-    setTimeout(() => {
-      setBubbles((prev) => prev.filter((b) => b.id !== newBubble.id));
-    }, 3000);
-  }
-
   // livekit 렌더 + 말풍선 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
     return roleGroup.map((p, idx) => {
@@ -268,7 +261,11 @@ const SilentScreamPage = () => {
           />
           {/* 말풍선 */}
           {bubbles
-          .filter((b) => b.userId === p.userAccountId)
+          .filter((b) => {
+            const pid = Number.isNaN(Number(p.userAccountId)) ? String(p.userAccountId): Number(p.userAccountId);
+            const bid = Number.isNaN(Number(b.userId)) ? String(b.userId): Number(b.userId);
+            return pid === bid;
+          })
           .map((bubble) => (
             <div key={bubble.id} className="absolute -top-5 left-50 z-50">
               <InputBubble text={bubble.text} />
@@ -454,24 +451,42 @@ const SilentScreamPage = () => {
       
       {/* 제시어 제출 모달 */}
       {isSubmitModalOpen && (
-      <SubmitModal 
-        isOpen={isSubmitModalOpen}
-        onClose={handleSubmitModalClose}
-        onSubmit={(inputAnswer) => {
-          // 안전한 흐름 보장
-          try {
-            emitAnswerSubmit({ roomId, round, norId: myIdx, keywordIdx, inputAnswer });
-          } catch (e) {
-            console.error("❌ emit 실패:", e);
-          } finally {
-            handleSubmitModalClose(); // ✅ 무조건 닫는다!
-            setTimeout(() => {
-              addBubble(inputAnswer, myIdx);
-            }, 100);
-          }
-        }}
-      />
-    )}
+        <SubmitModal
+          isOpen={isSubmitModalOpen}
+          onClose={handleSubmitModalClose}
+          onSubmit={(inputAnswer) => {
+            try {
+              const clientMsgId = `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+
+              // 1) 낙관적 버블 (store에만)
+              addBubbleStore({
+                id: clientMsgId,
+                userId: Number(myIdx), // 타입 통일
+                text: inputAnswer,
+                ts: Date.now(),
+              });
+              setTimeout(() => {
+                removeBubbleStore(clientMsgId);
+              }, 2500);
+
+              // 2) 서버로 전송 (같은 clientMsgId 사용)
+              emitAnswerSubmit({
+                roomId,
+                round,
+                norId: Number(myIdx), // 숫자로 맞춤
+                keywordIdx,
+                inputAnswer,
+                clientMsgId,
+              });
+            } catch (e) {
+              console.error("❌ emit 실패:", e);
+            } finally {
+              // 모달 닫기만! (로컬 addBubble 호출 절대 X)
+              handleSubmitModalClose();
+            }
+          }}
+        />
+      )}
 
       {/* 턴 모달 */}
       <PopUpModal 
