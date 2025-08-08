@@ -7,6 +7,7 @@ import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
+import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.room.dto.TurnDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
@@ -37,6 +38,7 @@ public class InGameService {
     private final GameKeywordsRepository gameKeywordsRepository;
     private final RtcService rtcService;
     private final MessageSenderManager messageSenderManager;
+    private final RewardService rewardService;
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void handleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
@@ -217,11 +219,13 @@ public class InGameService {
         if(nowRound == 3) { // 더 이상 진행 불가
             log.info("Room {} Game Over", room.getRoomId());
             // Client response msg
+            Map<String, Object> gameResult = room.gameOver();
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
                     "room", room.mappingRoomInfo(),
-                    "gameResult", room.gameOver()
+                    "gameResult", gameResult
             ));
+            rewardService.saveReward(room, (String)gameResult.get("win"), 100);
             room.resetAfterGameOver();
             return false;
         }
@@ -257,7 +261,6 @@ public class InGameService {
             room.turnChange();
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
-                room.resetAfterGameOver();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
