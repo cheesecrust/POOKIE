@@ -26,6 +26,8 @@ const handleWaitingMessage = (data, handlers = {}) => {
         setWin,
         setKeywordIdx,  
         setGameType,
+        resetIsSamePoseTimerEnd,
+        resetIsSilentScreamTimerEnd,
     } = useGameStore.getState();
 
     const updateClientState = (room) => {
@@ -83,10 +85,14 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setMaster(room.master.id)
             setRoomInfo(room)
             setGameType(room.gameType)
+            setKeywordIdx(game_init.keywordIdx)
 
             setWin(game_init.win)
             setTeamScore(game_init.teamScore)
             setScore(game_init.score)
+
+            resetIsSamePoseTimerEnd()
+            resetIsSilentScreamTimerEnd()
 
             navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             break;
