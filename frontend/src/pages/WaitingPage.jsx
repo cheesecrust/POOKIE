@@ -11,9 +11,9 @@ import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
 import WaitingUserList from "../components/organisms/waiting/WaitingUserList";
 import bgImage from "../assets/background/background_waiting.png";
-import bgSamePose from '../assets/background/background_samepose.gif'
-import bgSilentScream from '../assets/background/background_silentscream.gif'
-import bgSketchRelay from '../assets/background/background_sketchrelay.gif'
+import bgSamePose from "../assets/background/background_samepose.gif";
+import bgSilentScream from "../assets/background/background_silentscream.gif";
+import bgSketchRelay from "../assets/background/background_sketchrelay.gif";
 import ChatBox from "../components/molecules/common/ChatBox";
 import RoomExitModal from "../components/organisms/waiting/RoomExitModal";
 import KickConfirmModal from "../components/organisms/waiting/KickConfirmModal";
@@ -47,7 +47,7 @@ const WaitingPage = () => {
 
   const { roomId } = useParams();
   const setRoomId = useGameStore((state) => state.setRoomId);
-  
+
   const getBackgroundImageByGameType = (type) => {
     switch (type) {
       case "SAMEPOSE":
@@ -60,11 +60,75 @@ const WaitingPage = () => {
         return bgImage; // 기본 배경
     }
   };
-  
+
   useEffect(() => {
     if (!roomId) return;
     setRoomId(roomId);
   }, [roomId, setRoomId]);
+
+  useEffect(() => {
+    const isActualBrowserRefresh = () => {
+      // Performance Navigation API로 새로고침 감지
+      let isReloadType = false;
+      if (
+        performance.navigation &&
+        performance.navigation.type === performance.navigation.TYPE_RELOAD
+      ) {
+        isReloadType = true;
+      }
+
+      const navigationEntries = performance.getEntriesByType("navigation");
+      if (!isReloadType && navigationEntries.length > 0) {
+        const navEntry = navigationEntries[0];
+        isReloadType = navEntry.type === "reload";
+      }
+
+      // sessionStorage로 정상 입장 여부 확인
+      const isNormalEntry =
+        sessionStorage.getItem("waitingPageNormalEntry") === "true";
+
+      return isReloadType && !isNormalEntry;
+    };
+
+    if (isActualBrowserRefresh()) {
+      console.log("🔄 브라우저 새로고침 감지 - 상태 초기화 후 로비로 이동");
+      // 로비로 이동
+      navigate("/home", { replace: true });
+      return;
+    }
+
+    // 정상 입장 표시 제거 (한 번만 사용)
+    sessionStorage.removeItem("waitingPageNormalEntry");
+  }, [navigate]);
+
+  // ❗ 새로고침(F5, Ctrl+R) 또는 뒤로가기 시 모달 띄우기 기능 (기본 비활성화)
+
+  // useEffect(() => {
+  //   window.history.pushState(null, "", location.pathname);
+
+  //   const handlePopState = (e) => {
+  //     e.preventDefault();
+  //     console.log("🔙 뒤로가기 감지됨");
+  //     setIsExitModalOpen(true);
+  //     window.history.pushState(null, "", location.pathname);
+  //   };
+
+  //   const handleKeyDown = (e) => {
+  //     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
+  //       e.preventDefault();
+  //       console.log("🔄 새로고침 감지됨");
+  //       setIsExitModalOpen(true);
+  //     }
+  //   };
+
+  //   window.addEventListener("popstate", handlePopState);
+  //   window.addEventListener("keydown", handleKeyDown);
+
+  //   return () => {
+  //     window.removeEventListener("popstate", handlePopState);
+  //     window.removeEventListener("keydown", handleKeyDown);
+  //   };
+  // }, [location.pathname]);
 
   // WebSocket 메시지 수신 처리
   useEffect(() => {
@@ -152,7 +216,7 @@ const WaitingPage = () => {
   const userSlots = room
     ? (() => {
         // RED와 BLUE를 그대로 합침 (순서 보존)
-        console.log("room",room)
+        console.log("room", room);
         const allUsers = [...room.RED, ...room.BLUE];
 
         //  그대로 순서대로 카드 정보 생성
@@ -218,7 +282,8 @@ const WaitingPage = () => {
       <section
         className="basis-3/4 flex flex-col"
         style={{
-          backgroundImage: `url(${getBackgroundImageByGameType(room?.gameType)})`,          backgroundSize: "cover",
+          backgroundImage: `url(${getBackgroundImageByGameType(room?.gameType)})`,
+          backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
