@@ -82,7 +82,8 @@ public class GameRoomService {
                 joinDto.getUser().setGrant(UserDto.Grant.PLAYER);
             }
             joinDto.getUser().setStatus(UserDto.Status.READY);
-            joinDto.getUser().setRepCharacter(characterService.getRepPookie(joinDto.getUser().getUserAccountId()));
+            joinDto.getUser().setReqImg(characterService.getRepPookie(joinDto.getUser().getUserAccountId())
+                    .getCharacterName());
             // 세션 설정
             // 게임 설정
             // 각 팀에 유저 배치
