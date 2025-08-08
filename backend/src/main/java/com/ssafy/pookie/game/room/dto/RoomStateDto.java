@@ -116,7 +116,7 @@ public class RoomStateDto {
         this.gameInfo.resetAfterGameOver();
         this.teamScores.computeIfPresent("RED", (k,v) -> 0);
         this.teamScores.computeIfPresent("BLUE", (k,v)-> 0);
-        this.timer.stop();
+        if(this.timer != null) this.timer.stop();
         resetTempTeamScore();
     }
 
