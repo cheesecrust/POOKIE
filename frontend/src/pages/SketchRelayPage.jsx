@@ -86,8 +86,12 @@ const SketchRelayPage = () => {
   // 모달
   const isGameStartModalOpen = useGameStore((state) => state.isGamestartModalOpen);
   const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
+  const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen);
+  const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);
   const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
+  const closeCorrectModal = useGameStore((state) => state.closeCorrectModal);
+  const closeWrongModal = useGameStore((state) => state.closeWrongModal);
   const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
 
   // 첫 시작 모달
@@ -96,6 +100,7 @@ const SketchRelayPage = () => {
   // 상태 관리 (로컬)
   const [keyword, setKeyword] = useState("");
   const [isTimerOpen, setIsTimerOpen] = useState(true);
+  const [answerInput, setAnswerInput] = useState(""); // 정답 입력
 
   // 모달 상태 관리
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
@@ -221,7 +226,6 @@ const SketchRelayPage = () => {
       });
     }
     
-    
     const currentTeamDrawers = currentTeamParticipants.slice(0, Math.min(2, currentTeamParticipants.length));
     const currentTeamDrawerIds = currentTeamDrawers.map(p => p.userAccountId);
     
@@ -233,14 +237,15 @@ const SketchRelayPage = () => {
     });
 
     // 현재 턴인 팀의 사람들 중에서 역할 결정
-    if (currentTeamDrawerIds.includes(myIdx)) {
+    if (repIdxList.includes(myIdx)) {
       setUserRole('drawer');
       
       // 현재 팀 그리는 사람들 중에서 내 순서 확인
-      const myIndexInDrawerList = currentTeamDrawerIds.indexOf(myIdx);
-      const currentDrawIdx = currentDrawTurn % currentTeamDrawerIds.length; // 현재 그리기 턴
+      const myIndexInDrawerList = repIdxList.indexOf(myIdx);
+      const currentDrawIdx = currentDrawTurn % repIdxList.length; // 현재 그리기 턴
       
       console.log("그리는 사람 순서 확인:", { 
+        norIdxList,
         myIndexInDrawerList, 
         currentDrawIdx, 
         currentDrawTurn,
@@ -254,7 +259,7 @@ const SketchRelayPage = () => {
       // 현재 그리는 순서와 내 순서가 일치하는지 확인
       setIsMyTurn(myIndexInDrawerList === currentDrawIdx);
       
-    } else {
+    } else if (norIdxList.includes(myIdx)) {
       // 나머지는 맞추는 사람
       setUserRole('guesser');
       setIsMyTurn(false);
@@ -468,6 +473,22 @@ const SketchRelayPage = () => {
   const togglePen = () => setIsErasing(false);
   const toggleEraser = () => setIsErasing(true);
 
+  // 정답 제출 함수
+  const handleAnswerSubmit = (e) => {
+    e.preventDefault();
+    if (!answerInput.trim() || userRole !== 'guesser') return;
+
+    emitAnswerSubmit({
+      roomId,
+      round,
+      norId: myIdx,
+      keywordIdx,
+      inputAnswer: answerInput.trim()
+    });
+
+    setAnswerInput(""); // 입력 필드 초기화
+  };
+
   // 다른 사용자의 그리기 이벤트 처리
   const handleRemoteDrawEvent = useCallback((eventData) => {
     const ctx = ctxRef.current;
@@ -524,6 +545,10 @@ const SketchRelayPage = () => {
       onGameTimerStart: (data) => {
         console.log("▶️ 게임 타이머 시작:", data);
         useGameStore.getState().setGameTimerStart();
+      },
+      onGameAnswerSubmitted: (data) => {
+        console.log("✅ 정답 제출 응답:", data);
+        useGameStore.getState().setGameAnswerSubmitted(data);
       }
     };
 
@@ -534,7 +559,8 @@ const SketchRelayPage = () => {
         onDrawEvent: null,
         onGameTimerEnd: null,
         onTimer: null,
-        onGameTimerStart: null
+        onGameTimerStart: null,
+        onGameAnswerSubmitted: null
       });
     };
   }, [handleRemoteDrawEvent]);
@@ -683,6 +709,31 @@ const SketchRelayPage = () => {
                 </RightButton>
               </>
             )}
+
+            {/* 정답 입력 - 맞추는 사람만 사용 가능 */}
+            {userRole === 'guesser' && (
+              <div className="p-3 bg-white bg-opacity-90 rounded-lg min-w-[120px]">
+                <div className="text-sm font-bold mb-2 text-center">정답 입력</div>
+                <form onSubmit={handleAnswerSubmit} className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={answerInput}
+                    onChange={(e) => setAnswerInput(e.target.value)}
+                    placeholder="정답을 입력하세요"
+                    className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    maxLength={20}
+                  />
+                  <RightButton 
+                    type="submit" 
+                    size="sm"
+                    disabled={!answerInput.trim()}
+                    className={!answerInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}
+                  >
+                    제출
+                  </RightButton>
+                </form>
+              </div>
+            )}
           </div>
 
           {/* 칠판 영역 */}
@@ -751,6 +802,16 @@ const SketchRelayPage = () => {
         isOpen={isSubmitModalOpen} 
         onClose={() => setIsSubmitModalOpen(false)}
       />
+
+      {/* 정답 모달 */}
+      <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
+        <p className="text-4xl font-bold font-pixel text-green-600">정답!</p>
+      </PopUpModal>
+
+      {/* 오답 모달 */}
+      <PopUpModal isOpen={isWrongModalOpen} onClose={closeWrongModal}>
+        <p className="text-4xl font-bold font-pixel text-red-600">오답!</p>
+      </PopUpModal>
 
       {isWinModalOpen && (
         <GameResultModal
