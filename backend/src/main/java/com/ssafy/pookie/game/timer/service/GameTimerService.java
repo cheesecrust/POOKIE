@@ -24,9 +24,15 @@ import java.util.concurrent.ScheduledExecutorService;
 @Slf4j
 public class GameTimerService {
     private final OnlinePlayerManager onlinePlayerManager;
-    private final InGameService inGameService;
 
     public void gameStartTimer(RoomStateDto room, TimerRequestDto timerRequest) throws IOException {
+        if(!onlinePlayerManager.isAuthorized(timerRequest.getUser().getSession(), room) || !onlinePlayerManager.isMaster(timerRequest.getUser().getSession(), room)) {
+            onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", "잘못된 요청입니다."
+            ));
+            return;
+        }
         // 새로운 Scheduler 생성
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         // 타이머 인스턴스 생성

@@ -11,8 +11,10 @@ services:
       - "8001:8001"
     environment:
       - TZ=Asia/Seoul
+      - RESULTS_ROOT=/app/results_debug
+    user: "115:122"   # ← 호스트 jenkins 계정과 동일한 UID:GID로 실행
     volumes:
-      - ./logs:/app/logs
+      - /var/lib/jenkins/data/ai-results:/app/results_debug
     networks:
       - ai-network
     command: >
