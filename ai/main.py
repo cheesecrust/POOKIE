@@ -258,7 +258,7 @@ async def upload_images(
     images: List[UploadFile] = File(...),
     gameId: str | None = Query(default="unknown-game"),
     team: str | None = Query(default="unknown-team"),
-    round: int | None = Query(default=1)
+    round_idx: int | None = Query(default=1, alias="round")
 ):
     if len(images) != 3:
         return {"status": "error", "message": "정확히 3장의 이미지를 업로드해야 합니다."}
@@ -266,7 +266,7 @@ async def upload_images(
     vecs, vis_paths, names, arm_feats = [], [], [], []
     gameId = _slug(gameId, "unknown-game")
     team   = _slug(team, "unknown-team")
-    round_num  = int(round or 1)
+    round_num = int(round_idx or 1)
 
     # 하위 디렉토리 보장
     game_dir = os.path.join(RESULTS_ROOT, gameId, team)
