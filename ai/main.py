@@ -7,6 +7,12 @@ import numpy as np
 import cv2
 import mediapipe as mp
 from sklearn.metrics.pairwise import cosine_similarity
+from fastapi.responses import JSONResponse
+import re
+
+RESULTS_ROOT = os.getenv("RESULTS_ROOT", "/app/results_debug")
+# 루트 디렉토리 보장
+os.makedirs(RESULTS_ROOT, exist_ok=True)
 
 # ---------------- FastAPI 기본 설정 ---------------- #
 app = FastAPI()
@@ -57,6 +63,9 @@ UPPER_BODY_LANDMARKS = {
     mp_pose.PoseLandmark.LEFT_EYE_INNER, mp_pose.PoseLandmark.RIGHT_EYE_INNER,
     mp_pose.PoseLandmark.LEFT_EYE_OUTER, mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
 }
+
+# (추가) 사전 계산으로 가독성/성능 미세 개선
+ALLOWED_POSE_IDX = {lm.value for lm in UPPER_BODY_LANDMARKS}
 
 # ---------------- CLAHE 전처리 ---------------- #
 def preprocess_image(image):
@@ -140,7 +149,7 @@ def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_
     raw_points = {}  # ★ 원본 좌표 보관(각도/거리 계산용)
 
     for idx, lm in enumerate(pose_result.pose_landmarks.landmark):
-        if idx not in [lm.value for lm in UPPER_BODY_LANDMARKS]:
+        if idx not in ALLOWED_POSE_IDX:
             continue
         x, y = lm.x * w, lm.y * h
         keypoints.append([x, y])
@@ -191,13 +200,18 @@ def get_weights_by_keyword(filename: str):
             w_hand = 1.0 if "hands" in parts else 0.0
             w_pose = 1.0 if "pose" in parts else 0.0
             total = w_hand + w_pose
-            return w_pose / total, w_hand / total if total > 0 else (0.5, 0.5)
+            return (w_pose / total, w_hand / total) if total > 0 else (0.5, 0.5)
     return 1.0, 0.0
+
+POSE_DIMS = len(ALLOWED_POSE_IDX) * 2   # 21 * 2 = 42
+HAND_DIMS = 42 * 2                      # 42 points * (x,y) = 84
 
 # ---------------- 유사도 계산 ---------------- #
 def weighted_similarity(v1, v2, w_pose, w_hand):
-    v1_pose, v1_hand = v1[:34], v1[34:]
-    v2_pose, v2_hand = v2[:34], v2[34:]
+    v1_pose = v1[:POSE_DIMS]
+    v1_hand = v1[POSE_DIMS:POSE_DIMS + HAND_DIMS]
+    v2_pose = v2[:POSE_DIMS]
+    v2_hand = v2[POSE_DIMS:POSE_DIMS + HAND_DIMS]
     pose_sim = cosine_similarity([v1_pose], [v2_pose])[0][0]
     hand_sim = cosine_similarity([v1_hand], [v2_hand])[0][0]
     return w_pose * pose_sim + w_hand * hand_sim
@@ -210,7 +224,11 @@ def atomic_write(image_bgr, target_path: str):
 
 # ---------------- Row 이미지 생성 ---------------- #
 def concat_images_horizontally_with_text(image_paths, similarities, all_pass, save_path="result_row.jpg"):
-    images = [cv2.imread(path) for path in image_paths if cv2.imread(path) is not None]
+    images = []
+    for p in image_paths:
+        img = cv2.imread(p)
+        if img is not None:
+            images.append(img)
     if not images:
         return None
     h, w = images[0].shape[:2]
@@ -224,13 +242,16 @@ def concat_images_horizontally_with_text(image_paths, similarities, all_pass, sa
     atomic_write(concat_img, save_path)
     return save_path
 
+def _slug(s, default):
+    s = (s or default).strip().lower()
+    return re.sub(r'[^a-z0-9._-]+','-', s) or default
+
 # ---------------- FastAPI 엔드포인트 ---------------- #
-RESULTS_ROOT = os.getenv("RESULTS_ROOT", "/app/results_debug")
-os.makedirs(RESULTS_ROOT, exist_ok=True)
 
 # ★ 튜닝 파라미터
 ANGLE_BLEND = 0.30   # 팔/어깨 특징 유사도 비중
 PASS_THRESHOLD = 0.90  # 최종 통과 임계값(기존 0.6→0.9 로 상향)
+
 
 @app.post("/ai/upload_images")
 async def upload_images(
@@ -243,10 +264,11 @@ async def upload_images(
         return {"status": "error", "message": "정확히 3장의 이미지를 업로드해야 합니다."}
 
     vecs, vis_paths, names, arm_feats = [], [], [], []
-    gameId = gameId or "unknown-game"
-    team = (team or "unknown-team").lower()
-    round = int(round or 1)
+    gameId = _slug(gameId, "unknown-game")
+    team   = _slug(team, "unknown-team")
+    round_num  = int(round or 1)
 
+    # 하위 디렉토리 보장
     game_dir = os.path.join(RESULTS_ROOT, gameId, team)
     os.makedirs(game_dir, exist_ok=True)
 
@@ -283,8 +305,8 @@ async def upload_images(
 
     # 아카이브 파일명(절대 덮어쓰기 안 됨) + 라운드/최신 별칭
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    archive = os.path.join(game_dir, f"r{round}_{ts}_{uuid.uuid4().hex[:8]}.jpg")
-    round_alias = os.path.join(game_dir, f"round-{round}.jpg")
+    archive = os.path.join(game_dir, f"r{round_num}_{ts}_{uuid.uuid4().hex[:8]}.jpg")
+    round_alias = os.path.join(game_dir, f"round-{round_num}.jpg")
     latest_alias = os.path.join(game_dir, "latest.jpg")
 
     # Row 이미지 생성 → 아카이브로 저장
@@ -305,9 +327,9 @@ async def upload_images(
         "row_file_latest_alias": os.path.basename(latest_alias),
         "similarities": similarities,
         "all_pass": all_pass,
-        "save_dir": f"results_debug/{gameId}/{team}/"
+        "save_dir": f"/results/{gameId}/{team}/"
     }
 
 # ★ 결과 폴더 정적 서빙 (브라우저에서 바로 확인)
-app.mount("/results", StaticFiles(directory=RESULTS_ROOT), name="results")
+app.mount("/results", StaticFiles(directory=RESULTS_ROOT, check_dir=False), name="results")
 # 예: http://<도메인>:8001/results/<gameId>/<team>/round-1.jpg
