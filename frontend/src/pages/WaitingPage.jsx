@@ -67,6 +67,24 @@ const WaitingPage = () => {
   // 입장 이펙트 추가
   const { playSound } = useSound();
   const prevMemRef = useRef(new Set());
+  const [entryEffectMap, setEntryEffectMap] = useState({}); // { [userId]: true/false }
+  const entryTimersRef = useRef({});
+  const ENTRY_MS = 1500;
+  const entryShownRef = useRef(new Set()); // 이펙트 1회 재생 기록
+
+  const triggerEntryEffect = (uid) => {
+    // 이미 보여준 user라면 skip
+    if (entryShownRef.current.has(uid)) return;
+
+    // 최초 1회 실행
+    entryShownRef.current.add(uid);
+    setEntryEffectMap(prev => ({ ...prev, [uid]: true }));
+    if (entryTimersRef.current[uid]) clearTimeout(entryTimersRef.current[uid]);
+    entryTimersRef.current[uid] = setTimeout(() => {
+      setEntryEffectMap(prev => ({ ...prev, [uid]: false }));
+      delete entryTimersRef.current[uid];
+    }, ENTRY_MS);
+  };
 
   useEffect(() => {
     if (!roomId) return;
@@ -289,40 +307,53 @@ const WaitingPage = () => {
   // 입장/퇴장 이펙트
   useEffect(() => {
     if (!room || !user) return;
-
+  
     const currentMem = new Set(
       [...(room?.RED || []), ...(room?.BLUE || [])].map(u => String(u.id))
     );
     const prevMem = prevMemRef.current;
-    
-    // 첫 진입 + 내 입장 이펙트
-    if (prevMem.size === 0 ) {
-      if (currentMem.has(String(user.userAccountId))) {
+  
+    if (prevMem.size === 0) {
+      // 첫 진입: 본인에게만 1회 효과
+      const meId = String(user.userAccountId);
+      if (currentMem.has(meId)) {
         playSound("entry");
+        triggerEntryEffect(meId);
       }
       prevMemRef.current = currentMem;
       return;
     }
-
+  
     // 새로 들어온 멤버
     const addMem = [...currentMem].filter(id => !prevMem.has(id));
-    const anotherJoined = addMem.some(id => id !== String(user.userAccountId));
-
-    if (anotherJoined) {
+    if (addMem.length > 0) {
       playSound("entry");
+      addMem.forEach(id => triggerEntryEffect(id)); // ✅ 들어온 사람 각각에게 카드 오버레이
     }
-
-    // 퇴장 이펙트
+  
+    // 나간 멤버(= prev - current)
     const removeMem = [...prevMem].filter(id => !currentMem.has(id));
-    const anotherLeft = removeMem.some(id => id !== String(user.userAccountId));
+    if (removeMem.length > 0) {
+      const anotherLeft = removeMem.some(id => id !== String(user.userAccountId));
+      if (anotherLeft) playSound("leave");
 
-    if (anotherLeft) {
-      playSound("leave");
+      // ✅ 떠난 유저는 기록 제거(재입장 시 다시 1회 재생 가능)
+      removeMem.forEach(id => entryShownRef.current.delete(id));
     }
-
+    
     // 상태 업데이트
     prevMemRef.current = currentMem;
   }, [room, user?.userAccountId, playSound]);
+
+  // 언마운트 시, 타이머 정리
+  useEffect(() => {
+    return () => {
+      Object.values(entryTimersRef.current).forEach(clearTimeout);
+      entryTimersRef.current = {};
+    };
+  }, []);
+
+
 
   // UI
   return (
@@ -384,6 +415,7 @@ const WaitingPage = () => {
             <WaitingUserList
               userSlots={userSlots}
               roomMasterId={room?.master?.id}
+              entryEffectMap={entryEffectMap}
               onRightClickKick={(user) => {
                 setKickTarget(user);
                 setKickModalOpen(true);
