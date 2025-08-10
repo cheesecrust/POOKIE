@@ -1,3 +1,5 @@
+// src/components/molecules/myRoom/StoreCard.jsx
+
 import milk from "../../../assets/item/milk.png"
 import wine from "../../../assets/item/wine.png"
 import water from "../../../assets/item/water.png"
@@ -6,8 +8,8 @@ import coke from "../../../assets/item/coke.png"
 import coffee from "../../../assets/item/coffee.png"
 
 import RightButton from "../../atoms/button/RightButton"
-
 import axiosInstance from "../../../lib/axiosInstance"
+import useSound from "../../../utils/useSound"
 
 const itemimage = {
     "milk.png": milk,
@@ -31,6 +33,8 @@ const handleBuyItem = async(itemIdx,onBuySuccess) => {
 }
 
 const StoreCard = ({ item,onBuySuccess }) => {
+  const { playSound } = useSound();
+
   return (
     <div className=" w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md hover:scale-105 transition-transform">
       <img
@@ -41,7 +45,16 @@ const StoreCard = ({ item,onBuySuccess }) => {
       <h3 className="font-bold text-lg">{item.name}</h3>
       <p className="text-sm text-gray-600">경험치: {item.exp}</p>
       <p className="text-sm text-gray-600">가격: {item.price}</p>
-      <RightButton className="scale-75" children="구매" onClick={()=>{handleBuyItem(item.idx,onBuySuccess)}} ></RightButton>
+      <RightButton
+        className="scale-75"
+        children="구매"
+        onClick={() => {
+          handleBuyItem(item.idx, () => {
+            onBuySuccess && onBuySuccess();
+            playSound("buy") // 성공 시에만 사운드 재생
+          }); 
+        }}
+      />
 
     </div>
   );

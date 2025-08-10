@@ -2,7 +2,7 @@
 
 // 방정보 받아오기 위해서서
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket, updateHandlers } from "../sockets/websocket";
 import pookiepookie from "../assets/character/pookiepookie.png";
@@ -29,6 +29,8 @@ import {
   emitForceRemove,
   emitGameTypeChange,
 } from "../sockets/waiting/emit";
+
+import useSound from "../utils/useSound";
 
 const WaitingPage = () => {
   const navigate = useNavigate();
@@ -61,6 +63,10 @@ const WaitingPage = () => {
         return bgImage; // 기본 배경
     }
   };
+
+  // 입장 이펙트 추가
+  const { playSound } = useSound();
+  const prevMemRef = useRef(new Set());
 
   useEffect(() => {
     if (!roomId) return;
@@ -175,7 +181,10 @@ const WaitingPage = () => {
 
   // emit & navigate 로직
   // 방 나가기
-  const handleLeaveRoom = () => emitLeaveRoom({ roomId: room.id });
+  const handleLeaveRoom = () => {
+    playSound("leave");
+    emitLeaveRoom({ roomId: room.id });
+  };
 
   // 게임 시작
   const handleStartGame = () => {
@@ -276,6 +285,44 @@ const WaitingPage = () => {
 
     return true;
   };
+
+  // 입장/퇴장 이펙트
+  useEffect(() => {
+    if (!room || !user) return;
+
+    const currentMem = new Set(
+      [...(room?.RED || []), ...(room?.BLUE || [])].map(u => String(u.id))
+    );
+    const prevMem = prevMemRef.current;
+    
+    // 첫 진입 + 내 입장 이펙트
+    if (prevMem.size === 0 ) {
+      if (currentMem.has(String(user.userAccountId))) {
+        playSound("entry");
+      }
+      prevMemRef.current = currentMem;
+      return;
+    }
+
+    // 새로 들어온 멤버
+    const addMem = [...currentMem].filter(id => !prevMem.has(id));
+    const anotherJoined = addMem.some(id => id !== String(user.userAccountId));
+
+    if (anotherJoined) {
+      playSound("entry");
+    }
+
+    // 퇴장 이펙트
+    const removeMem = [...prevMem].filter(id => !currentMem.has(id));
+    const anotherLeft = removeMem.some(id => id !== String(user.userAccountId));
+
+    if (anotherLeft) {
+      playSound("leave");
+    }
+
+    // 상태 업데이트
+    prevMemRef.current = currentMem;
+  }, [room, user?.userAccountId, playSound]);
 
   // UI
   return (
