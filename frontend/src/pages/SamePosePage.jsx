@@ -32,6 +32,7 @@ const SamePosePage = () => {
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
   const roomInfo = useGameStore((state) => state.roomInfo);
+  const isHost = user?.userAccountId === master; //방장 id
 
   // 턴 라운드 키워드
   const turn = useGameStore((state) => state.turn);
@@ -112,9 +113,10 @@ const SamePosePage = () => {
   );
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
 
-  // 팀끼리 사진 캡쳐
-  // 팀끼리 사진 캡쳐 (participants + role 기반)
+  // 팀끼리 사진 캡쳐 (participants + role 기반) → FastAPI 업로드
   const handleCapture = async () => {
+    if (!isHost) return; // ✅ 방장만 캡쳐/업로드
+    if (!participants?.length) return; // (옵션) 트랙 준비 전엔 스킵
     console.log("📸 사진 촬영 시작");
 
     const canvas = document.createElement("canvas");
@@ -124,7 +126,6 @@ const SamePosePage = () => {
     // 단일 트랙 캡처
     const captureTrack = (trackObj, nickname) => {
       return new Promise((resolve) => {
-        // LiveKit Local/RemoteVideoTrack에는 mediaStreamTrack 존재
         if (!trackObj?.mediaStreamTrack) {
           console.warn(`⚠️ ${nickname}의 track 없음`);
           return resolve();
@@ -135,10 +136,9 @@ const SamePosePage = () => {
         videoEl.muted = true;
         videoEl.playsInline = true;
 
-        // meta 로딩이 더 확실함
         videoEl.addEventListener("loadedmetadata", async () => {
           try {
-            await videoEl.play().catch(() => {}); // 자동재생 차단 대비
+            await videoEl.play().catch(() => {});
 
             const doCapture = () => {
               const w = videoEl.videoWidth || 640;
@@ -147,25 +147,23 @@ const SamePosePage = () => {
               canvas.height = h;
               ctx.drawImage(videoEl, 0, 0, w, h);
 
+              // JPEG로 용량 ↓ (413 방지)
               canvas.toBlob(
                 (blob) => {
                   if (blob) {
-                    // nickname.png로 저장되도록 파일명 포함해서 append
-                    formData.append("images", blob, `${nickname}.png`);
+                    formData.append("images", blob, `${nickname}.jpg`);
                   }
                   videoEl.remove();
                   resolve();
                 },
-                "image/png",
-                0.92
+                "image/jpeg",
+                0.9
               );
             };
 
             if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
-              // 한 프레임 보장 후 캡처
               videoEl.requestVideoFrameCallback(() => doCapture());
             } else {
-              // 폴백
               requestAnimationFrame(() => setTimeout(doCapture, 50));
             }
           } catch (err) {
@@ -176,27 +174,21 @@ const SamePosePage = () => {
       });
     };
 
-    // 1) 현재 턴 팀 + REP만 우선 선택
+    // 1) 현재 턴 팀 + REP 우선, 부족하면 같은 팀에서 보충 → 최대 3명
     let targets = participants.filter(
       (p) => p.team === turn && p.role === "REP" && p.track?.mediaStreamTrack
     );
-
-    // 2) REP가 3명 미만이면, 같은 팀의 나머지(역할 무관)에서 보충
     if (targets.length < 3) {
       const fillers = participants
         .filter(
           (p) =>
             p.team === turn &&
             p.track?.mediaStreamTrack &&
-            // 중복 제외
             !targets.some((t) => t.identity === p.identity)
         )
         .slice(0, 3 - targets.length);
-
       targets = [...targets, ...fillers];
     }
-
-    // 3) 최종 3명만 사용
     targets = targets.slice(0, 3);
 
     if (targets.length === 0) {
@@ -205,27 +197,100 @@ const SamePosePage = () => {
     }
 
     console.log(
-      "🎯 캡처 대상:",
+      "🎯 업로드 캡처 대상:",
       targets.map((t) => `${t.nickname}(${t.role ?? "NOR"})`)
     );
 
     // 병렬 캡처
     await Promise.all(targets.map((p) => captureTrack(p.track, p.nickname)));
 
-    console.log("✅ 캡처 완료. 업로드/다운로드 준비됨");
+    // 메타데이터 추가 (원하면 확장)
+    formData.append(
+      "meta",
+      JSON.stringify({
+        roomId,
+        round,
+        turn,
+        keyword: keywordList?.[keywordIdx] ?? null,
+        capturedAt: new Date().toISOString(),
+      })
+    );
 
-    // 브라우저 로컬 다운로드 (다운로드 폴더)
-    let count = 0;
-    for (const [, value] of formData.entries()) {
-      count++;
-      const blobURL = URL.createObjectURL(value);
-      const a = document.createElement("a");
-      a.href = blobURL;
-      a.download = value.name || `capture_${count}.png`; // nickname.png
-      a.click();
-      URL.revokeObjectURL(blobURL);
+    // 업로드
+    console.log("🚀 업로드 시작:", import.meta.env.VITE_FASTAPI_URL);
+
+    try {
+      const base = import.meta.env.VITE_FASTAPI_URL; // 도메인 또는 최종 엔드포인트
+      // 절대 URL이 아니면 현재 오리진 기준으로 보정
+      const u = /^https?:\/\//.test(base)
+        ? new URL(base)
+        : new URL(base, window.location.origin);
+
+      // /ai/upload_images가 없으면 붙이기
+      if (!/\/ai\/upload_images\/?$/.test(u.pathname)) {
+        u.pathname = `${u.pathname.replace(/\/$/, "")}/ai/upload_images`;
+      }
+
+      // 쿼리 파라미터
+      u.searchParams.set("gameId", String(roomId));
+      u.searchParams.set("team", String(turn).toLowerCase()); // 서버가 소문자 받는다면 OK
+      u.searchParams.set("round", String(round));
+
+      const uploadUrl = u.toString();
+      console.log("🧭 최종 업로드 URL:", uploadUrl);
+
+      // 헤더 지정 X (브라우저가 boundary 자동 설정)
+      const res = await axios.post(
+        uploadUrl,
+        formData /* , { withCredentials: true } 쿠키 필요 시 */
+      );
+      console.log("✅ 업로드 성공:", res.data);
+    } catch (err) {
+      const msg =
+        err.response?.data ||
+        err.response?.statusText ||
+        err.message ||
+        "unknown error";
+      console.error("❌ 업로드 실패:", msg);
     }
-    console.log("📦 총 이미지 개수:", count);
+    // ===== 방장일 경우에만 정답 제출 =====
+    const SEND_CORRECT = true; // true면 제시어, false면 빈값
+    submitGameAnswer(SEND_CORRECT);
+  };
+
+  // 정답제출
+  const submitGameAnswer = (isCorrect) => {
+    const state = useGameStore.getState();
+    const { roomId, round, keywordList, keywordIdx, participants, turn } =
+      state;
+
+    // ✅ 방장만 제출
+    if (!isHost) {
+      console.warn("⚠️ 방장이 아니므로 정답 제출 안 함");
+      return;
+    }
+
+    // 현재 턴 팀의 NOR 중 한 명 선택 (없으면 방장 본인)
+    const nors = participants.filter(
+      (p) => p.team === turn && (p.role === null || p.role === "NOR")
+    );
+    const norId = nors[0] ? Number(nors[0].identity) : myIdx;
+
+    emitAnswerSubmit({
+      roomId,
+      round,
+      norId,
+      keywordIdx,
+      inputAnswer: isCorrect ? (keywordList?.[keywordIdx] ?? "") : "",
+    });
+
+    console.log("📝 GAME_ANSWER_SUBMIT(방장)", {
+      roomId,
+      round,
+      norId,
+      keywordIdx,
+      inputAnswer: isCorrect ? keywordList?.[keywordIdx] : "",
+    });
   };
 
   // 첫 페이지 로딩
@@ -314,7 +379,8 @@ const SamePosePage = () => {
   }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
 
   useEffect(() => {
-    // "찰 칵 !" 순간 자동 촬영
+    // "찰 칵 !" 순간 자동 촬영 (방장만)
+    if (!isHost) return;
     if (!showModal || countdown !== "찰 칵 !") return;
 
     const shotKey = `${round}-${turn}`;
@@ -334,7 +400,7 @@ const SamePosePage = () => {
         }, 300);
       }
     })();
-  }, [showModal, countdown, round, turn]);
+  }, [isHost, showModal, countdown, round, turn]);
 
   // 최종 누가 이겼는지
   useEffect(() => {

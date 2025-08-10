@@ -21,6 +21,8 @@ import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggle
 import characterImageMap from "../utils/characterImageMap";
 import useAuthStore from "../store/useAuthStore";
 import useGameStore from "../store/useGameStore";
+import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
+
 import {
   emitTeamChange,
   emitReadyChange,
@@ -347,7 +349,8 @@ const WaitingPage = () => {
       </section>
       {/* 채팅과 카메라 */}
       <section className="basis-1/4 flex flex-col bg-rose-300">
-        <div className="basis-1/8 m-4 flex justify-end items-center">
+        <div className="basis-1/8 m-4 flex justify-between items-center">
+          <InfoGuideButton />
           <ModalButton
             className="text-lg px-2 py-1 rounded-md w-37 h-15"
             onClick={() => setIsExitModalOpen(true)}
