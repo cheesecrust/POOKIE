@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import background_myroom from "../assets/background/background_myroom.png";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
@@ -13,10 +13,12 @@ import StoreList from "../components/organisms/myRoom/StoreList";
 import coinImg from "../assets/item/coin.png";
 import axiosInstance from "../lib/axiosInstance";
 
+import useSound from "../utils/useSound"
 
 const MyRoomPage = () => {
 
   const navigate = useNavigate();
+  const { playSound } = useSound();
 
   const [activeTab, setActiveTab] = useState("도감");
   const { user } = useAuthStore();
@@ -25,6 +27,9 @@ const MyRoomPage = () => {
   // const [exp, setExp] = useState(null);
   const [coin, setCoin] = useState(null);
   const [step, setStep] = useState(null);
+
+  // 이전 step 저자용(+진화 이펙트)
+  const prevStepRef = useRef(null);
 
   const fetchAuthInfo = async () => {
     try {
@@ -47,6 +52,25 @@ const MyRoomPage = () => {
   useEffect(() => {
     fetchAuthInfo();
   }, []);
+
+  // 진화 이펙트
+  useEffect(() => {
+    if (typeof step !== "number") return;
+
+    // 첫 세팅 기준값 저장장
+    if (prevStepRef.current === null) {
+      prevStepRef.current = step;
+      return;
+    }
+    
+    // 레벨업 시, 이펙트
+    if (step > prevStepRef.current) {
+      playSound("grow")
+    }
+
+    // 기준값 갱신
+    prevStepRef.current = step;
+  }, [step, playSound]);
 
   return (
     <div
@@ -111,6 +135,7 @@ const MyRoomPage = () => {
                   }
                   alt="대표 캐릭터"
                   className="max-w-full max-h-[250px] object-contain"
+                  onClick={() => playSound("pookie")}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = characterImageMap.default;
