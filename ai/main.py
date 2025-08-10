@@ -189,7 +189,8 @@ def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_
             landmark_drawing_spec=mp_drawing_styles.get_default_hand_landmarks_style()
         )
 
-    vis_path = os.path.join(save_vis_dir, f"vis_{filename}")
+    name_base = os.path.splitext(os.path.basename(filename))[0]
+    vis_path = os.path.join(save_vis_dir, f"vis_{name_base}.jpg")
     cv2.imwrite(vis_path, cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
     return keypoints.flatten(), vis_path, arm_feat  # ★ arm_feat 추가 반환
 
@@ -218,8 +219,12 @@ def weighted_similarity(v1, v2, w_pose, w_hand):
 
 # ---------------- 이미지 tmp 처리 ---------------- #
 def atomic_write(image_bgr, target_path: str):
-    tmp = target_path + ".tmp"
-    cv2.imwrite(tmp, image_bgr)
+    # 임시 파일도 원래 확장자 유지
+    root, ext = os.path.splitext(target_path)
+    tmp = f"{root}.tmp{ext}"
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    if not cv2.imwrite(tmp, image_bgr):
+        raise RuntimeError(f"cv2.imwrite failed: {tmp}")
     os.replace(tmp, target_path)
 
 # ---------------- Row 이미지 생성 ---------------- #
