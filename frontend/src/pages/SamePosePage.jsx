@@ -73,6 +73,10 @@ const SamePosePage = () => {
   const norIdxList = useGameStore((state) => state.norIdxList) || [];
   const repIdxList = useGameStore((state) => state.repIdxList);
 
+  // 캡쳐
+  const lastShotKeyRef = useRef("");
+  const isCapturingRef = useRef(false); // 중복 방지용
+
   // livekit
   const participants = useGameStore((state) => state.participants);
   const roomInstance = useGameStore((state) => state.roomInstance);
@@ -109,16 +113,18 @@ const SamePosePage = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
 
   // 팀끼리 사진 캡쳐
+  // 팀끼리 사진 캡쳐 (participants + role 기반)
   const handleCapture = async () => {
     console.log("📸 사진 촬영 시작");
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-
     const formData = new FormData();
 
+    // 단일 트랙 캡처
     const captureTrack = (trackObj, nickname) => {
       return new Promise((resolve) => {
+        // LiveKit Local/RemoteVideoTrack에는 mediaStreamTrack 존재
         if (!trackObj?.mediaStreamTrack) {
           console.warn(`⚠️ ${nickname}의 track 없음`);
           return resolve();
@@ -129,28 +135,38 @@ const SamePosePage = () => {
         videoEl.muted = true;
         videoEl.playsInline = true;
 
-        videoEl.addEventListener("loadeddata", async () => {
+        // meta 로딩이 더 확실함
+        videoEl.addEventListener("loadedmetadata", async () => {
           try {
-            await videoEl.play();
-            console.log("videoEl", videoEl);
+            await videoEl.play().catch(() => {}); // 자동재생 차단 대비
+
             const doCapture = () => {
-              canvas.width = videoEl.videoWidth;
-              canvas.height = videoEl.videoHeight;
-              ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-              console.log("canvas", canvas);
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  formData.append("images", blob, `${nickname}.png`);
-                }
-                videoEl.remove();
-                resolve();
-              }, "image/png");
+              const w = videoEl.videoWidth || 640;
+              const h = videoEl.videoHeight || 480;
+              canvas.width = w;
+              canvas.height = h;
+              ctx.drawImage(videoEl, 0, 0, w, h);
+
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) {
+                    // nickname.png로 저장되도록 파일명 포함해서 append
+                    formData.append("images", blob, `${nickname}.png`);
+                  }
+                  videoEl.remove();
+                  resolve();
+                },
+                "image/png",
+                0.92
+              );
             };
 
-            if (videoEl.requestVideoFrameCallback) {
+            if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
+              // 한 프레임 보장 후 캡처
               videoEl.requestVideoFrameCallback(() => doCapture());
             } else {
-              setTimeout(doCapture, 100); // fallback
+              // 폴백
+              requestAnimationFrame(() => setTimeout(doCapture, 50));
             }
           } catch (err) {
             console.error("❌ 비디오 캡처 실패:", err);
@@ -160,29 +176,56 @@ const SamePosePage = () => {
       });
     };
 
-    // ✅ 안전하게 track 존재 여부 필터링
-    const captureTasks = [
-      ...(publisherTrack
-        ? [captureTrack(publisherTrack.track, myNickname)]
-        : []),
-      ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
-      ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
-    ];
+    // 1) 현재 턴 팀 + REP만 우선 선택
+    let targets = participants.filter(
+      (p) => p.team === turn && p.role === "REP" && p.track?.mediaStreamTrack
+    );
 
-    await Promise.all(captureTasks);
+    // 2) REP가 3명 미만이면, 같은 팀의 나머지(역할 무관)에서 보충
+    if (targets.length < 3) {
+      const fillers = participants
+        .filter(
+          (p) =>
+            p.team === turn &&
+            p.track?.mediaStreamTrack &&
+            // 중복 제외
+            !targets.some((t) => t.identity === p.identity)
+        )
+        .slice(0, 3 - targets.length);
 
-    // ✅ 여기까지 오면 캡처는 끝
-    console.log("✅ 캡처 완료. 업로드 준비됨");
-    console.log(formData);
-    for (let [key, value] of formData.entries()) {
+      targets = [...targets, ...fillers];
+    }
+
+    // 3) 최종 3명만 사용
+    targets = targets.slice(0, 3);
+
+    if (targets.length === 0) {
+      console.warn("⚠️ 캡처 가능한 대상이 없습니다. (현재 턴 팀에 트랙 없음)");
+      return;
+    }
+
+    console.log(
+      "🎯 캡처 대상:",
+      targets.map((t) => `${t.nickname}(${t.role ?? "NOR"})`)
+    );
+
+    // 병렬 캡처
+    await Promise.all(targets.map((p) => captureTrack(p.track, p.nickname)));
+
+    console.log("✅ 캡처 완료. 업로드/다운로드 준비됨");
+
+    // 브라우저 로컬 다운로드 (다운로드 폴더)
+    let count = 0;
+    for (const [, value] of formData.entries()) {
+      count++;
       const blobURL = URL.createObjectURL(value);
-      console.log(blobURL);
       const a = document.createElement("a");
       a.href = blobURL;
-      a.download = key; // 파일명은 key (ex: "images")
+      a.download = value.name || `capture_${count}.png`; // nickname.png
       a.click();
-      URL.revokeObjectURL(blobURL); // 메모리 해제
+      URL.revokeObjectURL(blobURL);
     }
+    console.log("📦 총 이미지 개수:", count);
   };
 
   // 첫 페이지 로딩
@@ -256,10 +299,10 @@ const SamePosePage = () => {
       (isMyTeamRed && turn === "RED") || (!isMyTeamRed && turn === "BLUE");
 
     if (isMyTurn) {
-      // ✅ 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
+      // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
       setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
     } else {
-      // ✅ 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
+      // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
       const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
       const repIds = repIdxList; // 이미 서버에서 받은 REP 리스트
       const repUserIds = enemyTeam
@@ -269,6 +312,29 @@ const SamePosePage = () => {
       setHideTargetIds(repUserIds);
     }
   }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
+
+  useEffect(() => {
+    // "찰 칵 !" 순간 자동 촬영
+    if (!showModal || countdown !== "찰 칵 !") return;
+
+    const shotKey = `${round}-${turn}`;
+    if (lastShotKeyRef.current === shotKey) return; // 같은 턴/라운드 중복 방지
+    if (isCapturingRef.current) return;
+
+    isCapturingRef.current = true;
+    lastShotKeyRef.current = shotKey;
+
+    (async () => {
+      try {
+        await handleCapture(); // ← 네가 이미 만든 함수 (다운로드까지 수행)
+      } finally {
+        // 살짝 딜레이 후 락 해제 (렌더/타이밍 안정화)
+        setTimeout(() => {
+          isCapturingRef.current = false;
+        }, 300);
+      }
+    })();
+  }, [showModal, countdown, round, turn]);
 
   // 최종 누가 이겼는지
   useEffect(() => {
@@ -367,12 +433,12 @@ const SamePosePage = () => {
                 최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
                 취해주세요.
               </span>
-              <button
+              {/* <button
                 onClick={handleCapture}
                 className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
               >
                 📸 사진 찰칵{" "}
-              </button>
+              </button> */}
             </div>
 
             {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
