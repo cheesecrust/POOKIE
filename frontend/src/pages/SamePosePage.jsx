@@ -8,6 +8,7 @@ import GameResultModal from "../components/organisms/games/GameResultModal";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from "../store/useGameStore";
@@ -108,38 +109,80 @@ const SamePosePage = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
 
   // 팀끼리 사진 캡쳐
-  const handleCapture = () => {
+  const handleCapture = async () => {
+    console.log("📸 사진 촬영 시작");
+
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    const targetTracks =
-      turn === "RED"
-        ? [
-            ...(publisherTrack?.team === "RED" ? [publisherTrack] : []),
-            ...redTeam,
-          ]
-        : [
-            ...(publisherTrack?.team === "BLUE" ? [publisherTrack] : []),
-            ...blueTeam,
-          ];
+    const formData = new FormData();
 
-    targetTracks.forEach((p) => {
-      const videoEl = document.createElement("video");
-      videoEl.srcObject = new MediaStream([p.track.mediaStreamTrack]);
-      videoEl.play();
+    const captureTrack = (trackObj, nickname) => {
+      return new Promise((resolve) => {
+        if (!trackObj?.mediaStreamTrack) {
+          console.warn(`⚠️ ${nickname}의 track 없음`);
+          return resolve();
+        }
 
-      videoEl.onloadeddata = () => {
-        canvas.width = videoEl.videoWidth;
-        canvas.height = videoEl.videoHeight;
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+        const videoEl = document.createElement("video");
+        videoEl.srcObject = new MediaStream([trackObj.mediaStreamTrack]);
+        videoEl.muted = true;
+        videoEl.playsInline = true;
 
-        const imgData = canvas.toDataURL("image/png");
-        const a = document.createElement("a");
-        a.href = imgData;
-        a.download = `${p.nickname}_capture.png`;
-        a.click();
-      };
-    });
+        videoEl.addEventListener("loadeddata", async () => {
+          try {
+            await videoEl.play();
+            console.log("videoEl", videoEl);
+            const doCapture = () => {
+              canvas.width = videoEl.videoWidth;
+              canvas.height = videoEl.videoHeight;
+              ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+              console.log("canvas", canvas);
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  formData.append("images", blob, `${nickname}.png`);
+                }
+                videoEl.remove();
+                resolve();
+              }, "image/png");
+            };
+
+            if (videoEl.requestVideoFrameCallback) {
+              videoEl.requestVideoFrameCallback(() => doCapture());
+            } else {
+              setTimeout(doCapture, 100); // fallback
+            }
+          } catch (err) {
+            console.error("❌ 비디오 캡처 실패:", err);
+            resolve();
+          }
+        });
+      });
+    };
+
+    // ✅ 안전하게 track 존재 여부 필터링
+    const captureTasks = [
+      ...(publisherTrack
+        ? [captureTrack(publisherTrack.track, myNickname)]
+        : []),
+      ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
+      ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
+    ];
+
+    await Promise.all(captureTasks);
+
+    // ✅ 여기까지 오면 캡처는 끝
+    console.log("✅ 캡처 완료. 업로드 준비됨");
+    console.log(formData);
+    for (let [key, value] of formData.entries()) {
+      const blobURL = URL.createObjectURL(value);
+      console.log(blobURL);
+      const a = document.createElement("a");
+      a.href = blobURL;
+      a.download = key; // 파일명은 key (ex: "images")
+      a.click();
+      URL.revokeObjectURL(blobURL); // 메모리 해제
+    }
   };
 
   // 첫 페이지 로딩
@@ -209,21 +252,23 @@ const SamePosePage = () => {
     if (!myIdx) return;
 
     const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
+    const isMyTurn =
+      (isMyTeamRed && turn === "RED") || (!isMyTeamRed && turn === "BLUE");
 
-    if (isMyTeamRed) {
-      if (turn === "RED") {
-        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
-      } else {
-        setHideTargetIds(blueTeam.map((p) => p.id));
-      }
+    if (isMyTurn) {
+      // ✅ 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
+      setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
     } else {
-      if (turn === "BLUE") {
-        setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
-      } else {
-        setHideTargetIds(redTeam.map((p) => p.id));
-      }
+      // ✅ 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
+      const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
+      const repIds = repIdxList; // 이미 서버에서 받은 REP 리스트
+      const repUserIds = enemyTeam
+        .filter((p) => repIds.includes(p.id)) // 실제 팀원 중 rep에 해당하는 사람만
+        .map((p) => p.id);
+
+      setHideTargetIds(repUserIds);
     }
-  }, [turn, redTeam, blueTeam, norIdxList, myIdx]);
+  }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
 
   // 최종 누가 이겼는지
   useEffect(() => {
@@ -233,7 +278,7 @@ const SamePosePage = () => {
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
-      }, 5000);
+      }, 4000);
 
       return () => {
         clearTimeout(modalTimeout);
@@ -263,17 +308,22 @@ const SamePosePage = () => {
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, sizeStyles) => {
     return roleGroup.map((p, idx) => {
+      const userAccountId = Number(p.identity);
+      const isMe = userAccountId === user.userAccountId;
+
       return (
-        <div key={p.identity} className={sizeStyles[idx]}>
+        <div key={p.identity} className={`relative z-10 ${sizeStyles[idx]}`}>
           <LiveKitVideo
             videoTrack={p.track}
             nickname={p.nickname}
             isLocal={p.isLocal}
-            containerClassName="w-full h-full"
-            nicknameClassName="absolute bottom-4 left-4 text-white text-2xl"
+            containerClassName={`${sizeStyles[idx]} relative`}
+            nicknameClassName={`absolute bottom-2 left-2 text-lg bg-black/50 px-2 py-1 rounded ${
+              isMe ? "text-yellow-400" : "text-white"
+            }`}
           />
-          {showModal && hideTargetIds.includes(p.userAccountId) && (
-            <div className="absolute inset-0 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
+          {showModal && hideTargetIds.includes(userAccountId) && (
+            <div className="absolute inset-0 z-20 bg-rose-50 bg-opacity-70 flex items-center justify-center text-rose-500 text-4xl font-bold pointer-events-none">
               {countdown}
             </div>
           )}
@@ -317,12 +367,12 @@ const SamePosePage = () => {
                 최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
                 취해주세요.
               </span>
-              {/* <button
-              onClick={handleCapture}
-              className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
-            >
-              📸 사진 찰칵{" "}
-            </button> */}
+              <button
+                onClick={handleCapture}
+                className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
+              >
+                📸 사진 찰칵{" "}
+              </button>
             </div>
 
             {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
@@ -356,7 +406,11 @@ const SamePosePage = () => {
         </section>
 
         {/* 현재 팀 캠 영역 (REP) */}
-        <section className="basis-4/9 relative w-full h-full bg-red-100 flex justify-around items-center">
+        <section
+          className={`basis-4/9 relative w-full h-full flex justify-around items-center ${
+            turn === "RED" ? "bg-red-100" : "bg-blue-100"
+          }`}
+        >
           {renderVideoByRole(repGroup, repStyles)}
         </section>
 

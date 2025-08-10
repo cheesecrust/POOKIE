@@ -10,8 +10,10 @@ import greenpookie from '../assets/character/pookie_green.png'
 import redpookie from '../assets/character/pookie_red.png'
 import yellowpookie from '../assets/character/pookie_yellow.png'
 import pookiepookie from '../assets/character/pookiepookie.png'
+import buldakpudding from '../assets/character/pooding_buldak.png'
 
 const characterImageMap = {
+    buldakpudding,
     strawberrypudding,
     blueberrypudding,
     caramelpudding,

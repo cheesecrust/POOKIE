@@ -138,7 +138,6 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case TIMER_START:
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
-//                    gameTimerService.preTimer(timerRequest);
                     gameTimerService.gameStartTimer(onlinePlayerManager.getRooms()
                                     .get(timerRequest.getRoomId()), timerRequest);
                     break;
@@ -153,10 +152,6 @@ public class GameServerHandler extends TextWebSocketHandler {
         } catch(Exception e) {
             log.error("{}",e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
-//            onlinePlayerManager.sendToMessageUser(session, Map.of(
-//                    "type", "Error",
-//                    "msg", "요청처리 중 문제가 발생하였습니다."
-//            ));
             messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
@@ -168,15 +163,14 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
-        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
-        
+
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
-        
         try {
             gameService.joinInLobby(session);
             socketMetrics.recordConnectionAccepted(session.getId());
             socketMetrics.endConnectionHandling(connectionSample);
+            log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
         } catch (Exception e) {
             socketMetrics.recordConnectionRejected("lobby_join_failed");
             socketMetrics.endConnectionHandling(connectionSample);

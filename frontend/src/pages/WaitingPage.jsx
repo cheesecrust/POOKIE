@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket, updateHandlers } from "../sockets/websocket";
-
+import pookiepookie from "../assets/character/pookiepookie.png";
 import ModalButton from "../components/atoms/button/ModalButton";
 import TeamToggleButton from "../components/molecules/waiting/TeamToggleButton";
 import SelfCamera from "../components/molecules/waiting/SelfCamera";
@@ -227,7 +227,7 @@ const WaitingPage = () => {
           team: room.RED.some((r) => r.id === u.id) ? "red" : "blue",
           isReady: u.status === "READY",
           isHost: room.master?.id === u.id,
-          repImg: characterImageMap[u?.repCharacter?.characterName] ?? characterImageMap.default,
+          characterName: u?.repCharacter?.characterName,
         }));
 
         // 빈 슬롯 채우기
@@ -238,6 +238,7 @@ const WaitingPage = () => {
         return combinedUsers;
       })()
     : Array(MAX_USERS).fill(null);
+  console.log("userSlots", userSlots);
 
   const handleStartGameClick = () => {
     if (isStartEnabled()) {

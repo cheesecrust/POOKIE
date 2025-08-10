@@ -8,6 +8,7 @@ import KickButton from "../../atoms/button/KickButton";
 import characterImageMap from "../../../utils/characterImageMap";
 
 const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
+  console.log("user", user);
   const borderColor =
     user.team === "red" ? "border-red-500" : "border-blue-500";
 
@@ -37,7 +38,7 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
 
         {/* 캐릭터 이미지 */}
         <img
-          src={characterImageMap[user?.repCharacter?.name] || pookiepookie}
+          src={characterImageMap[user?.characterName] || pookiepookie}
           alt="character"
           className="w-24 h-24 object-contain mb-1"
           onError={(e) => {
