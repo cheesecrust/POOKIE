@@ -1,14 +1,47 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'MyFont';
-  src: url('./assets/fonts/DungGeunMo.woff2') format('woff2');
+  font-family: "MyFont";
+  src: url("./assets/fonts/DungGeunMo.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
 
 body {
-  font-family: 'MyFont', sans-serif;
+  font-family: "MyFont", sans-serif;
+}
+
+.pretty-scroll {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 114, 182, 0.45) transparent; /* rose-400 느낌 */
+  overscroll-behavior: contain;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+.pretty-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pretty-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 8px; /* 위아래 여백 */
+}
+
+.pretty-scroll::-webkit-scrollbar-thumb {
+  background: rgba(244, 114, 182, 0.45); /* rose-400 */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s ease;
+}
+
+.pretty-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(244, 63, 94, 0.7); /* rose-500 진하게 */
+}
+
+.pretty-scroll::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* SoundWrapper 전용 range 스타일 (스코프: .no-sound 내부) */

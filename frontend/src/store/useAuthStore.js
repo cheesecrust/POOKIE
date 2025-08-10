@@ -85,6 +85,9 @@ const useAuthStore = create(
               // useGameStore.getState().setGameResult(data);
               useGameStore.getState().setWaitingGameOver(data);
             },
+            onInterrupt: (data) => {
+              useGameStore.getState().setInterrupt(data);
+            },
           }
         });
       },
