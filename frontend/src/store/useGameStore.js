@@ -276,6 +276,17 @@ const useGameStore = create((set, get) => ({
                 setTimeout(() => set({ isWrongModalOpen: false }), 500);
             }
         }
+
+        // 일심동체 (SamePose)
+        if (get().gameType === "SAMEPOSE") {
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            }
+        }
     },
 
     setGameTurnOvered: (data) => {

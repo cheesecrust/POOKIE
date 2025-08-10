@@ -107,6 +107,12 @@ const SamePosePage = () => {
     (state) => state.showTurnChangeModal
   ); // 턴 바뀔때 모달
 
+  // 정답 오답 모달
+  const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen);
+  const closeCorrectModal = useGameStore((state) => state.closeCorrectModal);
+  const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);
+  const closeWrongModal = useGameStore((state) => state.closeWrongModal);
+
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
     (state) => state.handleTimerPrepareSequence
@@ -577,6 +583,16 @@ const SamePosePage = () => {
           </p>
         </PopUpModal>
       </div>
+
+      {/* 정답 모달 */}
+      <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
+        <p className="text-6xl font-bold font-pixel">일 치 !</p>
+      </PopUpModal>
+
+      {/* 오답 모달 */}
+      <PopUpModal isOpen={isWrongModalOpen} onClose={closeWrongModal}>
+        <p className="text-6xl font-bold font-pixel">불 일 치 !</p>
+      </PopUpModal>
 
       {/* 최종 승자 모달 */}
       {isResultOpen && (
