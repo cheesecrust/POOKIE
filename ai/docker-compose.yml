@@ -11,6 +11,7 @@ services:
       - "8001:8001"
     environment:
       - TZ=Asia/Seoul
+      - RESULTS_ROOT=/app/results_debug
     volumes:
       # - ./logs:/app/fast-api-logs # 로그 마운트 제거
       - ./results_debug:/app/results_debug   # 결과 폴더 영구 보관/호스트에서 바로 확인

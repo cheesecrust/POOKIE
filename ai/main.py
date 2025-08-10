@@ -225,7 +225,7 @@ def concat_images_horizontally_with_text(image_paths, similarities, all_pass, sa
     return save_path
 
 # ---------------- FastAPI 엔드포인트 ---------------- #
-RESULTS_ROOT = "./results_debug"
+RESULTS_ROOT = os.getenv("RESULTS_ROOT", "/app/results_debug")
 os.makedirs(RESULTS_ROOT, exist_ok=True)
 
 # ★ 튜닝 파라미터
@@ -309,5 +309,5 @@ async def upload_images(
     }
 
 # ★ 결과 폴더 정적 서빙 (브라우저에서 바로 확인)
-app.mount("/results", StaticFiles(directory="results_debug"), name="results")
+app.mount("/results", StaticFiles(directory=RESULTS_ROOT), name="results")
 # 예: http://<도메인>:8001/results/<gameId>/<team>/round-1.jpg
