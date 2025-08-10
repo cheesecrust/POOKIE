@@ -29,9 +29,9 @@ const MyRoomPage = () => {
   const { user, setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
-  // const [exp, setExp] = useState(null);
   const [coin, setCoin] = useState(null);
   const [step, setStep] = useState(null);
+  const [exp,setExp] = useState(null);
 
   // 이전 step 저자용(+진화 이펙트)
   const prevStepRef = useRef(null);
@@ -45,6 +45,7 @@ const MyRoomPage = () => {
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
       setUser(res.data.data);
+      setExp(res.data.data.repCharacter.exp);
 
     } catch (err) {
       console.log("AuthInfo 에러", err);
@@ -130,7 +131,7 @@ const MyRoomPage = () => {
                     <span className="font-semibold">Exp:</span>
                     <UserExp
                       step={step}
-                      exp={user?.repCharacter?.exp || 0}
+                      exp={exp}
                     />
                   </div>
                 </div>
