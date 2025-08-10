@@ -1,6 +1,7 @@
 package com.ssafy.pookie.friend.dto;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
 import com.ssafy.pookie.friend.model.Friends;
 import com.ssafy.pookie.friend.model.Status;
 import lombok.Builder;
@@ -12,6 +13,7 @@ public class FriendDto {
     private Long userId;
     private String nickname;
     private Status status;
+    private RepCharacterResponseDto repCharacter;
 
     public static FriendDto from(UserAccounts user, Status status) {
         return FriendDto.builder()
@@ -21,7 +23,7 @@ public class FriendDto {
                 .build();
     }
 
-    public static FriendDto from(Friends friends, Status status, Long userId) {
+    public static FriendDto from(Friends friends, Status status, Long userId, RepCharacterResponseDto repCharacter) {
         UserAccounts user1 = friends.getUser1();
         UserAccounts user2 = friends.getUser2();
         Long friendId =
@@ -33,6 +35,7 @@ public class FriendDto {
                 .userId(friendId)
                 .nickname(friendNickname)
                 .status(status)
+                .repCharacter(repCharacter)
                 .build();
     }
 }
