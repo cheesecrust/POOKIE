@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # ★ 정적 서빙 추가
 from typing import List, Tuple
-import os, uuid, datetime
+import os, uuid, datetime, math
 import numpy as np
 import cv2
 import mediapipe as mp
@@ -86,32 +86,71 @@ def refine_hand_keypoints(image, hand_model, w, h):
 
     return hand_keypoints, hand_landmarks_for_draw
 
+# ★ 팔/어깨 특징 벡터 계산 (각도/거리 기반, 스케일/평행이동 불변)
+def _angle(a, b, c):
+    ba = np.array(a) - np.array(b)
+    bc = np.array(c) - np.array(b)
+    nba = ba / (np.linalg.norm(ba) + 1e-6)
+    nbc = bc / (np.linalg.norm(bc) + 1e-6)
+    cosang = np.clip(np.dot(nba, nbc), -1.0, 1.0)
+    return math.acos(cosang)  # [0, pi]
+
+def _arm_features(raw_points, scale):
+    LS = mp_pose.PoseLandmark.LEFT_SHOULDER.value
+    RS = mp_pose.PoseLandmark.RIGHT_SHOULDER.value
+    LE = mp_pose.PoseLandmark.LEFT_ELBOW.value
+    RE = mp_pose.PoseLandmark.RIGHT_ELBOW.value
+    LW = mp_pose.PoseLandmark.LEFT_WRIST.value
+    RW = mp_pose.PoseLandmark.RIGHT_WRIST.value
+
+    # 필요한 포인트가 모두 있어야 함
+    need = [LS, RS, LE, RE, LW, RW]
+    if any(i not in raw_points for i in need):
+        return None
+
+    l_shoulder = raw_points[LS]; r_shoulder = raw_points[RS]
+    l_elbow = raw_points[LE];    r_elbow = raw_points[RE]
+    l_wrist = raw_points[LW];    r_wrist = raw_points[RW]
+
+    left_elbow_ang  = _angle(l_shoulder, l_elbow, l_wrist) / math.pi
+    right_elbow_ang = _angle(r_shoulder, r_elbow, r_wrist) / math.pi
+
+    shoulder_width = np.linalg.norm(np.array(l_shoulder) - np.array(r_shoulder)) / (scale + 1e-6)
+    lw_sh_dist = np.linalg.norm(np.array(l_wrist) - np.array(l_shoulder)) / (scale + 1e-6)
+    rw_sh_dist = np.linalg.norm(np.array(r_wrist) - np.array(r_shoulder)) / (scale + 1e-6)
+
+    return np.array([left_elbow_ang, right_elbow_ang, shoulder_width, lw_sh_dist, rw_sh_dist], dtype=np.float32)
+
 # ---------------- 관절 벡터 추출 ---------------- #
 def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_landmarks"):
     os.makedirs(save_vis_dir, exist_ok=True)
     np_arr = np.frombuffer(image_bytes, np.uint8)
     image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
     if image is None:
-        return None, None
+        return None, None, None
     image = preprocess_image(image)
     h, w, _ = image.shape
 
     pose_result = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     if not pose_result.pose_landmarks:
-        return None, None
+        return None, None, None
 
     keypoints = []
     labels = []
+    raw_points = {}  # ★ 원본 좌표 보관(각도/거리 계산용)
+
     for idx, lm in enumerate(pose_result.pose_landmarks.landmark):
         if idx not in [lm.value for lm in UPPER_BODY_LANDMARKS]:
             continue
-        keypoints.append([lm.x * w, lm.y * h])
+        x, y = lm.x * w, lm.y * h
+        keypoints.append([x, y])
         labels.append(str(idx))
+        raw_points[idx] = [x, y]
 
     hand_keypoints, hand_landmarks_for_draw = refine_hand_keypoints(image, hands, w, h)
     keypoints.extend(hand_keypoints)
-    keypoints = np.array(keypoints)
 
+    keypoints = np.array(keypoints)
     try:
         nose_idx = labels.index(str(mp_pose.PoseLandmark.NOSE.value))
         nose = keypoints[nose_idx]
@@ -121,8 +160,13 @@ def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_
     keypoints -= nose
     scale = np.max(keypoints.max(axis=0) - keypoints.min(axis=0))
     if scale == 0:
-        return None, None
+        return None, None, None
     keypoints /= scale
+
+    # ★ 팔/어깨 특징 벡터 생성
+    arm_feat = _arm_features(raw_points, scale)
+    if arm_feat is None:
+        arm_feat = np.zeros(5, dtype=np.float32)
 
     # 시각화 저장
     annotated = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -138,7 +182,7 @@ def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_
 
     vis_path = os.path.join(save_vis_dir, f"vis_{filename}")
     cv2.imwrite(vis_path, cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
-    return keypoints.flatten(), vis_path
+    return keypoints.flatten(), vis_path, arm_feat  # ★ arm_feat 추가 반환
 
 # ---------------- 제시어 기반 가중치 ---------------- #
 def get_weights_by_keyword(filename: str):
@@ -177,13 +221,16 @@ def concat_images_horizontally_with_text(image_paths, similarities, all_pass, sa
     cv2.putText(concat_img, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
     cv2.putText(concat_img, status, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                 (0, 200, 0) if all_pass else (0, 0, 255), 2)
-    # ★ 원자적 저장으로 변경(동시 접근 시 파일 깨짐 방지)
     atomic_write(concat_img, save_path)
     return save_path
 
 # ---------------- FastAPI 엔드포인트 ---------------- #
 RESULTS_ROOT = "./results_debug"
 os.makedirs(RESULTS_ROOT, exist_ok=True)
+
+# ★ 튜닝 파라미터
+ANGLE_BLEND = 0.30   # 팔/어깨 특징 유사도 비중
+PASS_THRESHOLD = 0.90  # 최종 통과 임계값(기존 0.6→0.9 로 상향)
 
 @app.post("/ai/upload_images")
 async def upload_images(
@@ -195,7 +242,7 @@ async def upload_images(
     if len(images) != 3:
         return {"status": "error", "message": "정확히 3장의 이미지를 업로드해야 합니다."}
 
-    vecs, vis_paths, names = [], [], []
+    vecs, vis_paths, names, arm_feats = [], [], [], []
     gameId = gameId or "unknown-game"
     team = (team or "unknown-team").lower()
     round = int(round or 1)
@@ -204,22 +251,35 @@ async def upload_images(
     os.makedirs(game_dir, exist_ok=True)
 
     for file in images:
-        contents = await file.read()  # 원본 파일 저장 안 함
+        contents = await file.read()
         names.append(file.filename)
-        vec, vis_path = extract_normalized_keypoints(contents, file.filename, save_vis_dir=game_dir)
+        vec, vis_path, arm_feat = extract_normalized_keypoints(contents, file.filename, save_vis_dir=game_dir)
         if vec is None:
             return {"status":"error","message":f"관절 추출 실패: {file.filename}"}
         vecs.append(vec)
         vis_paths.append(vis_path)
+        arm_feats.append(arm_feat)
 
-    # 가중치 계산 
+    # ✅ 가중치 계산
     w_pose, w_hand = get_weights_by_keyword(names[0])
 
+    # 좌표 기반(포즈+손) 유사도
     sim12 = float(weighted_similarity(vecs[0], vecs[1], w_pose, w_hand))
     sim13 = float(weighted_similarity(vecs[0], vecs[2], w_pose, w_hand))
     sim23 = float(weighted_similarity(vecs[1], vecs[2], w_pose, w_hand))
-    all_pass = bool(sim12 >= 0.6 and sim13 >= 0.6 and sim23 >= 0.6)
-    similarities = {"1-2": round(sim12,3), "1-3": round(sim13,3), "2-3": round(sim23,3)}
+
+    # ★ 팔/어깨 특징 유사도(코사인)
+    a12 = float(cosine_similarity([arm_feats[0]], [arm_feats[1]])[0][0])
+    a13 = float(cosine_similarity([arm_feats[0]], [arm_feats[2]])[0][0])
+    a23 = float(cosine_similarity([arm_feats[1]], [arm_feats[2]])[0][0])
+
+    # ★ 최종 유사도 = (좌표 기반)*(1-ANGLE_BLEND) + (팔/어깨 특징)*ANGLE_BLEND
+    f12 = (1-ANGLE_BLEND)*sim12 + ANGLE_BLEND*a12
+    f13 = (1-ANGLE_BLEND)*sim13 + ANGLE_BLEND*a13
+    f23 = (1-ANGLE_BLEND)*sim23 + ANGLE_BLEND*a23
+
+    all_pass = bool(f12 >= PASS_THRESHOLD and f13 >= PASS_THRESHOLD and f23 >= PASS_THRESHOLD)
+    similarities = {"1-2": round(f12,3), "1-3": round(f13,3), "2-3": round(f23,3)}
 
     # 아카이브 파일명(절대 덮어쓰기 안 됨) + 라운드/최신 별칭
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -227,7 +287,7 @@ async def upload_images(
     round_alias = os.path.join(game_dir, f"round-{round}.jpg")
     latest_alias = os.path.join(game_dir, "latest.jpg")
 
-    # row 이미지 생성 → 아카이브로 저장
+    # Row 이미지 생성 → 아카이브로 저장
     concat_path = concat_images_horizontally_with_text(vis_paths, similarities, all_pass, save_path=archive)
 
     # 별칭(바로보기) 원자적 교체
@@ -248,6 +308,6 @@ async def upload_images(
         "save_dir": f"results_debug/{gameId}/{team}/"
     }
 
-# 결과 폴더 정적 서빙 (브라우저에서 바로 확인)
+# ★ 결과 폴더 정적 서빙 (브라우저에서 바로 확인)
 app.mount("/results", StaticFiles(directory="results_debug"), name="results")
 # 예: http://<도메인>:8001/results/<gameId>/<team>/round-1.jpg
