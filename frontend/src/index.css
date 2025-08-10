@@ -10,3 +10,55 @@
 body {
   font-family: 'MyFont', sans-serif;
 }
+
+/* SoundWrapper 전용 range 스타일 (스코프: .no-sound 내부) */
+.no-sound {
+  --range-track: #e5e7eb;  /* 비활성 트랙색(회색) */
+  --range-fill:  #fd8ae0;  /* 채워진 구간색색 */
+  --range-thumb: #fd8ae0;  /* 핸들색 */
+}
+
+.no-sound input[type="range"] {
+  appearance: none;
+  background: transparent;
+  outline: none;
+}
+
+/* WebKit (Chrome/Edge/Opera/Safari) */
+.no-sound input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(var(--range-fill) 0 0) 0/var(--p,0%) 100% no-repeat,
+    var(--range-track);
+}
+.no-sound input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  margin-top: -5px; /* 트랙 높이에 맞춰 보정 */
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+}
+
+/* Firefox */
+.no-sound input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--range-track);
+}
+.no-sound input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--range-fill);
+}
+.no-sound input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+}
