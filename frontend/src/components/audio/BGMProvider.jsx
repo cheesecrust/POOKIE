@@ -9,7 +9,7 @@ import useAudioStore from "../../store/useAudioStore";
 
 const BGMProvider = () => {
   const location = useLocation();
-  const { audio, currentSrc, setAudio, setCurrentSrc } = useAudioStore();
+  const { audio, currentSrc, setAudio, setCurrentSrc, volumePct } = useAudioStore();
 
   useEffect(() => {
     let nextSrc = null;
@@ -31,7 +31,7 @@ const BGMProvider = () => {
     // 새 오디오 객체 생성
     const newAudio = new Audio(nextSrc);
     newAudio.loop = true;
-    newAudio.volume = 0.2;
+    newAudio.volume = (volumePct ?? 50) / 100;
 
     newAudio
       .play()
@@ -48,6 +48,12 @@ const BGMProvider = () => {
         console.warn("음악 재생 실패:", err);
       });
   }, [location.pathname, audio, currentSrc, setAudio, setCurrentSrc]);
+
+  useEffect(() => {
+    if (audio) {
+      audio.volume = (volumePct ?? 50) / 100
+    }
+  }, [audio, volumePct])
 
   return null;
 };
