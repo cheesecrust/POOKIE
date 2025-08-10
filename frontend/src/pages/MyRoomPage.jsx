@@ -11,6 +11,7 @@ import InventoryList from "../components/organisms/myRoom/InventoryList";
 import StoreList from "../components/organisms/myRoom/StoreList";
 
 import coinImg from "../assets/item/coin.png";
+import evolveEffect from "../assets/effect/evolve.gif"
 import axiosInstance from "../lib/axiosInstance";
 
 import useSound from "../utils/useSound"
@@ -19,6 +20,10 @@ const MyRoomPage = () => {
 
   const navigate = useNavigate();
   const { playSound } = useSound();
+
+  // 진화용 상태 추가
+  const [showEvolve, setShowEvolve] = useState(false);
+  const evolveTimeRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("도감");
   const { user } = useAuthStore();
@@ -53,7 +58,7 @@ const MyRoomPage = () => {
     fetchAuthInfo();
   }, []);
 
-  // 진화 이펙트
+  // 진화 이펙트(소리 + 모션)
   useEffect(() => {
     if (typeof step !== "number") return;
 
@@ -66,10 +71,23 @@ const MyRoomPage = () => {
     // 레벨업 시, 이펙트
     if (step > prevStepRef.current) {
       playSound("grow")
+
+      // 기존 타이머 있으면 정리
+      if (evolveTimeRef.current) clearTimeout(evolveTimeRef.current);
+      setShowEvolve(true);
+      // evolve.gif 길이에 맞춰서 조정(예: 1.8s)
+      evolveTimeRef.current = setTimeout(() => {
+        setShowEvolve(false);
+      }, 1800);
     }
 
     // 기준값 갱신
     prevStepRef.current = step;
+
+    // 언마운트 시 정리
+    return () => {
+      if (evolveTimeRef.current) clearTimeout(evolveTimeRef.current);
+    };
   }, [step, playSound]);
 
   return (
@@ -141,6 +159,17 @@ const MyRoomPage = () => {
                     e.target.src = characterImageMap.default;
                   }}
                 />
+
+                {/* evolve 오버레이 */}
+                {showEvolve && (
+                  <img
+                    src={evolveEffect}
+                    alt="evolve effect"
+                    className="absolute z-20 pointer-events-none
+                                max-w-full max-h-[250px] object-contain"
+                    style={{ inset: 0, margin: "auto" }} // PNG와 같은 박스 중앙에 맞춤
+                  />
+                )}
               </div>
             </div>
           </div>
