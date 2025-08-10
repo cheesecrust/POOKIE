@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import background_myroom from "../assets/background/background_myroom.png";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
@@ -11,20 +11,30 @@ import InventoryList from "../components/organisms/myRoom/InventoryList";
 import StoreList from "../components/organisms/myRoom/StoreList";
 
 import coinImg from "../assets/item/coin.png";
+import evolveEffect from "../assets/effect/evolve.gif"
 import axiosInstance from "../lib/axiosInstance";
 
+import useSound from "../utils/useSound"
 
 const MyRoomPage = () => {
 
   const navigate = useNavigate();
+  const { playSound } = useSound();
+
+  // 진화용 상태 추가
+  const [showEvolve, setShowEvolve] = useState(false);
+  const evolveTimeRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("도감");
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
-  // const [exp, setExp] = useState(null);
   const [coin, setCoin] = useState(null);
   const [step, setStep] = useState(null);
+  const [exp,setExp] = useState(null);
+
+  // 이전 step 저자용(+진화 이펙트)
+  const prevStepRef = useRef(null);
 
   const fetchAuthInfo = async () => {
     try {
@@ -34,6 +44,8 @@ const MyRoomPage = () => {
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
+      setUser(res.data.data);
+      setExp(res.data.data.repCharacter.exp);
 
     } catch (err) {
       console.log("AuthInfo 에러", err);
@@ -48,6 +60,38 @@ const MyRoomPage = () => {
     fetchAuthInfo();
   }, []);
 
+  // 진화 이펙트(소리 + 모션)
+  useEffect(() => {
+    if (typeof step !== "number") return;
+
+    // 첫 세팅 기준값 저장장
+    if (prevStepRef.current === null) {
+      prevStepRef.current = step;
+      return;
+    }
+    
+    // 레벨업 시, 이펙트
+    if (step > prevStepRef.current) {
+      playSound("grow")
+
+      // 기존 타이머 있으면 정리
+      if (evolveTimeRef.current) clearTimeout(evolveTimeRef.current);
+      setShowEvolve(true);
+      // evolve.gif 길이에 맞춰서 조정(예: 1.8s)
+      evolveTimeRef.current = setTimeout(() => {
+        setShowEvolve(false);
+      }, 1800);
+    }
+
+    // 기준값 갱신
+    prevStepRef.current = step;
+
+    // 언마운트 시 정리
+    return () => {
+      if (evolveTimeRef.current) clearTimeout(evolveTimeRef.current);
+    };
+  }, [step, playSound]);
+
   return (
     <div
       className="relative w-full min-h-screen overflow-hidden font-['DungGeunMo'] bg-cover bg-center"
@@ -59,9 +103,9 @@ const MyRoomPage = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 mt-20">
           {/* 좌측 - 유저정보 + 캐릭터 */}
-          <div className="w-full top-20  lg:w-1/3 xl:w-1/4 relative">
+          <div className="w-full lg:w-1/3 xl:w-1/4 relative mt-20">
             {/* 유저 정보 박스 */}
             <div className="bg-[#FDE1F0]  h-[300px] rounded-lg p-6 relative mb-6">
               <h2 className="text-2xl font-bold mb-4 text-center">마이룸</h2>
@@ -87,7 +131,7 @@ const MyRoomPage = () => {
                     <span className="font-semibold">Exp:</span>
                     <UserExp
                       step={step}
-                      exp={user?.repCharacter?.exp || 0}
+                      exp={exp}
                     />
                   </div>
                 </div>
@@ -111,17 +155,29 @@ const MyRoomPage = () => {
                   }
                   alt="대표 캐릭터"
                   className="max-w-full max-h-[250px] object-contain"
+                  onClick={() => playSound("pookie")}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = characterImageMap.default;
                   }}
                 />
+
+                {/* evolve 오버레이 */}
+                {showEvolve && (
+                  <img
+                    src={evolveEffect}
+                    alt="evolve effect"
+                    className="absolute z-20 pointer-events-none
+                                max-w-full max-h-[250px] object-contain"
+                    style={{ inset: 0, margin: "auto" }} // PNG와 같은 박스 중앙에 맞춤
+                  />
+                )}
               </div>
             </div>
           </div>
 
           {/* 돈 영역 */}
-          <div className="absolute top-6 right-36 flex items-center gap-2">
+          <div className="absolute top-24 right-36 flex items-center gap-2">
             {/* 코인 이미지 */}
             <img
               src={coinImg}
@@ -137,7 +193,7 @@ const MyRoomPage = () => {
           </div>
 
           {/* 우측 - 탭 + 컨텐츠 영역 */}
-          <div className="flex-1">
+          <div className="flex-1" >
             {/* 탭 버튼 */}
             <div className="flex  border-black ">
               {["도감", "상점", "인벤토리"].map((tab) => (
