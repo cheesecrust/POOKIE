@@ -97,7 +97,7 @@ const FriendMessageModal = ({onClose}) => {
       const res = await axiosInstance.get('/letter/received', {
         params: {
           size: 4,
-          page: currentPage
+          page: currentPage-1
         }
       });
       console.log("받은 쪽지 api",res.data);
@@ -117,7 +117,7 @@ const FriendMessageModal = ({onClose}) => {
       const res = await axiosInstance.get('/letter/sent', {
         params: {
           size: 4,
-          page: currentPage,
+          page: currentPage-1,
         }
       });
       const sentMessage = res.data.data.content;
@@ -145,7 +145,6 @@ const FriendMessageModal = ({onClose}) => {
       console.log("쪽지 삭제 실패:",err);
     }
   }
-
 
   // 받은 쪽지 신고 api 요청
   const handleReportMessage = (messageId) => {

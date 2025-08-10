@@ -250,6 +250,7 @@ const useGameStore = create((set, get) => ({
             keywordIdx: data.nowInfo.keywordIdx,
             repIdx: data.nowInfo.repIdx,
             score: data.answer ? state.score + 1 : state.score,
+            inputAnswer: data.inputAnswer,
         }));
 
         // 고요속의 외침 
@@ -261,6 +262,18 @@ const useGameStore = create((set, get) => ({
             } else {
                 set({ isWrongModalOpen: true });
                 setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            }
+        }
+
+        // 이어그리기
+        if (get().gameType === "SKETCHRELAY") {
+            // 모달 처리 따로
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                setTimeout(() => set({ isCorrectModalOpen: false }), 500);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 500);
             }
         }
     },

@@ -59,9 +59,9 @@ const MyRoomPage = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 mt-20">
           {/* 좌측 - 유저정보 + 캐릭터 */}
-          <div className="w-full top-20  lg:w-1/3 xl:w-1/4 relative">
+          <div className="w-full lg:w-1/3 xl:w-1/4 relative mt-20">
             {/* 유저 정보 박스 */}
             <div className="bg-[#FDE1F0]  h-[300px] rounded-lg p-6 relative mb-6">
               <h2 className="text-2xl font-bold mb-4 text-center">마이룸</h2>
@@ -121,7 +121,7 @@ const MyRoomPage = () => {
           </div>
 
           {/* 돈 영역 */}
-          <div className="absolute top-6 right-36 flex items-center gap-2">
+          <div className="absolute top-24 right-36 flex items-center gap-2">
             {/* 코인 이미지 */}
             <img
               src={coinImg}
@@ -137,7 +137,7 @@ const MyRoomPage = () => {
           </div>
 
           {/* 우측 - 탭 + 컨텐츠 영역 */}
-          <div className="flex-1">
+          <div className="flex-1" >
             {/* 탭 버튼 */}
             <div className="flex  border-black ">
               {["도감", "상점", "인벤토리"].map((tab) => (
