@@ -26,7 +26,7 @@ const MyRoomPage = () => {
   const evolveTimeRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("도감");
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
   // const [exp, setExp] = useState(null);
@@ -44,6 +44,7 @@ const MyRoomPage = () => {
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
+      setUser(res.data.data);
 
     } catch (err) {
       console.log("AuthInfo 에러", err);
