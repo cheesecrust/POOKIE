@@ -12,12 +12,39 @@ const CharacterDex = ({ onAfterChange }) => {
   const outerRef = useRef(null);
   const [scale, setScale] = useState(1);
 
+  // 푸키버튼 활성화 상태 관리
+  const [isPookieButtonActive, setIsPookieButtonActive] = useState(false);
+
   // 해금/대표
   const unlockedSet = useMemo(() => new Set(dex.map(d => d.characterName)), [dex]);
   const representName = useMemo(
     () => dex.find(d => d.represent)?.characterName || null,
     [dex]
   );
+
+  // 도감에서 바로 꺼내 쓰기 편하게 이름→정보 맵 생성
+  const nameToInfo = useMemo(() => {
+    const m = new Map();
+    dex.forEach(d => m.set(d.characterName, d)); // { id, characterId, ... }
+    return m;
+  }, [dex]);
+
+  // 유저 캐릭터 false만 있는지 확인 (다 false면 푸키 새로 발급받기 가능)
+  const checkPookieButtonActive = () => {
+    let characterCount = 0;
+    for(let i = 0 ; i < dex.length ; i++){
+      if(dex[i].growing === false){
+        characterCount++;
+      }
+    if(characterCount === dex.length){
+      setIsPookieButtonActive(true);
+    }
+    }
+  };
+
+  useEffect(() => {
+    checkPookieButtonActive();
+  }, [dex]);
 
   // 새 푸키 받기 
   const handleGetNewPookie = async () => {
@@ -78,19 +105,21 @@ const CharacterDex = ({ onAfterChange }) => {
     }
   };
 
-  const setRepresent = async (name) => {
+  const setRepresent = async (id,characterId) => {
     try {
-      await axiosInstance.put("/characters/representative", { characterName: name });
-      setDex(prev => prev.map(d => ({ ...d, represent: d.characterName === name })));
-      onAfterChange?.();
+      const res = await axiosInstance.put("/characters/representative", { 
+        id,
+        characterId,
+       });
+       // id로 대표 표시 갱신
+       setDex(prev => prev.map(d => ({ ...d, represent: d.id === id })));
+       onAfterChange?.();
     } catch (e) {
       console.log("대표 변경 실패:", e);
     }
   };
 
   useEffect(() => { fetchDex(); }, []);
-
-
 
   // 선 (SVG)
   const renderEdges = () => (
@@ -125,9 +154,12 @@ const CharacterDex = ({ onAfterChange }) => {
         name={name}
         unlocked={unlockedSet.has(name)}
         isRepresent={representName === name}
-        onDoubleClick={() =>
-          unlockedSet.has(name) && setRepresent(name)
-        }
+        onDoubleClick={() => {
+          if (!unlockedSet.has(name)) return;         // 잠금이면 무시
+          const info = nameToInfo.get(name);          // { id, characterId, ... }
+          if (!info) return;
+          setRepresent(info.id, info.characterId);    // id, characterId 전송
+        }}
         // CharacterCard가 고정 크기라면 w/h 100%로 바꿔 쓰기
         className="w-full h-full"
       />
@@ -137,13 +169,15 @@ const CharacterDex = ({ onAfterChange }) => {
   return (
     <div className="w-full">
       {/* 탭 내부 상단 툴바 */}
-      <div className="mb-3 flex items-center justify-end">
-        <RightButton
+      <div className="mb-3 flex items-center justify-end min-h-[32px]">
+
+        {/* 푸키 버튼 활성화 */}
+        {isPookieButtonActive && <RightButton
           size="sm"
           onClick={handleGetNewPookie}
           className="rounded-md"
           children="새 푸키푸키 받기"
-        />
+        />}
       </div>
 
       {/* 트리(스케일 박스) */}
