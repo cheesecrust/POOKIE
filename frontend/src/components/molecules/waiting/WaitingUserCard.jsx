@@ -6,8 +6,9 @@ import pookiepookie from "../../../assets/character/pookiepookie.png";
 import crown from "../../../assets/icon/crown.png";
 import KickButton from "../../atoms/button/KickButton";
 import characterImageMap from "../../../utils/characterImageMap";
+import entryEffect from "../../../assets/effect/entry.gif";
 
-const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
+const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick, showEntry = false }) => {
   console.log("user", user);
   const borderColor =
     user.team === "red" ? "border-red-500" : "border-blue-500";
@@ -36,16 +37,30 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
 
-        {/* 캐릭터 이미지 */}
-        <img
-          src={characterImageMap[user?.characterName] || pookiepookie}
-          alt="character"
-          className="w-24 h-24 object-contain mb-1"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = pookiepookie;
-          }}
-        />
+        {/* 캐릭터 이미지 + 입장 이펙트 */}
+        <div className="relative w-24 h-24 mb-1">
+          {/* 캐릭터 이미지 */}
+          <img
+            src={characterImageMap[user?.characterName] || pookiepookie}
+            alt="character"
+            className="w-24 h-24 object-contain mb-1"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = pookiepookie;
+            }}
+          />
+
+          {/* 입장 이펙트 */}
+          {showEntry && (
+            <img
+              src={entryEffect}
+              alt="entry effect"
+              aria-hidden
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
+                 w-full h-full object-contain pointer-events-none z-30 scale-150"
+            />
+          )}
+        </div>
 
         {/* 방장 뱃지 */}
         {user.isHost && (
