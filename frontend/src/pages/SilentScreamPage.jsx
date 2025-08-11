@@ -3,7 +3,7 @@
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif";
@@ -47,10 +47,6 @@ const SilentScreamPage = () => {
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
 
-  // 팀 추출
-  const myParticipant = participants.find((p) => p.userAccountId === myIdx);
-  const myTeam = myParticipant?.team || null;
-
   // 타이머
   const time = useGameStore((state) => state.time);
   const isSilentScreamTimerEnd = useGameStore(
@@ -85,6 +81,20 @@ const SilentScreamPage = () => {
   // 팀정보 
   const redTeam = useGameStore((state) => state.red) || [];
   const blueTeam = useGameStore((state) => state.blue) || [];
+
+  // 내 팀 추출
+  const getId = (u) => Number(u?.userAccountId ?? u?.id ?? u?.identity ?? NaN);
+
+  const redIds = useMemo(() => new Set((redTeam ?? []).map(getId)), [redTeam]);
+  const blueIds = useMemo(() => new Set((blueTeam ?? []).map(getId)), [blueTeam]);
+
+  const myIdNum = useMemo(() => Number(myIdx ?? NaN), [myIdx]);
+
+  const myTeam = useMemo(() => {
+    if (redIds.has(myIdNum)) return "RED";
+    if (blueIds.has(myIdNum)) return "BLUE";
+    return null; // 아직 팀 데이터가 안 들어온 초기 타이밍 대비
+  }, [redIds, blueIds, myIdNum]);
 
   // 모달
   const isGameStartModalOpen = useGameStore(
@@ -132,6 +142,7 @@ const SilentScreamPage = () => {
   // 1️. 첫 페이지 로딩
   useEffect(() => {
     console.log("keywordIdx", keywordIdx);
+    console.log("keywordList", keywordList);
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
@@ -147,7 +158,7 @@ const SilentScreamPage = () => {
 
   // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
-    if (!norIdxList?.includes(myIdx) && keywordList.length > 0) {
+    if (!norIdxList?.map(e=>e.idx).includes(myIdx) && keywordList.length > 0) {
       setKeyword(keywordList[keywordIdx]);
     }
   }, [keywordIdx, keywordList, norIdxList]);
@@ -213,7 +224,7 @@ const SilentScreamPage = () => {
       if (e.key === "Enter" && !isSubmitModalOpen && !hasSubmittedRef.current) {
         if (document.activeElement.tagName === "INPUT") return;
         if (document.activeElement.tagName === "TEXTAREA") return;
-        if (norIdxList.includes(myIdx)) {
+        if (norIdxList.map(e=>e.idx).includes(myIdx)) {
           setIsSubmitModalOpen(true);
           setHasSubmitted(true);
         }
@@ -424,7 +435,7 @@ const SilentScreamPage = () => {
         )}
 
         {/* Keyword 카드 (발화자 + 상대팀 보임) */}
-        {!norIdxList.includes(myIdx) && (
+        { !norIdxList.map(e=>e.idx).includes(myIdx) && (
           <div className="absolute top-32 right-42 z-20">
             <KeywordCard keyword={keywordList[keywordIdx]} />
           </div>
@@ -432,12 +443,12 @@ const SilentScreamPage = () => {
 
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
           {/* 발화자용 PASS 버튼 */}
-          {repIdxList.includes(myIdx) && (
+          {repIdxList.map(e=>e.idx).includes(myIdx) && (
             <PassButton onClick={() => emitGamePass({ roomId })} />
           )}
 
           {/* 정답 제출 버튼 */}
-          {norIdxList.includes(myIdx) && (
+          {norIdxList.map(e=>e.idx).includes(myIdx) && (
             <RightButton
               children="제출"
               onClick={() => {

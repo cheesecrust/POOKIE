@@ -60,3 +60,10 @@ export const emitStartGame = ({ roomId }) => {
 		roomId,
 	});
 };
+
+// 방 정보 업데이트 emit //gamepage에서 navigate할때 새 room 누락 방지
+export const emitRoomUpdate = ({ roomId }) => {
+	sendMessage('WAITING_ROOM_UPDATE', {
+		roomId,
+	});
+};

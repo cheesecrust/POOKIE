@@ -276,6 +276,17 @@ const useGameStore = create((set, get) => ({
                 setTimeout(() => set({ isWrongModalOpen: false }), 500);
             }
         }
+
+        // 일심동체 (SamePose)
+        if (get().gameType === "SAMEPOSE") {
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            }
+        }
     },
 
     setGameTurnOvered: (data) => {
@@ -375,11 +386,13 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
+            // console.log("user : "+p)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
-                : norIdxList.includes(p.userAccountId)
+                : norIdxList.map(e=>e.idx).includes(p.userAccountId)
                     ? "NOR"
                     : null;
+            // console.log("role : "+role)
             return { ...p, role };
         });
 
@@ -394,7 +407,7 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
                 : null;
             return { ...p, role };

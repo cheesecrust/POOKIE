@@ -24,36 +24,31 @@ const FriendCard = ({ characterName, nickname, isOnline, friendId, onRemoveFrien
   }
 
   return (
-    <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px]">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px] gap-4">
+      {/* 왼쪽: 아바타 + 닉네임 */}
+      <div className="flex items-center gap-4 flex-1 min-w-0">
         <UserCharacter name={characterName} size={80} />
-        <div className="flex flex-col">
-          <span className="text-lg font-bold">{nickname}</span>
+        <div className="min-w-0">
+          <span className="block text-lg font-bold truncate">
+            {nickname}
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-base ">
-        <span
-          className={`w-4 h-4 rounded-full ${
-            isOnline ? 'bg-green-400' : 'bg-gray-300'
-          }`}
-        ></span>
+      {/* 가운데: 온라인 표시 (줄어들지 않음) */}
+      <div className="flex items-center gap-2 text-base shrink-0">
+        <span className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-300'}`} />
         <span className="font-bold">{isOnline ? 'Online' : 'Offline'}</span>
       </div>
 
-      <RightButton size="sm" onClick={handleModalOpen}>
-        쪽지보내기
-      </RightButton>
-      {isModalOpen && (
-        <SendMessageModal onClose={handleModalClose} friendId={friendId} />
-      )}
-      <RightButton size="sm" onClick={() => onRemoveFriend(friendId)}>
-        친구삭제
-      </RightButton>
-    </div>
-
-
-  )
+      {/* 오른쪽 버튼들 (줄어들지 않음) */}
+      <div className="flex items-center gap-2 shrink-0">
+        <RightButton size="sm" onClick={() => setIsModalOpen(true)}>쪽지보내기</RightButton>
+        {isModalOpen && <SendMessageModal onClose={() => setIsModalOpen(false)} friendId={friendId} />}
+        <RightButton size="sm" onClick={() => onRemoveFriend(friendId)}>친구삭제</RightButton>
+      </div>
+  </div>
+    );
 }
 
 export default FriendCard
