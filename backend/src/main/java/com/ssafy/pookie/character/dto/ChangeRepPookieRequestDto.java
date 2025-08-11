@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ChangeRepPookieRequestDto {
-    
-    private PookieType pookieType;
-    private int step;
+    private int id;
+    private int characterId;
 }

@@ -5,6 +5,7 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserStateDto;
@@ -33,6 +34,7 @@ public class OnlinePlayerManager {
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
     private final SocketMetrics socketMetrics;
+    private final RewardService rewardService;
 
     /*
         특정 유저에게만 Message 전달
@@ -157,22 +159,25 @@ public class OnlinePlayerManager {
                     });
                     // 게임중이라면 종료
                     if(room.getStatus().equals(RoomStateDto.Status.START)) {
-                            room.getSessions().forEach((s) -> {
+                        Map<String, Object> gameResult = room.gameOver();
+                        room.getSessions().forEach((s) -> {
                                 try {
                                     sendToMessageUser(s, Map.of(
                                             "type", "INTERRUPT",
-                                            "msg", session.getAttributes().get("nickname") + "가 게임을 나갔습니다.\n 게임이 종료됩니다."
+                                            "msg", session.getAttributes().get("nickname") + "님이 게임을 나갔습니다.\n 게임이 종료됩니다."
                                     ));
                                     sendToMessageUser(s, Map.of(
                                             "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
                                             "room", room.mappingRoomInfo(),
-                                            "gameResult", room.gameOver()
+                                            "gameResult", gameResult
                                     ));
-                                    room.resetAfterGameOver();
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
+                        rewardService.saveReward(room, (String)gameResult.get("win"), 50);
+                        room.resetAfterGameOver();
+                        log.info("Room {} forced game over", room.getRoomId());
                     }
 
                     sendUpdateRoomStateToUserOn(room);
@@ -227,5 +232,27 @@ public class OnlinePlayerManager {
         }
         user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
+    }
+
+    public void broadCastMessageToOtherRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
+        RoomStateDto room = this.rooms.get(roomId);
+        if(!isAuthorized(session, room)) return;
+
+        // 1. 팀원들에게만 전달
+        if(team != null) {
+            for(UserDto user : room.getUsers().get(team)) {
+                if (user.getSession().equals(session)) continue;
+                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        } else {    // 2. BroadCast 전달
+            for(WebSocketSession user : room.getSessions()) {
+                if (user.equals(session)) continue;
+                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        }
+    }
+
+    public boolean isInvalid(WebSocketSession session) {
+        return this.lobby.contains(session.getAttributes().get("userAccountId"));
     }
 }

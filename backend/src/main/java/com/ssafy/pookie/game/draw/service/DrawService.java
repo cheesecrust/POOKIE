@@ -2,6 +2,7 @@ package com.ssafy.pookie.game.draw.service;
 
 import com.ssafy.pookie.game.draw.dto.DrawEvent;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
@@ -21,19 +22,23 @@ public class DrawService {
 
     private final Map<String, List<DrawEvent>> canvasHistory = new ConcurrentHashMap<>();
     private final OnlinePlayerManager onlinePlayerManager;
+    private final MessageSenderManager messageSenderManager;
 
     public void drawEvent(DrawEvent drawEvent) throws IOException {
-        Long userAccountId = drawEvent.getUser().getUserAccountId();
-        // 이벤트를 히스토리에 저장
-        canvasHistory.computeIfAbsent(drawEvent.getRoomId(), k -> new ArrayList<>())
-                .add(drawEvent);
+        try {
+            Long userAccountId = drawEvent.getUser().getUserAccountId();
+            // 이벤트를 히스토리에 저장
+            canvasHistory.computeIfAbsent(drawEvent.getRoomId(), k -> new ArrayList<>())
+                    .add(drawEvent);
 
-        UserDto userDto = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
-        Map<String, Object> msg = convertDrawEventToMsg(drawEvent);
-        // 같은 방의 다른 사용자들에게 브로드캐스트
-        onlinePlayerManager.broadCastMessageToRoomUser(
-                userDto.getSession(), drawEvent.getRoomId(), null, msg
-        );
+            UserDto userDto = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
+            Map<String, Object> msg = convertDrawEventToMsg(drawEvent);
+            messageSenderManager.sendMessageBroadCastOther(userDto.getSession(), drawEvent.getRoomId(), null, msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("{}", e.getMessage());
+            throw e;
+        }
     }
 
     private Map<String, Object> convertDrawEventToMsg(DrawEvent drawEvent) {

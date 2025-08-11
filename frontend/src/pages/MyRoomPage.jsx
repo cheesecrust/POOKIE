@@ -9,6 +9,7 @@ import UserExp from "../components/atoms/user/UserExp";
 import TapButton from "../components/atoms/button/TapButton";
 import InventoryList from "../components/organisms/myRoom/InventoryList";
 import StoreList from "../components/organisms/myRoom/StoreList";
+import CharacterDex from "../components/organisms/dex/CharacterDex";
 
 import coinImg from "../assets/item/coin.png";
 import evolveEffect from "../assets/effect/evolve.gif"
@@ -29,9 +30,9 @@ const MyRoomPage = () => {
   const { user, setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
-  // const [exp, setExp] = useState(null);
   const [coin, setCoin] = useState(null);
   const [step, setStep] = useState(null);
+  const [exp,setExp] = useState(null);
 
   // 이전 step 저자용(+진화 이펙트)
   const prevStepRef = useRef(null);
@@ -40,11 +41,12 @@ const MyRoomPage = () => {
     try {
       const res = await axiosInstance.get("/auth/info");
 
-      console.log("AuthInfo",res.data.data);
+      // console.log("AuthInfo",res.data.data);
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
       setUser(res.data.data);
+      setExp(res.data.data.repCharacter.exp);
 
     } catch (err) {
       console.log("AuthInfo 에러", err);
@@ -130,7 +132,7 @@ const MyRoomPage = () => {
                     <span className="font-semibold">Exp:</span>
                     <UserExp
                       step={step}
-                      exp={user?.repCharacter?.exp || 0}
+                      exp={exp}
                     />
                   </div>
                 </div>
@@ -216,7 +218,9 @@ const MyRoomPage = () => {
             {/* 컨텐츠 영역 */}
             <div className="bg-[#FDE1F0] rounded-b-lg rounded-r-lg  p-6 min-h-[600px] shadow-inner">
               {activeTab === "도감" && (
-                <div className="text-center py-10"></div>
+                <div className="text-center py-10">
+                  <CharacterDex onAfterChange={fetchAuthInfo}></CharacterDex>
+                </div>
               )}
 
               {activeTab === "상점" && (

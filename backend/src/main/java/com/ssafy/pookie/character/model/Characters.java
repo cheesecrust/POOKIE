@@ -15,7 +15,8 @@ public class Characters {
 
     private String name;
 
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
     private PookieType type;
 
     private int step;

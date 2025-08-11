@@ -365,7 +365,7 @@ const SamePosePage = () => {
 
     if (isMyTurn) {
       // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
-      setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      setHideTargetIds(norIdxList.map(e=>e.idx).filter((id) => id !== myIdx));
     } else {
       // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
       const enemyTeam = isMyTeamRed ? blueTeam : redTeam;

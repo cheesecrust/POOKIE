@@ -2,6 +2,7 @@ package com.ssafy.pookie.game.chat.service;
 
 import com.ssafy.pookie.game.chat.dto.ChatDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GameChatService {
     private final OnlinePlayerManager onlinePlayerManager;
+    private final MessageSenderManager messageSenderManager;
     // Chat
     public void handleChat(WebSocketSession session, ChatDto chatDto) throws IOException {
         log.info("CHAT REQUEST : ROOM {}", chatDto.getRoomId());
@@ -26,12 +28,16 @@ public class GameChatService {
                 log.info("CHAT ERROR");
                 throw new IllegalArgumentException("잘못된 요청입니다.");
             }
-            chatDto.sendChat(session, room);
+            chatDto.sendChat(session, room, messageSenderManager);
         } catch(IllegalArgumentException e) {
-            onlinePlayerManager.sendToMessageUser(session, Map.of(
+            log.error("{}",e.getMessage());
+            messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));
+        } catch (Exception e) {
+            log.error("{}", e.getMessage());
+            throw new RuntimeException();
         }
     }
 }

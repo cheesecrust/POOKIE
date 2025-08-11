@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 public class GameTimerDto {
     private final Map<RoomStateDto.GameType, Integer> runTime = Map.of(
             RoomStateDto.GameType.SILENTSCREAM, 30,
-            RoomStateDto.GameType.SAMEPOSE, 5,
+            RoomStateDto.GameType.SAMEPOSE, 8,
             RoomStateDto.GameType.SKETCHRELAY, 10
     );
 

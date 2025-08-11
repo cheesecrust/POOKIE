@@ -10,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class UserCharactersResponseDto {
-    private int idx;
+    private Long idx;
     private Long userAccountIdx;
     private String name;
     private int exp;

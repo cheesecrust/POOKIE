@@ -1,10 +1,9 @@
 package com.ssafy.pookie.character.repository;
 
-import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.character.model.CharacterCatalog;
-import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.model.PookieType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,31 +11,48 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-
 @Repository
 public interface CharacterCatalogRepository extends JpaRepository<CharacterCatalog, Integer> {
 
-    List<CharacterCatalog> findByUserAccountId(Long userAccountId);
+    List<CharacterCatalog> findByUserAccount_Id(Long userAccountId);
 
-    List<CharacterCatalog> findByUserAccountIdAndIsRepresent(Long userAccountId, boolean isRepresent);
-    List<CharacterCatalog> findByUserAccountIdAndIsGrowing(Long userAccountId, boolean isGrowing);
+    List<CharacterCatalog> findByUserAccount_IdAndIsRepresent(Long userAccountId, boolean represent);
+    List<CharacterCatalog> findByUserAccount_IdAndIsGrowing(Long userAccountId, boolean growing);
 
-    boolean existsByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
+    Optional<CharacterCatalog> findByUserAccount_IdAndCharacter_Id(Long userAccountId, int characterId);
 
-    Optional<CharacterCatalog> findByUserAccountIdAndCharacterStepAndCharacterType(Long userAccountId, int step, PookieType type);
+    boolean existsByUserAccount_IdAndIsGrowingTrue(Long userAccountId);
 
-    Optional<CharacterCatalog> findByUserAccountAndCharacter(UserAccounts user, Characters character);
+    @Query("select cc from CharacterCatalog cc where cc.id = :id and cc.character.id = :characterId")
+    Optional<CharacterCatalog> findOne(@Param("id") int id, @Param("characterId") int characterId);
 
-    @Modifying
-    @Query("UPDATE CharacterCatalog c SET c.isRepresent = false WHERE c.userAccount.id = :userId")
-    void resetAllRepresent(Long userId);
+    // --- Bulk Update 유틸 ---
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update CharacterCatalog c set c.isRepresent = false where c.userAccount.id = :userId")
+    int resetAllRepresent(@Param("userId") Long userId);
 
-    @Modifying
-    @Query("UPDATE CharacterCatalog c SET c.isGrowing = false WHERE c.userAccount.id = :userId")
-    void resetAllGrowing(Long userId);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update CharacterCatalog c set c.isGrowing = false where c.userAccount.id = :userId")
+    int resetAllGrowing(@Param("userId") Long userId);
 
-    @Modifying
-    @Query("UPDATE CharacterCatalog c SET c.isRepresent = :represent, c.isGrowing = :growing " +
-            "WHERE c.userAccount.id = :userId AND c.character.id = :characterId")
-    void updateCatalogState(Long userId, int characterId, boolean represent, boolean growing);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+           update CharacterCatalog c
+              set c.isRepresent = :represent,
+                  c.isGrowing   = :growing
+            where c.userAccount.id = :userId
+              and c.character.id   = :characterId
+           """)
+    int updateCatalogState(@Param("userId") Long userId,
+                           @Param("characterId") int characterId,
+                           @Param("represent") boolean represent,
+                           @Param("growing") boolean growing);
+
+    @Query("""
+    SELECT cc FROM CharacterCatalog cc
+    JOIN FETCH cc.character
+    WHERE cc.userAccount.id IN :userIds 
+    AND cc.isRepresent = true
+    """)
+    List<CharacterCatalog> findRepresentativeCharactersByUserIds(@Param("userIds") List<Long> userIds);
 }

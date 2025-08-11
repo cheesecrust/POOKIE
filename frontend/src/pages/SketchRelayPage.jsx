@@ -12,7 +12,6 @@ import SubmitModal from "../components/molecules/games/SubmitModal";
 import RightButton from "../components/atoms/button/RightButton.jsx";
 import Timer from "../components/molecules/games/Timer";
 import GameResultModal from "../components/organisms/games/GameResultModal";
-import KeywordCard from "../components/atoms/modal/KeywordCard";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore';
@@ -149,9 +148,6 @@ const SketchRelayPage = () => {
   const [isErasing, setIsErasing] = useState(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
 
-  // 정답 제출 
-  const inputAnswer = useGameStore((state) => state.inputAnswer);
-
   // 사용자 역할 상태
   const [userRole, setUserRole] = useState(null); // 'drawer', 'guesser', 'spectator'
   const [isMyTurn, setIsMyTurn] = useState(false);
@@ -208,9 +204,6 @@ const SketchRelayPage = () => {
       isMyTeamTurn: myTeam === turn
     });
 
-    console.log('RED:', red);
-    console.log('BLUE:', blue);
-    console.log('repIdxList:', repIdxList)
     // 현재 턴인 팀이 아니면 관전자
     if (myTeam !== turn) {
       setUserRole('spectator');
@@ -239,7 +232,7 @@ const SketchRelayPage = () => {
         currentTurn: turn,
         isMyTurn: myIndexInDrawerList === currentDrawIdx
       });
-    
+      
       // 현재 그리는 순서와 내 순서가 일치하는지 확인
       console.log("is my turn: ", myIndexInDrawerList === currentDrawIdx)
       setIsMyTurn(myIndexInDrawerList === currentDrawIdx);
@@ -611,7 +604,7 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 칠판과 도구 */}
-        <div className="absolute top-24 flex flex-row items-start mt-42 gap-4 my-6 z-20">
+        <div className="flex flex-row items-start gap-4 my-6 z-20">
           {/* 도구 영역 */}
           <div className="flex flex-col gap-2">
             {/* 역할 표시 */}
@@ -621,6 +614,11 @@ const SketchRelayPage = () => {
                 <div className={`text-center p-2 rounded text-xs ${isMyTurn ? 'bg-green-200' : 'bg-gray-200'}`}>
                   <div className="font-bold">그리는 사람</div>
                   <div>{isMyTurn ? '지금 내 차례!' : '차례 대기중'}</div>
+                  {userRole === 'drawer' && keyword && (
+                    <div className="mt-1 text-red-600 font-bold text-sm">
+                      제시어: {keyword}
+                    </div>
+                  )}
                 </div>
               )}
               {userRole === 'guesser' && (
@@ -633,7 +631,11 @@ const SketchRelayPage = () => {
                 <div className="text-center p-2 bg-yellow-200 rounded text-xs">
                   <div className="font-bold">관전자</div>
                   <div>다른 팀 게임 관전</div>
-
+                  {keyword && (
+                    <div className="mt-1 text-red-600 font-bold text-sm">
+                      제시어: {keyword}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -714,6 +716,13 @@ const SketchRelayPage = () => {
           </div>
         </div>
 
+        {/* 상대팀 캠 */}
+        <div className="relative w-full h-[180px] mt-auto">
+          <div className="absolute bottom-70 right-12 text-2xl font-bold text-white">
+            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
+          </div>
+          {renderVideoByRole(enemyGroup, enemyStyles)}
+        </div>
       </div>
 
       {/* 타이머 */}
@@ -745,15 +754,7 @@ const SketchRelayPage = () => {
       <PopUpModal isOpen={isTurnModalOpen} onClose={closeTurnModal}>
         <div className="text-center">
           <p className="text-4xl font-bold font-pixel mb-2">{turn} 팀 차례!</p>
-          {userRole === 'drawer' && (
-            <p className="text-2xl font-bold">당신의 역할은 '그리기'입니다!</p>
-          )}
-          {userRole === 'guesser' && (
-            <p className="text-2xl font-bold">당신의 역할은 '맞추기'입니다!</p>
-          )}
-          {userRole === 'spectator' && (
-            <p className="text-2xl font-bold">당신의 역할은 '관전자'입니다!</p>
-          )}
+          <p className="text-xl font-pixel">라운드 {round}</p>
         </div>
       </PopUpModal>
 
@@ -771,12 +772,12 @@ const SketchRelayPage = () => {
 
       {/* 정답 모달 */}
       <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
-        <p className="text-4xl font-bold text-black">정답!</p>
+        <p className="text-4xl font-bold font-pixel text-green-600">정답!</p>
       </PopUpModal>
 
       {/* 오답 모달 */}
       <PopUpModal isOpen={isWrongModalOpen} onClose={closeWrongModal}>
-        <p className="text-4xl font-bold text-black">"{inputAnswer}" 오답!</p>
+        <p className="text-4xl font-bold font-pixel text-red-600">오답!</p>
       </PopUpModal>
 
       {isWinModalOpen && (

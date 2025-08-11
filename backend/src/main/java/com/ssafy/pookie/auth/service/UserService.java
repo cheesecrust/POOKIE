@@ -14,6 +14,7 @@ import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.global.exception.CustomException;
 import com.ssafy.pookie.global.exception.constants.ErrorCode;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -222,6 +223,15 @@ public class UserService {
 
     public Page<UserAccounts> getUsers(String search, Pageable pageable) {
         return userAccountsRepository.findByNicknameContains(search, pageable);
+    }
+
+    @Transactional
+    public void updateCoinById(Long id, Integer coin) {
+        UserAccounts userAccount = userAccountsRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+        Integer originCoin = userAccount.getCoin();
+        userAccount.setCoin(originCoin+coin);
+        userAccountsRepository.save(userAccount);
     }
 }
 

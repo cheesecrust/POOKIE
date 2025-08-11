@@ -2,7 +2,6 @@ package com.ssafy.pookie.auth.controller;
 
 import com.ssafy.pookie.auth.dto.*;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
-import com.ssafy.pookie.character.model.Characters;
 import com.ssafy.pookie.character.service.CharacterService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -64,7 +63,7 @@ public class UserController {
         // 1. Refresh Token → HttpOnly 쿠키
         Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
         refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(false); // TODO: 배포 시 true
+        refreshTokenCookie.setSecure(true);
         refreshTokenCookie.setPath("/");
         refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
         response.addCookie(refreshTokenCookie);

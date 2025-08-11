@@ -70,4 +70,6 @@ public class UserAccounts {
 
         return Boolean.TRUE;
     }
+
+    public void setCoin(Integer coin) { this.coin = coin; }
 }

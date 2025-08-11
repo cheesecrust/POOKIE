@@ -11,10 +11,8 @@ import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
 import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
-import com.ssafy.pookie.game.room.dto.JoinDto;
-import com.ssafy.pookie.game.room.dto.RoomGameTypeChangeRequestDto;
-import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
-import com.ssafy.pookie.game.room.dto.TurnDto;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
+import com.ssafy.pookie.game.room.dto.*;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
@@ -46,6 +44,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameRoomService gameRoomService;
     private final InGameService inGameService;
     private final SocketMetrics socketMetrics;
+    private final MessageSenderManager messageSenderManager;
 
     private final ObjectMapper objectMapper;
     private final DrawService drawService;
@@ -101,6 +100,11 @@ public class GameServerHandler extends TextWebSocketHandler {
 //                    gameTimerService.beforeStartGameTimer(session, start);
                     inGameService.handleGameStart(session, start);
                     break;
+                case WAITING_ROOM_UPDATE:
+                    RoomUpdateRequestDto roomUpdateRequest = objectMapper.convertValue(msg.getPayload(), RoomUpdateRequestDto.class);
+                    roomUpdateRequest.setUser(user);
+                    gameRoomService.handleWaitingRoomUpdate(roomUpdateRequest);
+                    break;
                 case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
                     gameResult.setUser(user);
@@ -136,7 +140,6 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case TIMER_START:
                     TimerRequestDto timerRequest = objectMapper.convertValue(msg.getPayload(), TimerRequestDto.class);
                     timerRequest.setUser(user);
-//                    gameTimerService.preTimer(timerRequest);
                     gameTimerService.gameStartTimer(onlinePlayerManager.getRooms()
                                     .get(timerRequest.getRoomId()), timerRequest);
                     break;
@@ -149,9 +152,9 @@ public class GameServerHandler extends TextWebSocketHandler {
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
-            e.printStackTrace();
+            log.error("{}",e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
-            onlinePlayerManager.sendToMessageUser(session, Map.of(
+            messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));
@@ -162,15 +165,14 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : "+ session.getId());
-        log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
-        
+
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
-        
         try {
             gameService.joinInLobby(session);
             socketMetrics.recordConnectionAccepted(session.getId());
             socketMetrics.endConnectionHandling(connectionSample);
+            log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
         } catch (Exception e) {
             socketMetrics.recordConnectionRejected("lobby_join_failed");
             socketMetrics.endConnectionHandling(connectionSample);

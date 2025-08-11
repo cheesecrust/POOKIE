@@ -375,11 +375,13 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.some(item => item.idx === p.userAccountId)
+            // console.log("user : "+p)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
-                : norIdxList.some(item => item.idx === p.userAccountId)
+                : norIdxList.map(e=>e.idx).includes(p.userAccountId)
                     ? "NOR"
                     : null;
+            // console.log("role : "+role)
             return { ...p, role };
         });
 
@@ -394,7 +396,7 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.some(item => item.idx === p.userAccountId)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
                 : null;
             return { ...p, role };

@@ -34,18 +34,13 @@ const Pagination = ({ currentPage, setCurrentPage, totalPages = 1, className="" 
     }
   }
 
-  // 토글 버튼 클릭 시, 그룹 슬라이딩 함수
+  // 화살표는 '한 페이지씩' 이동시키면 됩니다.
   const handleButtonClick = (direction) => {
-    const nextPage = currentPage + direction
-
-    // 조건 체크
-    const isRightTrigger = direction === 1 && currentPage % pagesPerGroup === 0 && currentPage < totalPages
-    const isLeftTrigger = direction === -1 && currentPage % pagesPerGroup === 1 && currentPage > 1
-
-    if ((isRightTrigger || isLeftTrigger) && nextPage >= 1 && nextPage <= totalPages) {
-      setCurrentPage(nextPage)
+    const nextPage = currentPage + direction;
+    if (nextPage >= 1 && nextPage <= totalPages) {
+      setCurrentPage(nextPage);
     }
-  }
+  };
 
   const getGroupPages = () => {
     const start = (currentGroup -1) * pagesPerGroup + 1
