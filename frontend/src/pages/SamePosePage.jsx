@@ -397,26 +397,25 @@ const SamePosePage = () => {
   useEffect(() => {
     if (!myIdx) return;
 
-    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
-    const isMyTurn =
-      (isMyTeamRed && turn === "RED") || (!isMyTeamRed && turn === "BLUE");
+    // 내 정보/팀
+    const me = participants.find((p) => Number(p.identity) === Number(myIdx));
+    const myTeamName =
+      me?.team ??
+      (redTeam.some((p) => p.userAccountId === myIdx) ? "RED" : "BLUE");
+    const isMyTurn = myTeamName === turn;
 
+    // 이번 턴의 REP만 뽑아 ID 통일(Number(identity))
+    const repIdsThisTurn = participants
+      .filter((p) => p.role === "REP" && p.team === turn)
+      .map((p) => Number(p.identity));
     if (isMyTurn) {
       // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
-      setHideTargetIds(
-        norIdxList.map((e) => e.idx).filter((id) => id !== myIdx)
-      );
+      setHideTargetIds(repIdsThisTurn.filter((id) => id !== Number(myIdx)));
     } else {
       // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
-      const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
-      const repIds = repIdxList; // 이미 서버에서 받은 REP 리스트
-      const repUserIds = enemyTeam
-        .filter((p) => repIds.includes(p.id)) // 실제 팀원 중 rep에 해당하는 사람만
-        .map((p) => p.id);
-
-      setHideTargetIds(repUserIds);
+      setHideTargetIds(repIdsThisTurn);
     }
-  }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
+  }, [turn, participants, redTeam, blueTeam, myIdx]);
 
   useEffect(() => {
     // "찰 칵 !" 순간 자동 촬영 (방장만)
