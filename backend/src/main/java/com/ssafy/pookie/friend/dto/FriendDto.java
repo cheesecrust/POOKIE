@@ -14,6 +14,7 @@ public class FriendDto {
     private String nickname;
     private Status status;
     private RepCharacterResponseDto repCharacter;
+    private boolean online;
 
     public static FriendDto from(UserAccounts user, Status status) {
         return FriendDto.builder()
@@ -23,7 +24,8 @@ public class FriendDto {
                 .build();
     }
 
-    public static FriendDto from(Friends friends, Status status, Long userId, RepCharacterResponseDto repCharacter) {
+    public static FriendDto from(Friends friends, Status status, Long userId
+            , RepCharacterResponseDto repCharacter, boolean online) {
         UserAccounts user1 = friends.getUser1();
         UserAccounts user2 = friends.getUser2();
         Long friendId =
@@ -36,6 +38,7 @@ public class FriendDto {
                 .nickname(friendNickname)
                 .status(status)
                 .repCharacter(repCharacter)
+                .online(online)
                 .build();
     }
 }
