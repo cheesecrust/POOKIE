@@ -531,7 +531,8 @@ async def upload_images(
     round_num = int(round_idx or 1)
 
     today_dir = datetime.datetime.now(KST).strftime("%Y-%m-%d")
-    game_dir = os.path.join(RESULTS_ROOT, today_dir, gameId, team)
+    time_dir = datetime.datetime.now(KST).strftime("%H:%M:%S")
+    game_dir = os.path.join(RESULTS_ROOT, today_dir, time_dir, gameId, team)
     os.makedirs(game_dir, exist_ok=True)
 
     vecs_xy, vecs_xyz, confs, vis_paths, has_worlds = [], [], [], [], []
