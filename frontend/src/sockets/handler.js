@@ -79,6 +79,17 @@ export const handleSocketMessage = (msg, handlers) => {
             });
         return;
     }
+
+    // Interrupt 게임중일때 방에서 한명 나갔을때 이벤트 
+    if (msg.type === "INTERRUPT") {
+        import("./game/handleGameMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] INTERRUPT 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     // 타이머 게임쪽으로 
@@ -90,6 +101,8 @@ export const handleSocketMessage = (msg, handlers) => {
             });
         return;
     }
+
+
 
     const routeMap = { // 접두사로 구분
         ROOM: () => {

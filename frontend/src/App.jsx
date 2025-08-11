@@ -4,6 +4,8 @@ import { useEffect } from "react"
 import Router from "./routes/Router";
 import useAuthStore from "./store/useAuthStore";
 import BGMProvider from "./components/audio/BGMProvider";
+import SoundWrapper from "./components/organisms/common/SoundWrapper";
+import useClickSfx from "./utils/useClickSfx";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -19,12 +21,17 @@ function AppContent() {
   return (
     <>
       <BGMProvider isPlaying={true} />
+      <SoundWrapper showOnRoutes={["/", "/login", "/home", "/waiting*"]} />
       <Router />
     </>
   );
 }
 
 function App() {
+  useClickSfx({
+    excludeSelectors: ['.no-sound', '#skipButton'],
+    cooldown: 200,
+  });
   return (
     <BrowserRouter>
       {/* 필요하면 공통 헤더나 레이아웃 컴포넌트 추가 */}

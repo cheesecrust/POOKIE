@@ -5,11 +5,11 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 export default async function handleGameMessage(msg, handlers) {
   console.log("🟢 게임 메시지 수신:", msg);
   const { type } = msg;
-  const {
-    setRoom,
-    setTeam,
-    setIsReady,
-  } = useGameStore.getState();
+  // const {
+  //   setRoom,
+  //   setTeam,
+  //   setIsReady,
+  // } = useGameStore.getState();
   switch (type) {
     // -----------------------------
     // 응답(Response) 메시지
@@ -84,6 +84,11 @@ export default async function handleGameMessage(msg, handlers) {
     case "GAME_DRAW_EVENT":
       console.log("그리기 이벤트 수신:", msg);
       handlers?.onDrawEvent?.(msg);
+      break;
+
+    case "INTERRUPT":
+      console.log("INTERRUPT 메시지 수신:", msg);
+      handlers?.onInterrupt?.(msg);
       break;
 
     default:
