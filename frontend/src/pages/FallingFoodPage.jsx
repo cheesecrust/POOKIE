@@ -4,12 +4,8 @@ import background from "../assets/background/background_falling_food.png";
 const FallingFoodPage = () => {
   return (
     <div
-      style={{
-        backgroundImage: `url(${background})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+      className="w-full h-screen bg-cover bg-center"
+      style={{ backgroundImage: `url(${background})` }}
     ></div>
   );
 };
