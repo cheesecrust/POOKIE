@@ -12,6 +12,7 @@ import SubmitModal from "../components/molecules/games/SubmitModal";
 import RightButton from "../components/atoms/button/RightButton.jsx";
 import Timer from "../components/molecules/games/Timer";
 import GameResultModal from "../components/organisms/games/GameResultModal";
+import KeywordCard from "../components/atoms/modal/KeywordCard";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore';
@@ -716,13 +717,6 @@ const SketchRelayPage = () => {
           </div>
         </div>
 
-        {/* 상대팀 캠 */}
-        <div className="relative w-full h-[180px] mt-auto">
-          <div className="absolute bottom-70 right-12 text-2xl font-bold text-white">
-            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
-          </div>
-          {renderVideoByRole(enemyGroup, enemyStyles)}
-        </div>
       </div>
 
       {/* 타이머 */}
