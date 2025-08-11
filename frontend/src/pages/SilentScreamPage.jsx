@@ -132,6 +132,7 @@ const SilentScreamPage = () => {
   // 1️. 첫 페이지 로딩
   useEffect(() => {
     console.log("keywordIdx", keywordIdx);
+    console.log("keywordList", keywordList);
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
@@ -147,7 +148,7 @@ const SilentScreamPage = () => {
 
   // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
-    if (!norIdxList?.includes(myIdx) && keywordList.length > 0) {
+    if (!norIdxList?.map(e=>e.idx).includes(myIdx) && keywordList.length > 0) {
       setKeyword(keywordList[keywordIdx]);
     }
   }, [keywordIdx, keywordList, norIdxList]);
@@ -213,7 +214,7 @@ const SilentScreamPage = () => {
       if (e.key === "Enter" && !isSubmitModalOpen && !hasSubmittedRef.current) {
         if (document.activeElement.tagName === "INPUT") return;
         if (document.activeElement.tagName === "TEXTAREA") return;
-        if (norIdxList.includes(myIdx)) {
+        if (norIdxList.map(e=>e.idx).includes(myIdx)) {
           setIsSubmitModalOpen(true);
           setHasSubmitted(true);
         }
@@ -424,7 +425,7 @@ const SilentScreamPage = () => {
         )}
 
         {/* Keyword 카드 (발화자 + 상대팀 보임) */}
-        {!norIdxList.includes(myIdx) && (
+        { !norIdxList.map(e=>e.idx).includes(myIdx) && (
           <div className="absolute top-32 right-42 z-20">
             <KeywordCard keyword={keywordList[keywordIdx]} />
           </div>
@@ -432,12 +433,12 @@ const SilentScreamPage = () => {
 
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
           {/* 발화자용 PASS 버튼 */}
-          {repIdxList.includes(myIdx) && (
+          {repIdxList.map(e=>e.idx).includes(myIdx) && (
             <PassButton onClick={() => emitGamePass({ roomId })} />
           )}
 
           {/* 정답 제출 버튼 */}
-          {norIdxList.includes(myIdx) && (
+          {norIdxList.map(e=>e.idx).includes(myIdx) && (
             <RightButton
               children="제출"
               onClick={() => {

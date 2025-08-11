@@ -372,10 +372,6 @@ const useGameStore = create((set, get) => ({
 
     // 일심동체 게임 역할
     setGameRoles: ({ repIdxList, norIdxList }) => {
-        // console.log("전달받은 리스트")
-        // console.log("repIdxList : ", repIdxList)
-        // console.log("norIdxList : ", norIdxList)
-        // console.log("----------------------------")
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
