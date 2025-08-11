@@ -12,6 +12,7 @@ import SubmitModal from "../components/molecules/games/SubmitModal";
 import RightButton from "../components/atoms/button/RightButton.jsx";
 import Timer from "../components/molecules/games/Timer";
 import GameResultModal from "../components/organisms/games/GameResultModal";
+import KeywordCard from "../components/atoms/modal/KeywordCard";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from '../store/useGameStore';
@@ -584,10 +585,10 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 그리는 사람 */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30">
           <div
             className="flex flex-col items-center bg-green-500 text-white font-semibold
-                      px-4 py-2 border-b-4 border-green-700 rounded"
+                      px-4 py-2 border-b-4 border-green-700 rounded shadow-lg"
           >
             {/* 윗줄: 아이콘 + 타이틀 */}
             <div className="flex items-center gap-2">
@@ -604,7 +605,7 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 칠판과 도구 */}
-        <div className="flex flex-row items-start gap-4 my-6 z-20">
+        <div className="absolute top-40 left-1/2 -translate-x-1/2 flex flex-row items-start gap-4 z-20">
           {/* 도구 영역 */}
           <div className="flex flex-col gap-2">
             {/* 역할 표시 */}
@@ -716,13 +717,6 @@ const SketchRelayPage = () => {
           </div>
         </div>
 
-        {/* 상대팀 캠 */}
-        <div className="relative w-full h-[180px] mt-auto">
-          <div className="absolute bottom-70 right-12 text-2xl font-bold text-white">
-            {turn === "RED" ? "BLUE TEAM" : "RED TEAM"}
-          </div>
-          {renderVideoByRole(enemyGroup, enemyStyles)}
-        </div>
       </div>
 
       {/* 타이머 */}
@@ -754,7 +748,15 @@ const SketchRelayPage = () => {
       <PopUpModal isOpen={isTurnModalOpen} onClose={closeTurnModal}>
         <div className="text-center">
           <p className="text-4xl font-bold font-pixel mb-2">{turn} 팀 차례!</p>
-          <p className="text-xl font-pixel">라운드 {round}</p>
+          {userRole === 'drawer' && (
+            <p className="text-2xl font-bold">당신의 역할은 '그리기'입니다!</p>
+          )}
+          {userRole === 'guesser' && (
+            <p className="text-2xl font-bold">당신의 역할은 '맞추기'입니다!</p>
+          )}
+          {userRole === 'spectator' && (
+            <p className="text-2xl font-bold">당신의 역할은 '관전자'입니다!</p>
+          )}
         </div>
       </PopUpModal>
 
