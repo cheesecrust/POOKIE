@@ -4,6 +4,9 @@ import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.character.dto.ChangeRepPookieRequestDto;
 import com.ssafy.pookie.character.dto.CharacterCatalogResponseDto;
 import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
+import com.ssafy.pookie.character.dto.UserCharactersResponseDto;
+import com.ssafy.pookie.character.model.Characters;
+import com.ssafy.pookie.character.model.UserCharacters;
 import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.common.security.JwtTokenProvider;
 import com.ssafy.pookie.global.exception.CustomException;
@@ -23,8 +26,6 @@ import java.util.List;
 public class CharacterController {
 
     private final CharacterService characterService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserAccountsRepository userAccountsRepository;
 
     /**
      * 사용자의 모든 캐릭터 카탈로그 조회
@@ -37,7 +38,7 @@ public class CharacterController {
             
             List<CharacterCatalogResponseDto> catalogResponseDtos = characterService.getPookiesByUserId(currentUserId);
             return ResponseEntity.ok(catalogResponseDtos);
-        } catch (Exception e) {
+        } catch (CustomException e) {
             log.error("캐릭터 카탈로그 조회 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
@@ -53,7 +54,7 @@ public class CharacterController {
             Long currentUserId = userDetails.getUserAccountId();
             RepCharacterResponseDto repPookie = characterService.getRepPookie(currentUserId);
             return ResponseEntity.ok(repPookie);
-        } catch (Exception e) {
+        } catch (CustomException e) {
             log.error("대표 푸키 조회 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
@@ -85,14 +86,31 @@ public class CharacterController {
      * 내가 키우는 푸키 조회
      */
     @GetMapping("/my-pookie")
-    public ResponseEntity<Object> getMyPookie(
+    public ResponseEntity<UserCharactersResponseDto> getMyPookie(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             Long currentUserId = userDetails.getUserAccountId();
-            var myPookie = characterService.findMyPookieByUserId(currentUserId);
+            UserCharactersResponseDto myPookie = characterService.findMyPookieByUserId(currentUserId);
             return ResponseEntity.ok(myPookie);
-        } catch (Exception e) {
+        } catch (CustomException e) {
             log.error("내 푸키 조회 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * 새로운 푸키 발급받기
+     */
+    @PostMapping("/new-pookie")
+    public ResponseEntity<UserCharactersResponseDto> postNewPookie(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            Long currentUserId = userDetails.getUserAccountId();
+            UserCharactersResponseDto userCharacter = characterService.setUserNewPookie(currentUserId);
+
+            return ResponseEntity.ok(userCharacter);
+        } catch (CustomException e) {
+            log.error("새로운 푸키 발급 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

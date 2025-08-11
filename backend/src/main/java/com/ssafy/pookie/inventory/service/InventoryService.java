@@ -57,7 +57,7 @@ public class InventoryService {
         }
 
         // 2. 캐릭터 경험치 증가 (레벨업 포함)
-        UserCharacters updatedCharacter = characterService.feedMyPookie(
+        UserCharactersResponseDto updatedCharacter = characterService.feedMyPookie(
                 userAccountsId,
                 inventoryItem.getStoreItem().getExp()
         );
@@ -70,7 +70,6 @@ public class InventoryService {
             inventoryItemRepository.save(inventoryItem);
         }
 
-        // 5. 캐릭터 상태 DTO 변환 후 반환
-        return UserCharactersResponseDto.fromEntity(updatedCharacter);
+        return updatedCharacter;
     }
 }

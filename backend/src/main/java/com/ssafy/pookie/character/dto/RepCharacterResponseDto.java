@@ -12,7 +12,7 @@ import lombok.*;
 @Builder
 public class RepCharacterResponseDto {
 
-    private int userCharacterId;
+    private Long userCharacterId;
     private String characterName;
     private int step;
     private int exp;

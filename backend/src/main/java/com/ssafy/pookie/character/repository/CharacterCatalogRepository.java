@@ -19,7 +19,9 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
     List<CharacterCatalog> findByUserAccount_IdAndIsRepresent(Long userAccountId, boolean represent);
     List<CharacterCatalog> findByUserAccount_IdAndIsGrowing(Long userAccountId, boolean growing);
 
-    Optional<CharacterCatalog> findByUserAccount_IdAndCharacter_StepAndCharacter_Type(Long userAccountId, int step, PookieType type);
+    Optional<CharacterCatalog> findByUserAccount_IdAndCharacter_Id(Long userAccountId, int characterId);
+
+    boolean existsByUserAccount_IdAndIsGrowingTrue(Long userAccountId);
 
     @Query("select cc from CharacterCatalog cc where cc.id = :id and cc.character.id = :characterId")
     Optional<CharacterCatalog> findOne(@Param("id") int id, @Param("characterId") int characterId);
