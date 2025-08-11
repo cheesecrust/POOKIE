@@ -219,56 +219,14 @@ const SketchRelayPage = () => {
       return;
     }
 
-    // 현재 턴인 팀에서 그리는 사람들 생성 (팀당 최대 2명)
-    let currentTeamUsers = [];
-    
-    if (turn === "RED" && red) {
-      currentTeamUsers = red;
-    } else if (turn === "BLUE" && blue) {
-      currentTeamUsers = blue;
-    }
-    
-    // red/blue 배열의 사용자 정보를 participants와 매핑
-    let currentTeamParticipants = currentTeamUsers.map(teamUser => {
-      const participant = participants.find(p => p.userAccountId === teamUser.id);
-      return participant || { 
-        userAccountId: teamUser.id, 
-        nickname: teamUser.nickname || `User${teamUser.id}`,
-        identity: teamUser.id.toString()
-      };
-    });
-    
-    // 팀 정보가 없는 경우에만 임시로 배정
-    if (currentTeamParticipants.length === 0) {
-      const sortedParticipants = [...participants].sort((a, b) => a.userAccountId - b.userAccountId);
-      if (turn === "RED") {
-        currentTeamParticipants = sortedParticipants.filter((_, index) => index % 2 === 0);
-      } else {
-        currentTeamParticipants = sortedParticipants.filter((_, index) => index % 2 === 1);
-      }
-      console.log("⚠️ 현재 팀 참가자를 임시로 배정:", { 
-        turn, 
-        sortedParticipants: sortedParticipants.map((p, i) => ({ name: p.nickname, id: p.userAccountId, index: i })),
-        currentTeamParticipants: currentTeamParticipants.map(p => ({ name: p.nickname, id: p.userAccountId }))
-      });
-    }
-    
-    const currentTeamDrawers = currentTeamParticipants.slice(0, Math.min(2, currentTeamParticipants.length));
-    const currentTeamDrawerIds = currentTeamDrawers.map(p => p.userAccountId);
-    
-    console.log("현재 팀 그리는 사람들:", { 
-      currentTeam: turn,
-      currentTeamParticipants: currentTeamParticipants.map(p => ({ id: p.userAccountId, name: p.nickname })),
-      currentTeamDrawers: currentTeamDrawers.map(p => ({ id: p.userAccountId, name: p.nickname })),
-      currentTeamDrawerIds
-    });
-
+    console.log(repIdxList.some(item => item.idx === myIdx));
+    console.log(norIdxList.some(item => item.idx === myIdx));
     // 현재 턴인 팀의 사람들 중에서 역할 결정
-    if (repIdxList.includes(myIdx)) {
+    if (repIdxList.some(item => item.idx === myIdx)) {
       setUserRole('drawer');
       
       // 현재 팀 그리는 사람들 중에서 내 순서 확인
-      const myIndexInDrawerList = repIdxList.indexOf(myIdx);
+      const myIndexInDrawerList = repIdxList.findIndex(item => item.idx === myIdx);
       const currentDrawIdx = currentDrawTurn % repIdxList.length; // 현재 그리기 턴
       
       console.log("그리는 사람 순서 확인:", { 
@@ -276,18 +234,17 @@ const SketchRelayPage = () => {
         myIndexInDrawerList, 
         currentDrawIdx, 
         currentDrawTurn,
-        currentTeamDrawerIds, 
         myIdx,
         myTeam,
         currentTurn: turn,
         isMyTurn: myIndexInDrawerList === currentDrawIdx
       });
     
-      
       // 현재 그리는 순서와 내 순서가 일치하는지 확인
+      console.log("is my turn: ", myIndexInDrawerList === currentDrawIdx)
       setIsMyTurn(myIndexInDrawerList === currentDrawIdx);
       
-    } else if (norIdxList.includes(myIdx)) {
+    } else if (norIdxList.some(item => item.idx === myIdx)) {
       // 나머지는 맞추는 사람
       setUserRole('guesser');
       setIsMyTurn(false);
@@ -295,25 +252,26 @@ const SketchRelayPage = () => {
     }
   }, [myIdx, myTeam, turn, red, blue, participants, currentDrawTurn, repIdxList, norIdxList, repIdx]);
 
-  // +) 내 역할 차례 결정
-  useEffect(() => {
-    if (!myTeam || !turn) return;
+  // // +) 내 역할 차례 결정
+  // useEffect(() => {
+  //   if (!myTeam || !turn) return;
   
-    if (myTeam !== turn) {
-      setUserRole("spectator");
-      setIsMyTurn(false);
-      return;
-    }
-  
-    // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
-    if (currentDrawer?.idx === myIdx) {
-      setUserRole("drawer");
-      setIsMyTurn(true);
-    } else {
-      setUserRole("guesser");
-      setIsMyTurn(false);
-    }
-  }, [myTeam, turn, currentDrawer?.idx, myIdx]);
+  //   if (myTeam !== turn) {
+  //     setUserRole("spectator");
+  //     setIsMyTurn(false);
+  //     return;
+  //   }
+    
+  //   console.log(currentDrawer)
+  //   // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
+  //   if (currentDrawer?.idx === myIdx) {
+  //     setUserRole("drawer");
+  //     setIsMyTurn(true);
+  //   } else {
+  //     setUserRole("guesser");
+  //     setIsMyTurn(false);
+  //   }
+  // }, [myTeam, turn, currentDrawer?.idx, myIdx]);
 
   // 6️⃣ 첫 로딩 상태 관리
   useEffect(() => {
@@ -804,10 +762,12 @@ const SketchRelayPage = () => {
         onClose={() => setIsSubmitModalOpen(false)}
       />
 
-      {/* 키워드 카드  */}
-      <div className="absolute top-24 left-12 z-20">
-        <KeywordCard keyword={keyword} />
-      </div>
+      {/* 키워드 카드 - 그리는 사람만 표시 */}
+      {(userRole === 'drawer' || userRole === 'spectator') && (
+        <div className="absolute top-24 left-12 z-20">
+          <KeywordCard keyword={keyword} />
+        </div>
+      )}
 
       {/* 정답 모달 */}
       <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
