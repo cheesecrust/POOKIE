@@ -60,6 +60,20 @@ POSE_DIMS = len(POSE_INDEX_LIST) * 2   # (x,y) for upper body
 HAND_POINTS_PER_HAND = 21
 HAND_DIMS = HAND_POINTS_PER_HAND * 2 * 2  # 두 손(좌/우) × 21점 × (x,y) = 84
 
+# ================== 손 판정 튜닝 파라미터 ==================
+HAND_VIS_TH  = 0.45   # wrist/elbow visibility 기준
+ROI_ALPHA    = 0.45   # 손목→손 방향으로 나가는 비율 (팔뚝 길이 * alpha)
+ROI_SIZE_B   = 1.4    # ROI 한 변 크기 = 팔뚝 길이 * beta
+ROI_COVER_TH = 0.50   # ROI가 화면 안에 포함돼야 하는 최소 비율
+NEAR_TH_MULT = 0.8    # ROI 중심과 검출 손 중심 거리 허용 배수(팔뚝 길이 * mult)
+
+# ================== 정책 플래그(손 패턴 규칙) ==================
+# 'ignore'               : 손 패턴 무시 (점수만으로 결정)
+# 'consistent_detected'  : present_detected 손 세트가 모두 동일해야 통과
+# 'consistent_expected'  : present_detected 또는 present_missed(있어야 하나 미검출) 세트가 모두 동일해야 통과  ← 기본/추천
+# 우선은 기본으로 진행
+HAND_RULE = "consistent_expected"
+
 # ================== 유틸/전처리 ==================
 def preprocess_image(image_bgr: np.ndarray) -> np.ndarray:
     lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
@@ -84,55 +98,133 @@ def _mirror_xy(v_xy_flat: np.ndarray) -> np.ndarray:
     m[:, 0] *= -1
     return m.reshape(-1)
 
-# 좌우 라벨 정렬을 위해: Left가 먼저, Right가 다음
-def _hand_points_and_conf(image_bgr, w, h):
-    pts = []
-    confs = []
-    draw = []
+def _box_cover_ratio(box, w, h):
+    x1,y1,x2,y2 = box
+    X1,Y1 = max(0,int(x1)), max(0,int(y1))
+    X2,Y2 = min(w,int(x2)), min(h,int(y2))
+    inter = max(0, X2-X1) * max(0, Y2-Y1)
+    area  = max(1, int(x2-x1)) * max(1, int(y2-y1))
+    return inter / area
 
+def _hand_centroid(hand_lms, w, h):
+    xs = [lm.x * w for lm in hand_lms.landmark]
+    ys = [lm.y * h for lm in hand_lms.landmark]
+    return float(np.mean(xs)), float(np.mean(ys))
+
+# 좌우 라벨 정렬 + ROI 기대/실측 판정 (+ 동일 손 중복 배정 방지)
+def _hand_points_and_conf(image_bgr, w, h, wrists=None, elbows=None, vis=None):
+    pts, confs, draw = [], [], []
     result = hands.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
 
-    # 기본적으로 왼손,오른손 순 정렬
-    ordered = []
+    # 1) 실측(Hands) 후보 정리
+    detected = []
     if getattr(result, "multi_hand_landmarks", None):
-        # handedness와 landmarks를 함께 정렬
-        labels = []
-        if getattr(result, "multi_handedness", None):
-            for hd in result.multi_handedness:
-                labels.append(hd.classification[0].label)  # "Left" or "Right"
-        else:
-            labels = ["Unknown"] * len(result.multi_hand_landmarks)
-
-        scores = []
-        if getattr(result, "multi_handedness", None):
-            for hd in result.multi_handedness:
-                scores.append(float(hd.classification[0].score))
-        else:
-            scores = [0.0] * len(result.multi_hand_landmarks)
-
         for i, hand in enumerate(result.multi_hand_landmarks):
-            ordered.append((labels[i], scores[i], hand))
+            cx, cy = _hand_centroid(hand, w, h)
+            score = 0.0
+            if getattr(result, "multi_handedness", None):
+                score = float(result.multi_handedness[i].classification[0].score)
+            detected.append({"centroid": (cx, cy), "score": score, "lms": hand})
 
-        # Left 먼저, 그 다음 Right, 그 외
-        def _key(t):
-            lab = t[0]
-            if lab == "Left": return 0
-            if lab == "Right": return 1
-            return 2
-        ordered.sort(key=_key)
+    # 2) 기대 ROI 생성 + 판정
+    status = {"L": "absent_or_uncertain", "R": "absent_or_uncertain"}  # 기본값
+    rois   = {}
+    assigned_idx = {"L": None, "R": None}
+    used_ids = set()  # 동일 손의 중복 배정 방지
 
-        for lab, sc, hand in ordered:
-            hp = [[lm.x * w, lm.y * h] for lm in hand.landmark]
-            pts.extend(hp)                        # 21점
-            confs.extend([sc] * len(hp))         # 한 손 신뢰도 동일 복사
-            draw.append(hand)
+    def make_roi(side):
+        if wrists is None or elbows is None: return None, 0.0, 0.0
+        w_pt = np.array(wrists[side], dtype=np.float32)
+        e_pt = np.array(elbows[side], dtype=np.float32)
+        fore_len = float(np.linalg.norm(w_pt - e_pt))
+        if fore_len < 5.0:
+            return None, 0.0, fore_len
+        # 손 방향으로 alpha만큼 나간 위치를 중심, fore_len*beta 크기의 정사각 ROI
+        dir_vec = (w_pt - e_pt)
+        if np.linalg.norm(dir_vec) > 1e-6:
+            dir_vec = dir_vec / np.linalg.norm(dir_vec)
+        c = w_pt + ROI_ALPHA * fore_len * dir_vec
+        half = 0.5 * ROI_SIZE_B * fore_len
+        box = (c[0]-half, c[1]-half, c[0]+half, c[1]+half)
+        cover = _box_cover_ratio(box, w, h)
+        return box, cover, fore_len
 
-    # 두 손(42점) 채우기
-    while len(pts) < HAND_POINTS_PER_HAND * 2:
-        pts.append([-1.0, -1.0])       # sentinel
-        confs.append(0.0)
+    for side in ("L", "R"):
+        roi, cover, fore_len = make_roi(side)
+        rois[side] = {"box": roi, "cover": cover, "fore_len": fore_len}
+        if roi is None:
+            continue
+        # visibility 조건
+        v_w = vis["LW"] if side == "L" else vis["RW"]
+        v_e = vis["LE"] if side == "L" else vis["RE"]
+        expect = (v_w >= HAND_VIS_TH and v_e >= HAND_VIS_TH and cover >= ROI_COVER_TH)
 
-    return np.array(pts, dtype=np.float32), np.array(confs, dtype=np.float32), draw
+        if expect and detected:
+            cx_roi = (roi[0]+roi[2])/2; cy_roi = (roi[1]+roi[3])/2
+            best = None; best_d = 1e9; best_idx = -1
+            for idx, d in enumerate(detected):
+                if idx in used_ids:  # 이미 다른 쪽에 배정된 손은 스킵
+                    continue
+                dcx, dcy = d["centroid"]
+                dist = math.hypot(dcx - cx_roi, dcy - cy_roi)
+                if dist <= max(8.0, NEAR_TH_MULT * fore_len) and dist < best_d:
+                    best, best_d, best_idx = d, dist, idx
+            if best is not None:
+                used_ids.add(best_idx)
+                assigned_idx[side] = best_idx
+                status[side] = "present_detected"
+            else:
+                status[side] = "present_missed"
+        elif expect and not detected:
+            status[side] = "present_missed"
+        else:
+            status[side] = "absent_or_uncertain"
+
+    # 3) 좌/우 출력용 landmark 선택 (배정된 인덱스 우선, 그 외 라벨/근접 보정)
+    def pick_index_for_side(side_char, label_text):
+        # 3-1) ROI 매칭으로 이미 배정된 경우
+        idx = assigned_idx[side_char]
+        if idx is not None:
+            return idx
+        # 3-2) 라벨로 매칭 (아직 안 쓴 손만)
+        if getattr(result, "multi_handedness", None) and detected:
+            for i, d in enumerate(detected):
+                if i in used_ids:
+                    continue
+                lab = result.multi_handedness[i].classification[0].label
+                if lab == label_text:
+                    used_ids.add(i)
+                    return i
+        # 3-3) ROI에 가장 가까운 손 (아직 안 쓴 손만)
+        bx = rois[side_char]["box"]
+        if detected and bx is not None:
+            cx_roi, cy_roi = (bx[0]+bx[2])/2, (bx[1]+bx[3])/2
+            best_i, best_d = None, 1e9
+            for i, d in enumerate(detected):
+                if i in used_ids:
+                    continue
+                dcx, dcy = d["centroid"]
+                dist = math.hypot(dcx - cx_roi, dcy - cy_roi)
+                if dist < best_d:
+                    best_i, best_d = i, dist
+            if best_i is not None:
+                used_ids.add(best_i)
+                return best_i
+        return None
+
+    for side_char, label_text in (("L", "Left"), ("R", "Right")):
+        idx = pick_index_for_side(side_char, label_text)
+        if idx is not None:
+            hand = detected[idx]
+            hp = [[lm.x * w, lm.y * h] for lm in hand["lms"].landmark]
+            pts.extend(hp); confs.extend([hand["score"]]*len(hp)); draw.append(hand["lms"])
+        else:
+            pts.extend([[-1.0, -1.0]] * HAND_POINTS_PER_HAND); confs.extend([0.0]*HAND_POINTS_PER_HAND)
+
+    return (np.array(pts, np.float32),
+            np.array(confs, np.float32),
+            draw,
+            {"status": status, "rois": rois})
 
 # ================== 상반신 벡터/신뢰도 추출 ==================
 def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str):
@@ -152,7 +244,7 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str)
     # Pose XY/Conf(visibility) - 상반신만, 고정된 인덱스 순서
     pose_xy = []
     pose_conf = []
-    raw_xy = {}  # 이미지 좌표계에서의 원본 (nose/어깨 계산용)
+    raw_xy = {}  # 이미지 좌표계에서의 원본 (nose/어깨/손목 계산용)
     for idx in POSE_INDEX_LIST:
         lm = pres.pose_landmarks.landmark[idx]
         x, y = lm.x * w, lm.y * h
@@ -173,8 +265,27 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str)
     LS = np.array(raw_xy[LSH], dtype=np.float32)
     RS = np.array(raw_xy[RSH], dtype=np.float32)
 
-    # Hands XY/Conf (좌/우 순서 강제)
-    hand_xy, hand_conf, hand_draw = _hand_points_and_conf(image, w, h)
+    # 손목/팔꿈치/가시성
+    LW, RW = mp_pose.PoseLandmark.LEFT_WRIST.value, mp_pose.PoseLandmark.RIGHT_WRIST.value
+    LE, RE = mp_pose.PoseLandmark.LEFT_ELBOW.value, mp_pose.PoseLandmark.RIGHT_ELBOW.value
+    if any(i not in raw_xy for i in [LW, RW, LE, RE]):
+        # 손/팔꿈치가 전혀 없으면 그냥 기본 로직 유지(손은 sentinel)
+        wrists = elbows = None
+        vis = {"LW":0.0,"RW":0.0,"LE":0.0,"RE":0.0}
+    else:
+        wrists = {"L": np.array(raw_xy[LW], dtype=np.float32),
+                  "R": np.array(raw_xy[RW], dtype=np.float32)}
+        elbows = {"L": np.array(raw_xy[LE], dtype=np.float32),
+                  "R": np.array(raw_xy[RE], dtype=np.float32)}
+        vis = {
+            "LW": float(pres.pose_landmarks.landmark[LW].visibility),
+            "RW": float(pres.pose_landmarks.landmark[RW].visibility),
+            "LE": float(pres.pose_landmarks.landmark[LE].visibility),
+            "RE": float(pres.pose_landmarks.landmark[RE].visibility),
+        }
+
+    # Hands XY/Conf (좌/우 순서 강제) + 메타
+    hand_xy, hand_conf, hand_draw, hand_meta = _hand_points_and_conf(image, w, h, wrists=wrists, elbows=elbows, vis=vis)
 
     # ---- 누락 손 좌표 sentinel(-1,-1) → nose로 치환 후 평행이동하면 0이 되도록 ----
     mask = (hand_xy[:, 0] < 0) & (hand_xy[:, 1] < 0)  # sentinel
@@ -259,6 +370,7 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str)
         "vec_conf": vec_conf,
         "vis_path": vis_path,
         "has_world": bool(has_world),
+        "hand_meta": hand_meta,   # ← 손 상태 포함 (L/R별 present_detected 등)
     }
 
 # ================== 유사도(Confidence Distance: CDmax) ==================
@@ -277,40 +389,85 @@ def _split_xy(v_flat: np.ndarray):
     hand = v_flat[POSE_DIMS:POSE_DIMS + HAND_DIMS]
     return body, hand
 
-def confidence_distance_2d(p_xy, q_xy, p_conf, q_conf, scheme="max", allow_mirror=True, w_body=0.6, w_hand=0.4):
+# 손은 L/R을 분리하여 "있는 만큼만" 부분 반영 (없으면 자동 제외)
+def confidence_distance_2d(
+    p_xy, q_xy, p_conf, q_conf,
+    scheme_body="max", scheme_hand="both",
+    allow_mirror=True, w_body=0.6, w_hand=0.4,
+    use_hand=True
+):
     pb, ph = _split_xy(p_xy)
     qb, qh = _split_xy(q_xy)
 
     # 신뢰도 분리
     pc_body = p_conf[:len(POSE_INDEX_LIST)]
     qc_body = q_conf[:len(POSE_INDEX_LIST)]
-    pc_hand = p_conf[len(POSE_INDEX_LIST):]
+    pc_hand = p_conf[len(POSE_INDEX_LIST):]   # len = 42 (21 L + 21 R)
     qc_hand = q_conf[len(POSE_INDEX_LIST):]
 
-    def weight(c1, c2):
-        if scheme == "p": return c1
-        if scheme == "q": return c2
-        if scheme == "avg": return 0.5 * (c1 + c2)
+    def weight(c1, c2, scheme):
+        if scheme == "p":    return c1
+        if scheme == "q":    return c2
+        if scheme == "avg":  return 0.5 * (c1 + c2)
+        if scheme == "both": return np.minimum(c1, c2)  # 교집합 가중(공통 포인트만 반영)
         return np.maximum(c1, c2)  # "max"
 
-    def cd_part(a, b, ca, cb):
+    def cd_part(a, b, ca, cb, scheme):
         cos_k = _per_keypoint_cos_nd(a, b, dim=2)
-        w = weight(ca, cb)
-        return float((w * cos_k).sum() / (w.sum() + 1e-6))
+        w = weight(ca, cb, scheme)
+        wsum = float(w.sum())
+        if wsum < 1e-6:
+            return None, 0.0
+        return float((w * cos_k).sum() / (wsum + 1e-6)), wsum
 
-    s_body = cd_part(pb, qb, pc_body, qc_body)
-    s_hand = cd_part(ph, qh, pc_hand, qc_hand)
-    s0 = w_body * s_body + w_hand * s_hand
+    # --- 몸 점수 ---
+    s_body, _ = cd_part(pb, qb, pc_body, qc_body, scheme_body)
+
+    # --- 손 점수: L/R 분리 ---
+    s_hand = None
+    if use_hand:
+        # 좌/우 슬라이스 (좌표는 21*2=42개, 신뢰도는 21개)
+        pL, pR = ph[:42], ph[42:84]
+        qL, qR = qh[:42], qh[42:84]
+        pcL, pcR = pc_hand[:21], pc_hand[21:42]
+        qcL, qcR = qc_hand[:21], qc_hand[21:42]
+
+        sL, wL = cd_part(pL, qL, pcL, qcL, scheme_hand)
+        sR, wR = cd_part(pR, qR, pcR, qcR, scheme_hand)
+
+        Ws = []; Ss = []
+        if sL is not None: Ws.append(wL); Ss.append(sL)
+        if sR is not None: Ws.append(wR); Ss.append(sR)
+        if len(Ws) > 0:
+            s_hand = float(np.average(Ss, weights=Ws))
+
+    def blend(a, b):
+        if b is None:
+            return a
+        return (w_body * a + w_hand * b) / (w_body + w_hand)
+
+    s0 = blend(s_body, s_hand)
 
     if not allow_mirror:
         return s0
 
-    # 좌우 반전 보정
+    # 미러 버전
     qb_m = _mirror_xy(qb)
     qh_m = _mirror_xy(qh)
-    s_body_m = cd_part(pb, qb_m, pc_body, qc_body)
-    s_hand_m = cd_part(ph, qh_m, pc_hand, qc_hand)
-    s1 = w_body * s_body_m + w_hand * s_hand_m
+    s_body_m, _ = cd_part(pb, qb_m, pc_body, qc_body, scheme_body)
+
+    s_hand_m = None
+    if use_hand:
+        qLm, qRm = qh_m[:42], qh_m[42:84]
+        sL_m, wL_m = cd_part(pL, qLm, pcL, qcL, scheme_hand)
+        sR_m, wR_m = cd_part(pR, qRm, pcR, qcR, scheme_hand)
+        Ws_m = []; Ss_m = []
+        if sL_m is not None: Ws_m.append(wL_m); Ss_m.append(sL_m)
+        if sR_m is not None: Ws_m.append(wR_m); Ss_m.append(sR_m)
+        if len(Ws_m) > 0:
+            s_hand_m = float(np.average(Ss_m, weights=Ws_m))
+
+    s1 = blend(s_body_m, s_hand_m)
     return max(s0, s1)
 
 def confidence_distance_3d(p_xyz_flat, q_xyz_flat, p_conf_body, q_conf_body, scheme="max", allow_mirror=True):
@@ -356,7 +513,7 @@ KST = datetime.timezone(datetime.timedelta(hours=9))
 # 튜닝 파라미터
 PASS_THRESHOLD = 0.86          # 상반신 웹캠 권장 0.84~0.90
 PASS_POLICY    = "majority"    # "all" | "majority" | "ref"
-W_BODY_2D, W_HAND_2D = 0.6, 0.4
+W_BODY_2D, W_HAND_2D = 0.7, 0.3
 DEPTH_BLEND = 0.35             # 2D:3D 가중(0~0.5 추천)
 
 @app.post("/ai/upload_images")
@@ -374,10 +531,12 @@ async def upload_images(
     round_num = int(round_idx or 1)
 
     today_dir = datetime.datetime.now(KST).strftime("%Y-%m-%d")
-    game_dir = os.path.join(RESULTS_ROOT, today_dir, gameId, team)
+    time_dir = datetime.datetime.now(KST).strftime("%H:%M:%S")
+    game_dir = os.path.join(RESULTS_ROOT, today_dir, time_dir, gameId, team)
     os.makedirs(game_dir, exist_ok=True)
 
     vecs_xy, vecs_xyz, confs, vis_paths, has_worlds = [], [], [], [], []
+    hand_metas = []
     names = []
 
     for file in images:
@@ -391,11 +550,30 @@ async def upload_images(
         confs.append(out["vec_conf"])
         vis_paths.append(out["vis_path"])
         has_worlds.append(out["has_world"])
+        hand_metas.append(out["hand_meta"])
 
+    # ---- 손 패턴 규칙 검사 ----
+    def visible_detected(meta):
+        return {s for s, st in meta["status"].items() if st == "present_detected"}
+    def visible_expected(meta):
+        return {s for s, st in meta["status"].items() if st in ("present_detected", "present_missed")}
+
+    if HAND_RULE != "ignore":
+        sets = [frozenset(visible_expected(m)) if HAND_RULE == "consistent_expected"
+                else frozenset(visible_detected(m)) for m in hand_metas]
+        hand_rule_ok = (len(set(sets)) == 1)
+        hand_rule_reason = None if hand_rule_ok else f"hand pattern mismatch: {list(map(list, sets))}"
+    else:
+        hand_rule_ok = True
+        hand_rule_reason = None
+
+    # ---- 유사도 점수 계산 ----
     def pair_score(i, j):
         s2d = confidence_distance_2d(
             vecs_xy[i], vecs_xy[j], confs[i], confs[j],
-            scheme="max", allow_mirror=True, w_body=W_BODY_2D, w_hand=W_HAND_2D
+            scheme_body="max", scheme_hand="both",
+            allow_mirror=True, w_body=W_BODY_2D, w_hand=W_HAND_2D,
+            use_hand=True  # 부분 반영 로직이 알아서 처리
         )
         # 3D는 몸만(손 3D 없음)
         bi, bj = confs[i][:len(POSE_INDEX_LIST)], confs[j][:len(POSE_INDEX_LIST)]
@@ -414,6 +592,10 @@ async def upload_images(
     else:  # majority
         match = (sum(s >= PASS_THRESHOLD for s in [s12, s13, s23]) >= 2)
 
+    # 손 패턴 규칙 위반 시 즉시 실패
+    if not hand_rule_ok:
+        match = False
+
     similarities = {"1-2": round(s12, 3), "1-3": round(s13, 3), "2-3": round(s23, 3)}
 
     # Row 이미지 생성/저장
@@ -429,6 +611,16 @@ async def upload_images(
             atomic_write(img, round_alias)
             atomic_write(img, latest_alias)
 
+    # 손 상태 요약(디버깅용)
+    hand_status = [
+        {"L": hand_metas[i]["status"]["L"], "R": hand_metas[i]["status"]["R"]}
+        for i in range(len(hand_metas))
+    ]
+
+    # 디버깅 참고정보
+    hand_visible_sets_detected = [list(visible_detected(m)) for m in hand_metas]
+    hand_visible_sets_expected = [list(visible_expected(m)) for m in hand_metas]
+
     return {
         "ok": True,
         "all_pass": bool(match),
@@ -438,6 +630,12 @@ async def upload_images(
         "row_file_round_alias": os.path.basename(round_alias),
         "row_file_latest_alias": os.path.basename(latest_alias),
         "results_url_base": f"/results/{today_dir}/{gameId}/{team}/",  # 날짜 포함
+        "hand_status": hand_status,  # present_detected / present_missed / absent_or_uncertain
+        "hand_rule": HAND_RULE,
+        "hand_rule_ok": hand_rule_ok,
+        "hand_rule_reason": hand_rule_reason,
+        "hand_visible_sets_detected": hand_visible_sets_detected,
+        "hand_visible_sets_expected": hand_visible_sets_expected,
     }
 
 # 정적 서빙
