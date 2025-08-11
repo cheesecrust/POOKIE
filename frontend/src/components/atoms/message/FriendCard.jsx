@@ -26,7 +26,7 @@ const FriendCard = ({ characterName, nickname, isOnline, friendId, onRemoveFrien
   return (
     <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px]">
       <div className="flex items-center gap-4">
-        <UserCharacter name="pooding_strawberry" size={80} />
+        <UserCharacter name={characterName} size={80} />
         <div className="flex flex-col">
           <span className="text-lg font-bold">{nickname}</span>
         </div>

@@ -13,8 +13,8 @@ const InventoryList = ({onUseSuccess, refreshTrigger}) => {
     try {
       const res = await axiosInstance.get("/inventories");
       setInventoryItems(res.data || []);
-      console.log("인벤토리아이템",res);
-      console.log("data",res.data)
+      // console.log("인벤토리아이템",res);
+      // console.log("data",res.data)
     } catch (err) {
       console.log("인벤토리 아이템 전체조회 실패:", err);
     }
