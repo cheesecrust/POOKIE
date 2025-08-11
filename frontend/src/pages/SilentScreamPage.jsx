@@ -3,7 +3,7 @@
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif";
@@ -47,10 +47,6 @@ const SilentScreamPage = () => {
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
 
-  // 팀 추출
-  const myParticipant = participants.find((p) => p.userAccountId === myIdx);
-  const myTeam = myParticipant?.team || null;
-
   // 타이머
   const time = useGameStore((state) => state.time);
   const isSilentScreamTimerEnd = useGameStore(
@@ -85,6 +81,20 @@ const SilentScreamPage = () => {
   // 팀정보 
   const redTeam = useGameStore((state) => state.red) || [];
   const blueTeam = useGameStore((state) => state.blue) || [];
+
+  // 내 팀 추출
+  const getId = (u) => Number(u?.userAccountId ?? u?.id ?? u?.identity ?? NaN);
+
+  const redIds = useMemo(() => new Set((redTeam ?? []).map(getId)), [redTeam]);
+  const blueIds = useMemo(() => new Set((blueTeam ?? []).map(getId)), [blueTeam]);
+
+  const myIdNum = useMemo(() => Number(myIdx ?? NaN), [myIdx]);
+
+  const myTeam = useMemo(() => {
+    if (redIds.has(myIdNum)) return "RED";
+    if (blueIds.has(myIdNum)) return "BLUE";
+    return null; // 아직 팀 데이터가 안 들어온 초기 타이밍 대비
+  }, [redIds, blueIds, myIdNum]);
 
   // 모달
   const isGameStartModalOpen = useGameStore(
