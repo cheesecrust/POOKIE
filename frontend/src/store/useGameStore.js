@@ -372,14 +372,20 @@ const useGameStore = create((set, get) => ({
 
     // 일심동체 게임 역할
     setGameRoles: ({ repIdxList, norIdxList }) => {
+        // console.log("전달받은 리스트")
+        // console.log("repIdxList : ", repIdxList)
+        // console.log("norIdxList : ", norIdxList)
+        // console.log("----------------------------")
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
+            console.log("user : "+p)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
-                : norIdxList.includes(p.userAccountId)
+                : norIdxList.map(e=>e.idx).includes(p.userAccountId)
                     ? "NOR"
                     : null;
+            console.log("role : "+role)
             return { ...p, role };
         });
 
