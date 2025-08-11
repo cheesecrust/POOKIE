@@ -379,13 +379,13 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            console.log("user : "+p)
+            // console.log("user : "+p)
             const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
                 : norIdxList.map(e=>e.idx).includes(p.userAccountId)
                     ? "NOR"
                     : null;
-            console.log("role : "+role)
+            // console.log("role : "+role)
             return { ...p, role };
         });
 
