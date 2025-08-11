@@ -60,8 +60,9 @@ const SketchRelayPage = () => {
   const currentDrawTurn = useGameStore((state) => state.currentDrawTurn);
   const maxDrawTurnsPerTeam = useGameStore((state) => state.maxDrawTurnsPerTeam);
   const currentDrawer = useMemo(() => {
-    console.log(repIdxList);
     if (!Array.isArray(repIdxList) || repIdxList.length === 0) return null;
+    console.log("repIdx: ", repIdxList);
+    console.log("user: ", repIdxList[currentDrawTurn % repIdxList.length]);
     return repIdxList[currentDrawTurn % repIdxList.length];
   }, [repIdxList, currentDrawTurn]);
   
@@ -586,10 +587,10 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 그리는 사람 */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30">
           <div
             className="flex flex-col items-center bg-green-500 text-white font-semibold
-                      px-4 py-2 border-b-4 border-green-700 rounded"
+                      px-4 py-2 border-b-4 border-green-700 rounded shadow-lg"
           >
             {/* 윗줄: 아이콘 + 타이틀 */}
             <div className="flex items-center gap-2">
@@ -606,7 +607,7 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 칠판과 도구 */}
-        <div className="flex flex-row items-start gap-4 my-6 z-20">
+        <div className="absolute top-40 left-1/2 -translate-x-1/2 flex flex-row items-start gap-4 z-20">
           {/* 도구 영역 */}
           <div className="flex flex-col gap-2">
             {/* 역할 표시 */}
