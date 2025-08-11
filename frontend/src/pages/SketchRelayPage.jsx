@@ -1,7 +1,6 @@
 // src/pages/SketchRelayPage.jsx
 
-import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import backgroundSketchRelay from "../assets/background/background_sketchrelay.gif";
@@ -29,17 +28,16 @@ import { updateHandlers } from "../sockets/websocket";
 
 const SketchRelayPage = () => {
   const navigate = useNavigate();
-  const { roomId } = useParams();
-
+  
   // 방 정보 선언
   const master = useGameStore((state) => state.master);
   const { user } = useAuthStore();
   const myIdx = user?.userAccountId;
 
-  const roomInstance = useGameStore((state) => state.roomInstance);
   const participants = useGameStore((state) => state.participants);
 
-  const roomInfo = useGameStore((state) => state.roomInfo);
+  const roomId = useGameStore((state) => state.roomId);
+  const roomInfo = useGameStore((state) => state.roomInfo)
 
   // 상태 관리 (전역)
   // 턴, 라운드
@@ -61,7 +59,11 @@ const SketchRelayPage = () => {
   // 그림그리기 게임용 상태
   const currentDrawTurn = useGameStore((state) => state.currentDrawTurn);
   const maxDrawTurnsPerTeam = useGameStore((state) => state.maxDrawTurnsPerTeam);
-
+  const currentDrawer = useMemo(() => {
+    if (!Array.isArray(repIdxList) || repIdxList.length === 0) return null;
+    return repIdxList[currentDrawTurn % repIdxList.length];
+  }, [repIdxList, currentDrawTurn]);
+  
   // 키워드 
   const keywordList = useGameStore((state) => state.keywordList);
   const keywordIdx = useGameStore((state) => state.keywordIdx);
@@ -79,7 +81,36 @@ const SketchRelayPage = () => {
   // 팀 정보
   const red = useGameStore((state) => state.red) || [];
   const blue = useGameStore((state) => state.blue) || [];
-  
+
+  // 공통 id 추출
+  const pickId = (u) => {
+    if (!u) return NaN;
+    const cands = [u.userAccountId, u.id, u.identity, u.user?.id, u.user?.userAccountId, u.uid, u.userId];
+    for (const c of cands) {
+      const n = Number(c);
+      if (!Number.isNaN(n)) return n;
+    }
+    return NaN;
+  };
+
+  const myIdNum = useMemo(() => Number(myIdx ?? NaN), [myIdx]);
+
+  const myTeam = useMemo(() => {
+    if (Number.isNaN(myIdNum)) return null;
+
+    // 1) red/blue 배열 우선
+    if ((red ?? []).some(u => pickId(u) === myIdNum)) return "RED";
+    if ((blue ?? []).some(u => pickId(u) === myIdNum)) return "BLUE";
+
+    // 2) participants에 team 정보가 있으면 사용
+    const p = (participants ?? []).find(u => pickId(u) === myIdNum);
+    if (p?.team === "RED" || p?.team === "BLUE") return p.team;
+
+    return null; // 초기 로딩 동안
+  }, [red, blue, participants, myIdNum]);
+  console.log("myTeam", myTeam)
+
+
   // 팀 데이터가 없으면 participants에서 추출
   const redTeamFallback = red.length > 0 ? red : participants.filter(p => p.team === "RED");
   const blueTeamFallback = blue.length > 0 ? blue : participants.filter(p => p.team === "BLUE");
@@ -161,21 +192,10 @@ const SketchRelayPage = () => {
       return;
     }
 
-    // red와 blue 배열에서 직접 팀 확인
-    let myTeam = null;
-    
-    if (red && red.some(user => user.id === myIdx)) {
-      myTeam = "RED";
-    } else if (blue && blue.some(user => user.id === myIdx)) {
-      myTeam = "BLUE";
-    }
-
-    if (!myTeam && participants.length > 0) {
-      // 팀 정보가 없으면 참가자 순서대로 RED/BLUE 교대로 배정
-      const sortedParticipants = [...participants].sort((a, b) => a.userAccountId - b.userAccountId);
-      const myIndex = sortedParticipants.findIndex(p => p.userAccountId === myIdx);
-      myTeam = myIndex % 2 === 0 ? "RED" : "BLUE";
-      console.log("⚠️ 팀 정보가 없어서 임시 배정:", { myIndex, myTeam, sortedParticipants: sortedParticipants.map(p => p.nickname) });
+    // 바깥 useMemo에서 계산된 myTeam만 사용
+    if (!myTeam) {
+      console.log("팀 정보 대기중 (myTeam 없음).");
+      return;
     }
     
     console.log("역할 결정 중:", { 
@@ -273,7 +293,27 @@ const SketchRelayPage = () => {
       setIsMyTurn(false);
       console.log(`맞추는 역할 부여 (팀: ${myTeam})`);
     }
-  }, [myIdx, turn, redTeamFallback, blueTeamFallback, participants, currentDrawTurn]);
+  }, [myIdx, myTeam, turn, red, blue, participants, currentDrawTurn, repIdxList, norIdxList, repIdx]);
+
+  // +) 내 역할 차례 결정
+  useEffect(() => {
+    if (!myTeam || !turn) return;
+  
+    if (myTeam !== turn) {
+      setUserRole("spectator");
+      setIsMyTurn(false);
+      return;
+    }
+  
+    // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
+    if (currentDrawer?.idx === myIdx) {
+      setUserRole("drawer");
+      setIsMyTurn(true);
+    } else {
+      setUserRole("guesser");
+      setIsMyTurn(false);
+    }
+  }, [myTeam, turn, currentDrawer?.idx, myIdx]);
 
   // 6️⃣ 첫 로딩 상태 관리
   useEffect(() => {
@@ -573,52 +613,6 @@ const SketchRelayPage = () => {
     };
   }, [handleRemoteDrawEvent]);
 
-  // Video 렌더링 함수
-  const renderVideoByRole = (group, styles) => {
-    return group.map((participant, index) => {
-      const style = styles[index];
-      if (!style) return null;
-
-      return (
-        <div key={participant.identity} className={`absolute ${style.position}`}>
-          <div className={`${style.size} overflow-hidden`}>
-            <LiveKitVideo
-              participant={participant}
-              isLocal={participant.identity === user?.id}
-              audioEnabled={false}
-              videoEnabled={true}
-            />
-            <div className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white px-2 py-1 text-sm">
-              {participant.nickname || participant.identity}
-              {participant.role === "REP" && " (그리기)"}
-              {participant.role === "NOR" && " (맞추기)"}
-            </div>
-          </div>
-        </div>
-      );
-    });
-  };
-
-  // 스타일 정의
-  const repStyles = [
-    { position: "top-16 left-20", size: "w-90 h-60 rounded-lg shadow-lg" },
-    { position: "top-16 left-120", size: "w-85 h-60 rounded-lg shadow-lg" }
-  ];
-  const norStyles = [
-    { position: "top-16 right-20", size: "w-90 h-60 rounded-lg shadow-lg" }
-  ];
-  const enemyStyles = [
-    { position: "bottom-6 right-220", size: "w-85 h-60 rounded-lg shadow-lg" },
-    { position: "bottom-6 right-120", size: "w-85 h-60 rounded-lg shadow-lg" },
-    { position: "bottom-6 right-20", size: "w-85 h-60 rounded-lg shadow-lg" }
-  ];
-
-  // 참가자 분류
-  const enemyTeam = turn === "RED" ? "BLUE" : "RED";
-  const repGroup = participants.filter((p) => p.role === "REP");
-  const norGroup = participants.filter((p) => p.role === "NOR");
-  const enemyGroup = participants.filter((p) => p.role === null && p.team === enemyTeam);
-
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지 */}
@@ -631,22 +625,32 @@ const SketchRelayPage = () => {
       {/* 모든 컨텐츠 */}
       <div className="relative z-10 w-full h-full flex flex-col items-center px-10">
         {/* 현재 팀 턴 */}
-        <div className="absolute top-8 text-center text-white mb-4">
-          <div className="text-3xl font-bold">
-            <span className={turn === "RED" ? "text-red-500" : "text-blue-500"}>
-              {turn} TEAM
-            </span>{" "}
-          </div>
-          <div className="text-black text-xl mt-2">
-            그리기 턴: {currentDrawTurn + 1} / {maxDrawTurnsPerTeam}
-          </div>
-          {repIdxList.length > 0 && (
-            <div className="text-black text-lg mt-1">
-              현재 그리는 순서: {(repIdx || 0) + 1} / {repIdxList.length}
-            </div>
-          )}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-3xl font-bold">
+          <span className={turn === "RED" ? "text-red-500" : "text-blue-500"}>
+            {turn} TEAM
+          </span>{" "}
+          TURN
         </div>
 
+        {/* 그리는 사람 */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2">
+          <div
+            className="flex flex-col items-center bg-green-500 text-white font-semibold
+                      px-4 py-2 border-b-4 border-green-700 rounded"
+          >
+            {/* 윗줄: 아이콘 + 타이틀 */}
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🖌️</span>
+              <span className="text-xl font-semibold">그리는 사람</span>
+              <span className="text-2xl">🖌️</span>
+            </div>
+
+            {/* 아랫줄: 닉네임 */}
+            <div className="mt-1 text-3xl font-semibold">
+              {currentDrawer?.nickname ?? "대기 중..."}
+            </div>
+          </div>
+        </div>
 
         {/* 칠판과 도구 */}
         <div className="absolute top-24 flex flex-row items-start mt-42 gap-4 my-6 z-20">
@@ -734,7 +738,7 @@ const SketchRelayPage = () => {
 
           {/* 칠판 영역 */}
           <div className={`w-[1000px] h-[500px] bg-white rounded-lg border-4 shadow-inner ${
-            userRole === 'drawer' && isMyTurn ? 'border-green-400' : 
+            userRole === 'drawer' && isMyTurn ? "border-green-400 shadow-[0_0_20px_#4ade80]" : 
             userRole === 'guesser' ? 'border-blue-400' : 'border-gray-300'
           }`}>
             <canvas
@@ -762,7 +766,7 @@ const SketchRelayPage = () => {
       )}
 
       {/* RoundInfo */}
-      <div className="absolute top-12 right-8 z-20 scale-150">
+      <div className="absolute top-16 right-12 z-20 scale-150">
         <RoundInfo
           round={round}
           redScore={teamScore?.RED || 0}
@@ -771,8 +775,8 @@ const SketchRelayPage = () => {
       </div>
 
       {/* ChatBox */}
-      <div className="absolute bottom-4 left-4 z-20">
-        <ChatBox width="300px" height="300px" />
+      <div className="absolute bottom-6 left-15 z-20 opacity-80">
+        <ChatBox width="300px" height="300px" roomId={roomId} team={myTeam} />
       </div>
 
       {/* 모달들 */}
