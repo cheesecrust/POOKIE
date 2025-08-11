@@ -20,7 +20,8 @@ public class ServerScheduler {
     private final OnlinePlayerManager onlinePlayerManager;
 
     // 30 분마다 실행
-    @Scheduled(fixedDelay = 1000*60*30)
+//    @Scheduled(fixedDelay = 1000*60*30)
+    @Scheduled(fixedDelay = 1000*30)
     public void checkInvalidInformation() {
         log.info("Server Checking [{}]", LocalDateTime.now());
         Integer originRoomCnt = onlinePlayerManager.getRooms().size();
