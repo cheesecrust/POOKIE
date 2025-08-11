@@ -115,6 +115,8 @@ const SamePosePage = () => {
 
   // 처리중..
   const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
+  const [pendingAnswer, setPendingAnswer] = useState(false);
+  const didSubmitRef = useRef(false); // 중복 방지
 
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
@@ -263,8 +265,9 @@ const SamePosePage = () => {
       console.error("❌ 업로드 실패:", msg);
     }
     // ===== 방장일 경우에만 정답 제출 =====
-    const SEND_CORRECT = true; // true면 제시어, false면 빈값
-    submitGameAnswer(SEND_CORRECT);
+    // const SEND_CORRECT = true; // true면 제시어, false면 빈값
+    // submitGameAnswer(SEND_CORRECT);
+    setPendingAnswer(true);
   };
 
   // 정답제출
@@ -342,7 +345,7 @@ const SamePosePage = () => {
     }
   }, [time]);
 
-  // 타이머 변화 감지
+  // 처리중 모달
   useEffect(() => {
     if (time === 3 || time === 2) {
       setIsProcessingModalOpen(true);
@@ -350,6 +353,24 @@ const SamePosePage = () => {
       setIsProcessingModalOpen(false);
     }
   }, [time]);
+
+  // 일치 모달 - 일부러 pending
+  useEffect(() => {
+    if (!pendingAnswer) return;
+    if (!isHost) return; // 방장만 제출
+    if (didSubmitRef.current) return; // 중복 방지
+
+    // 처리중 모달 로직: time === 3 || time === 2 에서 열림 → 그 이후(<=1)면 닫힘
+    if (time <= 1) {
+      didSubmitRef.current = true;
+      submitGameAnswer(true); // 여기서 실제 제출
+      setPendingAnswer(false);
+      // 다음 턴/라운드에서 다시 쓸 수 있게 약간의 딜레이 후 리셋
+      setTimeout(() => {
+        didSubmitRef.current = false;
+      }, 500);
+    }
+  }, [pendingAnswer, time, isHost]);
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
@@ -382,7 +403,9 @@ const SamePosePage = () => {
 
     if (isMyTurn) {
       // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
-      setHideTargetIds(norIdxList.map(e=>e.idx).filter((id) => id !== myIdx));
+      setHideTargetIds(
+        norIdxList.map((e) => e.idx).filter((id) => id !== myIdx)
+      );
     } else {
       // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
       const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
