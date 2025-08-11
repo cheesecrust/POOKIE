@@ -8,8 +8,13 @@ import KickButton from "../../atoms/button/KickButton";
 import characterImageMap from "../../../utils/characterImageMap";
 import entryEffect from "../../../assets/effect/entry.gif";
 
-const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick, showEntry = false }) => {
-  console.log("user", user);
+const WaitingUserCard = ({
+  user,
+  isMe,
+  isMyRoomMaster,
+  onRightClickKick,
+  showEntry = false,
+}) => {
   const borderColor =
     user.team === "red" ? "border-red-500" : "border-blue-500";
 

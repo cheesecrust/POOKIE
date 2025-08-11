@@ -5,11 +5,7 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 export default async function handleGameMessage(msg, handlers) {
   console.log("🟢 게임 메시지 수신:", msg);
   const { type } = msg;
-  // const {
-  //   setRoom,
-  //   setTeam,
-  //   setIsReady,
-  // } = useGameStore.getState();
+
   switch (type) {
     // -----------------------------
     // 응답(Response) 메시지
@@ -17,9 +13,7 @@ export default async function handleGameMessage(msg, handlers) {
     case "GAME_KEYWORD":
       // livekit 연결
       const { repIdxList, norIdxList, keywordList } = msg;
-      // if (!keywordList || !Array.isArray(keywordList)) {
-      //   return;
-      // }
+
       useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       handlers?.onGameKeyword?.(msg);
       break;
@@ -72,8 +66,8 @@ export default async function handleGameMessage(msg, handlers) {
       // }
 
       // console.log("📍 초기화 이후 상태");
-      // handleWaitingMessage(msg, handlers); // setroom을 위한
       handlers?.onWaitingGameOver?.(msg);
+      // handleWaitingMessage(msg, handlers); // setroom을 위한
       break;
 
     case "GAME_PAINTER_CHANGED":
