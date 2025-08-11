@@ -7,6 +7,7 @@ import axiosInstance from "../../../lib/axiosInstance";
 import RightButton from "../../atoms/button/RightButton";
 import submit_left from "../../../assets/icon/submit_left.png";
 import Pagination from "../home/Pagination";
+import BasicModal from "../../atoms/modal/BasicModal";
 
 
 const FriendFindModal = ({ onClose }) => {
@@ -15,27 +16,36 @@ const FriendFindModal = ({ onClose }) => {
   // 검색 결과
   const [searchResult, setSearchResult] = useState([]); // userData들어가야함 
   // 전체 페이지 수 
-  const [totalPages, setTotalPages] = useState(2);
+  const [totalPages, setTotalPages] = useState(1);
   // 현재 페이지
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   // 검색 실패 여부 
   const [notFound, setNotFound] = useState(false);
 
+  const [confirmOpen, setConfirmOpen] = useState(false); //  확인 모달
+  const [confirmMsg, setConfirmMsg] = useState("");      //  메시지
+  const openConfirm = (msg) => { setConfirmMsg(msg); setConfirmOpen(true); };
+  const closeConfirm = () => setConfirmOpen(false);
+
   useEffect(() => {
-    if (nickname.trim()) {
-      handleSearch()
-    }
+    if (!nickname.trim()) return;
+    handleSearch()
   }, [currentPage,nickname]);
 
+
+  // 입력 바뀌면 1페이지부터 다시
+  const onChangeNickname = (e) => {
+    const v = e.target.value;
+    setNickname(v);
+    if (currentPage !== 1) setCurrentPage(1);
+  };
 
   // 검색 함수
   const handleSearch = async () => {
     if (!nickname.trim()) return;
 
-    setCurrentPage(0);
-
     try {
-      const res = await axiosInstance.get(`/friends/candidate?search=${nickname}&size=6&page=${currentPage}`);
+      const res = await axiosInstance.get(`/friends/candidate?search=${nickname}&size=6&page=${currentPage - 1}`);
       // 백엔드가 해당 nickname을 포함한 유저들의 data 리턴 
       console.log("응답:", res.data.data);
       setSearchResult(res.data.data.content); // 유저 존재
@@ -64,7 +74,7 @@ const FriendFindModal = ({ onClose }) => {
       console.log(userId)
       console.log(nickname)
       console.log("친구 요청 완료!");
-      onClose();
+      openConfirm(`${nickname}님에게 친구 요청을 보냈습니다!`);
     } catch (err) {
       console.log("친구 요청 실패...");
     }
@@ -87,7 +97,7 @@ return (
         <div className="relative w-[300px] mb-3">
           <input
             value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
+            onChange={onChangeNickname}
             onKeyDown={handleKeyDown}
             placeholder="유저 닉네임을을 입력하세요"
             className="w-full h-[42px] pl-4 pr-10 rounded-full text-base outline-none bg-white shadow-md"
@@ -144,6 +154,14 @@ return (
             />
           </div>
         )}
+
+        {/* 친구 요청 확인  */}
+        <BasicModal backgroundPoacity="opacity-100" isOpen={confirmOpen} onClose={closeConfirm}>
+          <div className="p-4 text-center">
+            <p className="mb-3 whitespace-pre-line">{confirmMsg}</p>
+            <RightButton size="sm" onClick={closeConfirm}>확인</RightButton>
+          </div>
+        </BasicModal>
       </div>
     </div>
   );
