@@ -9,8 +9,8 @@ import SamePosePage from "../pages/SamePosePage";
 import SilentScreamPage from "../pages/SilentScreamPage";
 import SketchRelayPage from "../pages/SketchRelayPage";
 import WaitingPage from "../pages/WaitingPage";
+import FallingFoodPage from "../pages/FallingFoodPage";
 import OAuthCallback from "../pages/OAuthCallback";
-import FallingFood from "../pages/FallingFood";
 // import SketchRelayPage_VIDU from "../pages/SketchRelayPage_openvidu";
 const Router = () => {
   return (
@@ -27,7 +27,7 @@ const Router = () => {
       <Route path="/sketchrelay/:roomId" element={<SketchRelayPage />} />
       {/* <Route path="/sketchrelay-vidu" element={<SketchRelayPage_VIDU />} /> */}
       <Route path="/waiting/:roomId" element={<WaitingPage />} />
-      <Route path="/fallingfood" element={<FallingFood />} />
+      <Route path="/fallingfood" element={<FallingFoodPage />} />
     </Routes>
   );
 };

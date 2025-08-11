@@ -1,7 +1,7 @@
-// src/pages/FallingFood.jsx
+// src/pages/FallingFoodPage.jsx
 import background from "../assets/background/background_falling_food.png";
 
-const FallingFood = () => {
+const FallingFoodPage = () => {
   return (
     <div
       style={{
@@ -14,4 +14,4 @@ const FallingFood = () => {
   );
 };
 
-export default FallingFood;
+export default FallingFoodPage;
