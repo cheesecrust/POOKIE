@@ -113,6 +113,9 @@ const SamePosePage = () => {
   const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);
   const closeWrongModal = useGameStore((state) => state.closeWrongModal);
 
+  // 처리중..
+  const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
+
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
     (state) => state.handleTimerPrepareSequence
@@ -318,20 +321,20 @@ const SamePosePage = () => {
 
   // 타이머 모달 => hide모달로 유저 가리기
   useEffect(() => {
-    if (time === 5) {
+    if (time === 8) {
       setCountdown(3);
       setShowModal(true);
     }
 
-    if (time === 4) {
+    if (time === 7) {
       setCountdown(2);
     }
 
-    if (time === 3) {
+    if (time === 6) {
       setCountdown(1);
     }
 
-    if (time === 2) {
+    if (time === 5) {
       setCountdown("찰 칵 !");
       setTimeout(() => {
         setShowModal(false);
@@ -339,26 +342,34 @@ const SamePosePage = () => {
     }
   }, [time]);
 
+  // 타이머 변화 감지
+  useEffect(() => {
+    if (time === 3 || time === 2) {
+      setIsProcessingModalOpen(true);
+    } else {
+      setIsProcessingModalOpen(false);
+    }
+  }, [time]);
+
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (isSamePoseTimerEnd) {
-      if (turn === "RED") {
-        emitTurnOver({ roomId, team: turn, score });
-        if (myIdx === master) {
-          setTimeout(() => {
-            emitTimerStart({ roomId });
-          }, 2000);
-        }
-      } else if (turn === "BLUE") {
-        emitRoundOver({ roomId, team: turn, score });
-        if (round < 3 && myIdx === master) {
-          setTimeout(() => {
-            emitTimerStart({ roomId });
-          }, 2000);
-        }
+    if (!isSamePoseTimerEnd) return;
+    if (myIdx !== master) return;
+
+    if (turn === "RED") {
+      emitTurnOver({ roomId, team: turn, score });
+      setTimeout(() => {
+        emitTimerStart({ roomId });
+      }, 2000);
+    } else if (turn === "BLUE") {
+      emitRoundOver({ roomId, team: turn, score });
+      if (round < 3) {
+        setTimeout(() => {
+          emitTimerStart({ roomId });
+        }, 2000);
       }
-      resetSamePoseTimerEnd();
     }
+    resetSamePoseTimerEnd();
   }, [isSamePoseTimerEnd, master, myIdx, round, roomId, score, turn]);
 
   // hideModal 대상 계산 => 나중에 수정
@@ -594,6 +605,13 @@ const SamePosePage = () => {
         <p className="text-6xl font-bold font-pixel">불 일 치 !</p>
       </PopUpModal>
 
+      {/* 처리중 모달 */}
+      <PopUpModal
+        isOpen={isProcessingModalOpen}
+        onClose={() => setIsProcessingModalOpen(false)}
+      >
+        <p className="text-6xl font-bold font-pixel">처리중...</p>
+      </PopUpModal>
       {/* 최종 승자 모달 */}
       {isResultOpen && (
         <GameResultModal
