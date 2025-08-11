@@ -67,9 +67,6 @@ ROI_SIZE_B   = 1.4    # ROI 한 변 크기 = 팔뚝 길이 * beta
 ROI_COVER_TH = 0.50   # ROI가 화면 안에 포함돼야 하는 최소 비율
 NEAR_TH_MULT = 0.8    # ROI 중심과 검출 손 중심 거리 허용 배수(팔뚝 길이 * mult)
 
-# ================== 정책 플래그(손 패턴 규칙) ==================
-# 전역 패턴 강제는 끔. (쌍별 사전검사로 대체)
-HAND_RULE = "ignore"
 
 # ================== 유틸/전처리 ==================
 def preprocess_image(image_bgr: np.ndarray) -> np.ndarray:
@@ -627,7 +624,6 @@ async def upload_images(
         "results_url_base": f"/results/{today_dir}/{time_dir}/{gameId}/{team}/",
         "hand_status": hand_status,  # present_detected / present_missed / absent_or_uncertain
         "pair_gate": pair_gate,      # ← 쌍별 사전검사 결과/사유
-        "hand_rule": HAND_RULE,      # 현재는 'ignore'
         "hand_visible_sets_detected": hand_visible_sets_detected,
         "hand_visible_sets_expected": hand_visible_sets_expected,
     }
