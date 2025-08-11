@@ -28,7 +28,11 @@ public class MessageSenderManager {
             if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST)) {
                 onlinePlayerManager.broadCastMessageToRoomUser(message.getSession(), message.getRoomId(),
                         message.getTeam() == null ? null : message.getTeam().toString(), message.getPayload());
-            } else {
+            } else if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST_OTHER)) {
+                onlinePlayerManager.broadCastMessageToOtherRoomUser(message.getSession(), message.getRoomId(),
+                        message.getTeam() == null ? null : message.getTeam().toString(), message.getPayload());
+            }
+            else {
                 onlinePlayerManager.sendToMessageUser(message.getSession(), message.getPayload());
             }
             log.info("Message 전송 완료 : \n{}", message.getPayload());
@@ -56,6 +60,17 @@ public class MessageSenderManager {
         SendMessageDto sendMessageReq = SendMessageDto.builder()
                 .session(session)
                 .msgType(SendMessageDto.sendType.BROADCAST)
+                .roomId(roomId)
+                .team(team)
+                .payload(payload).build();
+
+        this.sendMessage.offerLast(sendMessageReq);
+    }
+
+    public void sendMessageBroadCastOther(WebSocketSession session, String roomId, UserDto.Team team, Map<String, Object> payload) {
+        SendMessageDto sendMessageReq = SendMessageDto.builder()
+                .session(session)
+                .msgType(SendMessageDto.sendType.BROADCAST_OTHER)
                 .roomId(roomId)
                 .team(team)
                 .payload(payload).build();

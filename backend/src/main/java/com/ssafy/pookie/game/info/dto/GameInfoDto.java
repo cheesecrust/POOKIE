@@ -52,13 +52,13 @@ public class GameInfoDto {
 
     // 주체자에 대한 정보를 리스트로 반환한다
     public List<?> repAccountIdxList() {
-        return this.rep.stream().map((user) -> user.getUserAccountId())
+        return this.rep.stream().map((user) -> Map.of("idx", user.getUserAccountId(), "nickname", user.getUserNickname()))
                 .collect(Collectors.toList());
     }
 
     // 일반 유저에 대한 정보를 리스트로 반환한다.
     public List<?> norAccountIdxList() {
-        return this.normal.stream().map((user) -> user.getUserAccountId())
+        return this.normal.stream().map((user) -> Map.of("idx", user.getUserAccountId(), "nickname", user.getUserNickname()))
                 .collect(Collectors.toList());
     }
 

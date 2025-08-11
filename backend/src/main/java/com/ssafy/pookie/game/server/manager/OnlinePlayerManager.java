@@ -164,7 +164,7 @@ public class OnlinePlayerManager {
                                 try {
                                     sendToMessageUser(s, Map.of(
                                             "type", "INTERRUPT",
-                                            "msg", session.getAttributes().get("nickname") + "가 게임을 나갔습니다.\n 게임이 종료됩니다."
+                                            "msg", session.getAttributes().get("nickname") + "님이 게임을 나갔습니다.\n 게임이 종료됩니다."
                                     ));
                                     sendToMessageUser(s, Map.of(
                                             "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
@@ -232,6 +232,24 @@ public class OnlinePlayerManager {
         }
         user.get(team[teamIdx]).get(playerIdx).setGrant(UserDto.Grant.MASTER);
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
+    }
+
+    public void broadCastMessageToOtherRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
+        RoomStateDto room = this.rooms.get(roomId);
+        if(!isAuthorized(session, room)) return;
+
+        // 1. 팀원들에게만 전달
+        if(team != null) {
+            for(UserDto user : room.getUsers().get(team)) {
+                if (user.getSession().equals(session)) continue;
+                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        } else {    // 2. BroadCast 전달
+            for(WebSocketSession user : room.getSessions()) {
+                if (user.equals(session)) continue;
+                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        }
     }
 
     public boolean isInvalid(WebSocketSession session) {

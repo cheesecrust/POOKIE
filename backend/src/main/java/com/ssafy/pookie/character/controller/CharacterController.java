@@ -112,6 +112,9 @@ public class CharacterController {
         } catch (CustomException e) {
             log.error("새로운 푸키 발급 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("새로운 푸키 발급 실패: {}", e.getMessage());
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

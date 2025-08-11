@@ -5,10 +5,7 @@ import com.ssafy.pookie.character.service.CharacterService;
 import com.ssafy.pookie.game.info.dto.GameInfoDto;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
-import com.ssafy.pookie.game.room.dto.JoinDto;
-import com.ssafy.pookie.game.room.dto.RoomGameTypeChangeRequestDto;
-import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
-import com.ssafy.pookie.game.room.dto.RoomStateDto;
+import com.ssafy.pookie.game.room.dto.*;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
 import com.ssafy.pookie.game.user.dto.*;
@@ -330,5 +327,28 @@ public class GameRoomService {
                 }
             }
         });
+    }
+    // 최신의 방 상태를 전달
+    public void handleWaitingRoomUpdate(RoomUpdateRequestDto request) {
+        log.info("WAITING_ROOM_UPDATE REQUEST : ROOM {} FROM {}", request.getRoomId(), request.getUser().getUserNickname());
+        RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
+        try {
+            if(room == null) throw new IllegalArgumentException("존재하지 않는 방입니다.");
+            messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.WAITING_ROOM_UPDATED.toString(),
+                    "room", room.mappingRoomInfo()
+
+            ));
+            log.info("WAITING_ROOM_UPDATE REQUEST SUCCESS");
+        } catch (IllegalArgumentException e) {
+            messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.ERROR,
+                    "msg", e.getMessage()
+            ));
+            log.error("WAITING_ROOM_UPDATE REQUEST FAILED : {}", e.getMessage());
+        } catch (Exception e){
+            log.error("WAITING_ROOM_UPDATE REQUEST FAILED : UNEXPECTED");
+            throw e;
+        }
     }
 }

@@ -12,10 +12,7 @@ import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
-import com.ssafy.pookie.game.room.dto.JoinDto;
-import com.ssafy.pookie.game.room.dto.RoomGameTypeChangeRequestDto;
-import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
-import com.ssafy.pookie.game.room.dto.TurnDto;
+import com.ssafy.pookie.game.room.dto.*;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
@@ -102,6 +99,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                     start.setUser(user);
 //                    gameTimerService.beforeStartGameTimer(session, start);
                     inGameService.handleGameStart(session, start);
+                    break;
+                case WAITING_ROOM_UPDATE:
+                    RoomUpdateRequestDto roomUpdateRequest = objectMapper.convertValue(msg.getPayload(), RoomUpdateRequestDto.class);
+                    roomUpdateRequest.setUser(user);
+                    gameRoomService.handleWaitingRoomUpdate(roomUpdateRequest);
                     break;
                 case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);

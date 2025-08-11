@@ -48,4 +48,11 @@ public interface CharacterCatalogRepository extends JpaRepository<CharacterCatal
                            @Param("represent") boolean represent,
                            @Param("growing") boolean growing);
 
+    @Query("""
+    SELECT cc FROM CharacterCatalog cc
+    JOIN FETCH cc.character
+    WHERE cc.userAccount.id IN :userIds 
+    AND cc.isRepresent = true
+    """)
+    List<CharacterCatalog> findRepresentativeCharactersByUserIds(@Param("userIds") List<Long> userIds);
 }

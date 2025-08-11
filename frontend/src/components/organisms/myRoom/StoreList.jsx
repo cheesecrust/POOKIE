@@ -10,12 +10,12 @@ const StoreList = ({onBuySuccess}) => {
   const fetchInventoryItems = async () => {
     try {
       const res = await axiosInstance.get("/store/items");
-      console.log("상점아이템",res);
-      console.log("data",res.data)
+      // console.log("상점아이템",res);
+      // console.log("data",res.data)
       if (res.data.length > 0){
         setStoreItems(res.data); // 응답 데이터 상태 저장
       }
-      console.log("확인",setStoreItems)
+      // console.log("확인",setStoreItems)
     } catch (err) {
       console.log("인벤토리 아이템 전체조회 실패:", err);
     }

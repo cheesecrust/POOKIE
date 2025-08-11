@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserCharactersRepository extends JpaRepository<UserCharacters, Integer> {
+public interface UserCharactersRepository extends JpaRepository<UserCharacters, Long> {
     List<UserCharacters> findByUserAccount_IdAndIsDrop(Long userAccountId, boolean isDrop);
 
     Optional<UserCharacters> findByUserAccount_IdAndCharacter_Id(Long userAccountId, Integer characterId);

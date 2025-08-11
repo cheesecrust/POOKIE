@@ -1,39 +1,19 @@
-// 푸키푸키버튼 + 친구/쪽지 모달 연동
-// 푸키푸키버튼 누를때 모달 열리고 닫힘
-// <FriendMessageWrapper /> 로 상위 컴포넌트에서 import 해서 사용하시면됨
-
-
+// FriendMessageWrapper.jsx
 import { useState, useEffect } from "react";
 import PookieButton from "../../atoms/button/PookieButton";
 import FriendMessageModal from "./FriendMessageModal";
 
 const FriendMessageWrapper = () => {
-  // 모달 상태 관리
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const close = () => setIsModalOpen(false);
 
-  // 버튼 클릭 시 모달 열고 닫기
-  const handleToggleModal = () => {
-    setIsModalOpen(prev => !prev);
-  };
+  const handleToggleModal = () => setIsModalOpen(prev => !prev);
 
-  // ESC 키로 모달 닫기
+  // ESC로 닫기 (Wrapper 차원)
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setIsModalOpen(false);
-      }
-    };
-
-    if (isModalOpen) {
-      window.addEventListener("keydown", handleKeyDown);
-    } else {
-      window.removeEventListener("keydown", handleKeyDown);
-    }
-
-    // cleanup
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    const onKey = (e) => e.key === "Escape" && close();
+    if (isModalOpen) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [isModalOpen]);
 
   return (
@@ -46,10 +26,15 @@ const FriendMessageWrapper = () => {
       {/* 모달 */}
       {isModalOpen && (
         <div
-          className="fixed inset-0 flex justify-center items-center z-40 bg-transparent"
+          className="fixed inset-0 z-40 flex items-center justify-center"
+          onClick={close} 
         >
-          <div>
-            <FriendMessageModal />
+          <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
+          <div
+            className="relative" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FriendMessageModal onClose={close} />
           </div>
         </div>
       )}

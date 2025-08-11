@@ -11,7 +11,7 @@ const FriendList = ({ friends = [], onRemoveFriend }) => {
         if (friend) {
           return (
             <FriendCard
-              key={idx}
+              key={friend.userId}
               friendId={friend.userId}
               nickname={friend.nickname}
               characterName={friend.characterName}
