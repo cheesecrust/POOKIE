@@ -203,7 +203,7 @@ public class FriendService {
                             : null;
 
                     // FriendDto 생성
-                    return FriendDto.from(friend, friend.getStatus(), userId, repCharacterDto);
+                    return FriendDto.from(friend, friend.getStatus(), userId, repCharacterDto, friendUser.isOnline());
                 })
                 .toList();
 
