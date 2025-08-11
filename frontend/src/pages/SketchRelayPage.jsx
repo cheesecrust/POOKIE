@@ -61,8 +61,6 @@ const SketchRelayPage = () => {
   const maxDrawTurnsPerTeam = useGameStore((state) => state.maxDrawTurnsPerTeam);
   const currentDrawer = useMemo(() => {
     if (!Array.isArray(repIdxList) || repIdxList.length === 0) return null;
-    console.log("repIdx: ", repIdxList);
-    console.log("user: ", repIdxList[currentDrawTurn % repIdxList.length]);
     return repIdxList[currentDrawTurn % repIdxList.length];
   }, [repIdxList, currentDrawTurn]);
   
