@@ -257,6 +257,7 @@ def _slug(s, default):
 ANGLE_BLEND = 0.30   # 팔/어깨 특징 유사도 비중
 PASS_THRESHOLD = 0.90  # 최종 통과 임계값(기존 0.6→0.9 로 상향)
 
+KST = datetime.timezone(datetime.timedelta(hours=9))
 
 @app.post("/ai/upload_images")
 async def upload_images(
@@ -273,8 +274,11 @@ async def upload_images(
     team   = _slug(team, "unknown-team")
     round_num = int(round_idx or 1)
 
-    # 하위 디렉토리 보장
-    game_dir = os.path.join(RESULTS_ROOT, gameId, team)
+     # ★ 최상위 디렉토리를 '오늘 날짜(YYYY-MM-DD)'로
+    today_dir = datetime.datetime.now(KST).strftime("%Y-%m-%d")
+
+    # ★ 디렉토리 구조: RESULTS_ROOT / <YYYY-MM-DD> / <gameId> / <team>
+    game_dir = os.path.join(RESULTS_ROOT, today_dir, gameId, team)
     os.makedirs(game_dir, exist_ok=True)
 
     for file in images:
