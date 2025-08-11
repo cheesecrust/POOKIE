@@ -170,6 +170,10 @@ public class InGameService {
             if(repList.contains(user) && !room.getGameType().equals(RoomStateDto.GameType.SAMEPOSE)) continue;
             normalList.add(user);
         }
+        // 일심동체는 방장이 모든 정답을 제출
+        if(room.getGameType().equals(RoomStateDto.GameType.SAMEPOSE) && !normalList.contains(room.getRoomMaster())) {
+            normalList.add(room.getRoomMaster());
+        }
     }
 
     // 턴이 종료되었을 때
