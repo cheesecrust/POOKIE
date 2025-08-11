@@ -33,7 +33,7 @@ public class DrawService {
 
             UserDto userDto = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
             Map<String, Object> msg = convertDrawEventToMsg(drawEvent);
-            messageSenderManager.sendMessageBroadCast(userDto.getSession(), drawEvent.getRoomId(), null, msg);
+            messageSenderManager.sendMessageBroadCastOther(userDto.getSession(), drawEvent.getRoomId(), null, msg);
         } catch (Exception e) {
             e.printStackTrace();
             log.info("{}", e.getMessage());

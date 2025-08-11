@@ -10,7 +10,7 @@ import java.util.Map;
 @Data
 @Builder
 public class SendMessageDto {
-    public enum sendType {BROADCAST, USER}
+    public enum sendType {BROADCAST, USER, BROADCAST_OTHER}
 
     private sendType msgType;
     private WebSocketSession session;
