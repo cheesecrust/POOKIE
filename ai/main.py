@@ -629,7 +629,7 @@ async def upload_images(
         "row_file_archive": os.path.basename(archive) if concat_path else None,
         "row_file_round_alias": os.path.basename(round_alias),
         "row_file_latest_alias": os.path.basename(latest_alias),
-        "results_url_base": f"/results/{today_dir}/{gameId}/{team}/",  # 날짜 포함
+        "results_url_base": f"/results/{today_dir}/{time_dir}/{gameId}/{team}/",  # 날짜 포함
         "hand_status": hand_status,  # present_detected / present_missed / absent_or_uncertain
         "hand_rule": HAND_RULE,
         "hand_rule_ok": hand_rule_ok,
