@@ -1,225 +1,77 @@
 from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles  # ★ 정적 서빙 추가
-from typing import List, Tuple
-import os, uuid, datetime, math
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from typing import List
+import os, uuid, datetime, math, re
 import numpy as np
 import cv2
 import mediapipe as mp
-from sklearn.metrics.pairwise import cosine_similarity
-from fastapi.responses import JSONResponse
-import re
+from sklearn.metrics.pairwise import cosine_similarity  # (Row 이미지 텍스트만 유지 시 불필요하면 제거 가능)
 
+# ================== 기본 설정 ==================
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "/app/results_debug")
-# 루트 디렉토리 보장
 os.makedirs(RESULTS_ROOT, exist_ok=True)
 
-# ---------------- FastAPI 기본 설정 ---------------- #
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://i13a604.p.ssafy.io"
+        "https://i13a604.p.ssafy.io",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------- Mediapipe 초기화 ---------------- #
+# ================== MediaPipe 초기화 ==================
 mp_pose = mp.solutions.pose
 mp_hands = mp.solutions.hands
-pose = mp_pose.Pose(static_image_mode=True)
+pose = mp_pose.Pose(
+    static_image_mode=True,
+    model_complexity=1,           # world_landmarks 품질을 위해 1 권장
+    enable_segmentation=False
+)
 hands = mp_hands.Hands(
     static_image_mode=True,
     max_num_hands=2,
-    min_detection_confidence=0.3,
+    min_detection_confidence=0.5,  # 손 검출 안정성↑
     min_tracking_confidence=0.3
 )
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 
-# ---------------- 제시어별 가중치 설정 ---------------- #
-KEYPOINT_CONFIG = {
-    "heart": ["pose", "hands"],
-    "gun": ["pose", "hands"],
-    "baseball": ["pose"],
-    "boxing": ["pose"],
-    "basketball": ["pose", "hands"],
-    "pretty": ["pose", "hands"]
-}
-
-# ---------------- 상체 관절만 추출 ---------------- #
+# ================== 상반신 랜드마크 ==================
 UPPER_BODY_LANDMARKS = {
     mp_pose.PoseLandmark.NOSE,
     mp_pose.PoseLandmark.LEFT_EYE, mp_pose.PoseLandmark.RIGHT_EYE,
     mp_pose.PoseLandmark.LEFT_EAR, mp_pose.PoseLandmark.RIGHT_EAR,
+    mp_pose.PoseLandmark.MOUTH_LEFT, mp_pose.PoseLandmark.MOUTH_RIGHT,
     mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.RIGHT_SHOULDER,
     mp_pose.PoseLandmark.LEFT_ELBOW, mp_pose.PoseLandmark.RIGHT_ELBOW,
     mp_pose.PoseLandmark.LEFT_WRIST, mp_pose.PoseLandmark.RIGHT_WRIST,
-    mp_pose.PoseLandmark.MOUTH_LEFT, mp_pose.PoseLandmark.MOUTH_RIGHT,
-    mp_pose.PoseLandmark.LEFT_EYE_INNER, mp_pose.PoseLandmark.RIGHT_EYE_INNER,
-    mp_pose.PoseLandmark.LEFT_EYE_OUTER, mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
 }
-
-# (추가) 사전 계산으로 가독성/성능 미세 개선
 ALLOWED_POSE_IDX = {lm.value for lm in UPPER_BODY_LANDMARKS}
+POSE_INDEX_LIST = sorted(ALLOWED_POSE_IDX)  # 순서 고정
 
-# ---------------- CLAHE 전처리 ---------------- #
-def preprocess_image(image):
-    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+POSE_DIMS = len(POSE_INDEX_LIST) * 2   # (x,y) for upper body
+HAND_POINTS_PER_HAND = 21
+HAND_DIMS = HAND_POINTS_PER_HAND * 2 * 2  # 두 손(좌/우) × 21점 × (x,y) = 84
+
+# ================== 유틸/전처리 ==================
+def preprocess_image(image_bgr: np.ndarray) -> np.ndarray:
+    lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    cl = clahe.apply(l)
-    lab = cv2.merge((cl, a, b))
-    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    cl = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)).apply(l)
+    return cv2.cvtColor(cv2.merge((cl, a, b)), cv2.COLOR_LAB2BGR)
 
-# ---------------- 손 키포인트 추출 ---------------- #
-def refine_hand_keypoints(image, hand_model, w, h):
-    hand_keypoints = []
-    hand_landmarks_for_draw = []
+def _slug(s, default):
+    s = (s or default).strip().lower()
+    return re.sub(r'[^a-z0-9._-]+', '-', s) or default
 
-    result = hand_model.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    if result.multi_hand_landmarks:
-        for hand_landmarks in result.multi_hand_landmarks:
-            current_landmarks = []
-            for lm in hand_landmarks.landmark:
-                current_landmarks.append([lm.x * w, lm.y * h])
-            hand_keypoints.extend(current_landmarks)
-            hand_landmarks_for_draw.append(hand_landmarks)
-
-    while len(hand_keypoints) < 42:
-        hand_keypoints.append([0, 0])
-
-    return hand_keypoints, hand_landmarks_for_draw
-
-# ★ 팔/어깨 특징 벡터 계산 (각도/거리 기반, 스케일/평행이동 불변)
-def _angle(a, b, c):
-    ba = np.array(a) - np.array(b)
-    bc = np.array(c) - np.array(b)
-    nba = ba / (np.linalg.norm(ba) + 1e-6)
-    nbc = bc / (np.linalg.norm(bc) + 1e-6)
-    cosang = np.clip(np.dot(nba, nbc), -1.0, 1.0)
-    return math.acos(cosang)  # [0, pi]
-
-def _arm_features(raw_points, scale):
-    LS = mp_pose.PoseLandmark.LEFT_SHOULDER.value
-    RS = mp_pose.PoseLandmark.RIGHT_SHOULDER.value
-    LE = mp_pose.PoseLandmark.LEFT_ELBOW.value
-    RE = mp_pose.PoseLandmark.RIGHT_ELBOW.value
-    LW = mp_pose.PoseLandmark.LEFT_WRIST.value
-    RW = mp_pose.PoseLandmark.RIGHT_WRIST.value
-
-    # 필요한 포인트가 모두 있어야 함
-    need = [LS, RS, LE, RE, LW, RW]
-    if any(i not in raw_points for i in need):
-        return None
-
-    l_shoulder = raw_points[LS]; r_shoulder = raw_points[RS]
-    l_elbow = raw_points[LE];    r_elbow = raw_points[RE]
-    l_wrist = raw_points[LW];    r_wrist = raw_points[RW]
-
-    left_elbow_ang  = _angle(l_shoulder, l_elbow, l_wrist) / math.pi
-    right_elbow_ang = _angle(r_shoulder, r_elbow, r_wrist) / math.pi
-
-    shoulder_width = np.linalg.norm(np.array(l_shoulder) - np.array(r_shoulder)) / (scale + 1e-6)
-    lw_sh_dist = np.linalg.norm(np.array(l_wrist) - np.array(l_shoulder)) / (scale + 1e-6)
-    rw_sh_dist = np.linalg.norm(np.array(r_wrist) - np.array(r_shoulder)) / (scale + 1e-6)
-
-    return np.array([left_elbow_ang, right_elbow_ang, shoulder_width, lw_sh_dist, rw_sh_dist], dtype=np.float32)
-
-# ---------------- 관절 벡터 추출 ---------------- #
-def extract_normalized_keypoints(image_bytes, filename, save_vis_dir="./results_landmarks"):
-    os.makedirs(save_vis_dir, exist_ok=True)
-    np_arr = np.frombuffer(image_bytes, np.uint8)
-    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-    if image is None:
-        return None, None, None
-    image = preprocess_image(image)
-    h, w, _ = image.shape
-
-    pose_result = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    if not pose_result.pose_landmarks:
-        return None, None, None
-
-    keypoints = []
-    labels = []
-    raw_points = {}  # ★ 원본 좌표 보관(각도/거리 계산용)
-
-    for idx, lm in enumerate(pose_result.pose_landmarks.landmark):
-        if idx not in ALLOWED_POSE_IDX:
-            continue
-        x, y = lm.x * w, lm.y * h
-        keypoints.append([x, y])
-        labels.append(str(idx))
-        raw_points[idx] = [x, y]
-
-    hand_keypoints, hand_landmarks_for_draw = refine_hand_keypoints(image, hands, w, h)
-    keypoints.extend(hand_keypoints)
-
-    keypoints = np.array(keypoints)
-    try:
-        nose_idx = labels.index(str(mp_pose.PoseLandmark.NOSE.value))
-        nose = keypoints[nose_idx]
-    except ValueError:
-        nose = keypoints[0] if len(keypoints) > 0 else [0, 0]
-
-    keypoints -= nose
-    scale = np.max(keypoints.max(axis=0) - keypoints.min(axis=0))
-    if scale == 0:
-        return None, None, None
-    keypoints /= scale
-
-    # ★ 팔/어깨 특징 벡터 생성
-    arm_feat = _arm_features(raw_points, scale)
-    if arm_feat is None:
-        arm_feat = np.zeros(5, dtype=np.float32)
-
-    # 시각화 저장
-    annotated = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    mp_drawing.draw_landmarks(
-        annotated, pose_result.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
-    )
-    for hl in hand_landmarks_for_draw:
-        mp_drawing.draw_landmarks(
-            annotated, hl, mp_hands.HAND_CONNECTIONS,
-            landmark_drawing_spec=mp_drawing_styles.get_default_hand_landmarks_style()
-        )
-
-    name_base = os.path.splitext(os.path.basename(filename))[0]
-    vis_path = os.path.join(save_vis_dir, f"vis_{name_base}.jpg")
-    cv2.imwrite(vis_path, cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
-    return keypoints.flatten(), vis_path, arm_feat  # ★ arm_feat 추가 반환
-
-# ---------------- 제시어 기반 가중치 ---------------- #
-def get_weights_by_keyword(filename: str):
-    for keyword, parts in KEYPOINT_CONFIG.items():
-        if keyword in filename.lower():
-            w_hand = 1.0 if "hands" in parts else 0.0
-            w_pose = 1.0 if "pose" in parts else 0.0
-            total = w_hand + w_pose
-            return (w_pose / total, w_hand / total) if total > 0 else (0.5, 0.5)
-    return 1.0, 0.0
-
-POSE_DIMS = len(ALLOWED_POSE_IDX) * 2   # 21 * 2 = 42
-HAND_DIMS = 42 * 2                      # 42 points * (x,y) = 84
-
-# ---------------- 유사도 계산 ---------------- #
-def weighted_similarity(v1, v2, w_pose, w_hand):
-    v1_pose = v1[:POSE_DIMS]
-    v1_hand = v1[POSE_DIMS:POSE_DIMS + HAND_DIMS]
-    v2_pose = v2[:POSE_DIMS]
-    v2_hand = v2[POSE_DIMS:POSE_DIMS + HAND_DIMS]
-    pose_sim = cosine_similarity([v1_pose], [v2_pose])[0][0]
-    hand_sim = cosine_similarity([v1_hand], [v2_hand])[0][0]
-    return w_pose * pose_sim + w_hand * hand_sim
-
-# ---------------- 이미지 tmp 처리 ---------------- #
 def atomic_write(image_bgr, target_path: str):
-    # 임시 파일도 원래 확장자 유지
     root, ext = os.path.splitext(target_path)
     tmp = f"{root}.tmp{ext}"
     os.makedirs(os.path.dirname(target_path), exist_ok=True)
@@ -227,7 +79,258 @@ def atomic_write(image_bgr, target_path: str):
         raise RuntimeError(f"cv2.imwrite failed: {tmp}")
     os.replace(tmp, target_path)
 
-# ---------------- Row 이미지 생성 ---------------- #
+def _mirror_xy(v_xy_flat: np.ndarray) -> np.ndarray:
+    m = v_xy_flat.reshape(-1, 2).copy()
+    m[:, 0] *= -1
+    return m.reshape(-1)
+
+# 좌우 라벨 정렬을 위해: Left가 먼저, Right가 다음
+def _hand_points_and_conf(image_bgr, w, h):
+    pts = []
+    confs = []
+    draw = []
+
+    result = hands.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
+
+    # 기본적으로 왼손,오른손 순 정렬
+    ordered = []
+    if getattr(result, "multi_hand_landmarks", None):
+        # handedness와 landmarks를 함께 정렬
+        labels = []
+        if getattr(result, "multi_handedness", None):
+            for hd in result.multi_handedness:
+                labels.append(hd.classification[0].label)  # "Left" or "Right"
+        else:
+            labels = ["Unknown"] * len(result.multi_hand_landmarks)
+
+        scores = []
+        if getattr(result, "multi_handedness", None):
+            for hd in result.multi_handedness:
+                scores.append(float(hd.classification[0].score))
+        else:
+            scores = [0.0] * len(result.multi_hand_landmarks)
+
+        for i, hand in enumerate(result.multi_hand_landmarks):
+            ordered.append((labels[i], scores[i], hand))
+
+        # Left 먼저, 그 다음 Right, 그 외
+        def _key(t):
+            lab = t[0]
+            if lab == "Left": return 0
+            if lab == "Right": return 1
+            return 2
+        ordered.sort(key=_key)
+
+        for lab, sc, hand in ordered:
+            hp = [[lm.x * w, lm.y * h] for lm in hand.landmark]
+            pts.extend(hp)                        # 21점
+            confs.extend([sc] * len(hp))         # 한 손 신뢰도 동일 복사
+            draw.append(hand)
+
+    # 두 손(42점) 채우기
+    while len(pts) < HAND_POINTS_PER_HAND * 2:
+        pts.append([-1.0, -1.0])       # sentinel
+        confs.append(0.0)
+
+    return np.array(pts, dtype=np.float32), np.array(confs, dtype=np.float32), draw
+
+# ================== 상반신 벡터/신뢰도 추출 ==================
+def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str):
+    os.makedirs(save_dir, exist_ok=True)
+    np_arr = np.frombuffer(image_bytes, np.uint8)
+    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    if image is None:
+        return None
+
+    image = preprocess_image(image)
+    h, w = image.shape[:2]
+
+    pres = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    if not pres.pose_landmarks:
+        return None
+
+    # Pose XY/Conf(visibility) - 상반신만, 고정된 인덱스 순서
+    pose_xy = []
+    pose_conf = []
+    raw_xy = {}  # 이미지 좌표계에서의 원본 (nose/어깨 계산용)
+    for idx in POSE_INDEX_LIST:
+        lm = pres.pose_landmarks.landmark[idx]
+        x, y = lm.x * w, lm.y * h
+        pose_xy.append([x, y])
+        c = float(max(0.0, min(1.0, getattr(lm, "visibility", 0.0))))
+        pose_conf.append(c)
+        raw_xy[idx] = [x, y]
+    pose_xy = np.array(pose_xy, dtype=np.float32)
+    pose_conf = np.array(pose_conf, dtype=np.float32)
+
+    # 필수 포인트 확인
+    NOSE = mp_pose.PoseLandmark.NOSE.value
+    LSH, RSH = mp_pose.PoseLandmark.LEFT_SHOULDER.value, mp_pose.PoseLandmark.RIGHT_SHOULDER.value
+    if any(i not in raw_xy for i in [NOSE, LSH, RSH]):
+        return None
+
+    nose = np.array(raw_xy[NOSE], dtype=np.float32)
+    LS = np.array(raw_xy[LSH], dtype=np.float32)
+    RS = np.array(raw_xy[RSH], dtype=np.float32)
+
+    # Hands XY/Conf (좌/우 순서 강제)
+    hand_xy, hand_conf, hand_draw = _hand_points_and_conf(image, w, h)
+
+    # ---- 누락 손 좌표 sentinel(-1,-1) → nose로 치환 후 평행이동하면 0이 되도록 ----
+    mask = (hand_xy[:, 0] < 0) & (hand_xy[:, 1] < 0)  # sentinel
+    if np.any(mask):
+        hand_xy[mask] = nose  # 이후 nose 원점화에서 (0,0)로 정리됨
+
+    # ---- 정규화: nose 원점화 → 어깨선 수평 회전 → 어깨너비 스케일 ----
+    # 1) 평행이동
+    pose_xy -= nose
+    hand_xy -= nose
+
+    # 2) 회전(어깨선 수평)
+    v = RS - LS
+    theta = math.atan2(v[1], v[0])  # Z축 회전 각
+    c, s = math.cos(-theta), math.sin(-theta)
+    R = np.array([[c, -s], [s, c]], dtype=np.float32)
+    pose_xy = pose_xy @ R.T
+    hand_xy = hand_xy @ R.T
+
+    # 3) 스케일(어깨너비)
+    LS0 = (LS - nose) @ R.T
+    RS0 = (RS - nose) @ R.T
+    shoulder_width = float(np.linalg.norm(RS0 - LS0))
+    if shoulder_width < 1e-6:
+        # fallback: bbox 기반
+        bbox = pose_xy.max(0) - pose_xy.min(0)
+        shoulder_width = float(np.max(bbox))
+        if shoulder_width < 1e-6:
+            return None
+    pose_xy /= shoulder_width
+    hand_xy /= shoulder_width
+
+    # ---- 2D 벡터/신뢰도 결합 ----
+    vec_xy = np.concatenate([pose_xy.reshape(-1), hand_xy.reshape(-1)], axis=0).astype(np.float32)
+    vec_conf = np.concatenate([pose_conf, hand_conf], axis=0).astype(np.float32)  # 길이: len(POSE_INDEX_LIST)+42
+
+    # ---- 3D(Depth) 준비: world Z 사용 가능하면 섞기 ----
+    has_world = getattr(pres, "pose_world_landmarks", None) is not None
+    if has_world:
+        world = pres.pose_world_landmarks.landmark
+        z_vals = []
+        for idx in POSE_INDEX_LIST:
+            z_vals.append(world[idx].z)  # meters (음수=카메라 앞으로)
+        z_vals = np.array(z_vals, dtype=np.float32)
+
+        # nose/어깨 기준으로 XY는 이미 정규화됨. Z만 정규화(어깨너비의 world 스케일로)
+        z_nose = world[NOSE].z
+        z_vals = (z_vals - z_nose)
+
+        # world 상에서의 어깨 간 거리로 스케일링(가능)
+        sw_world = np.linalg.norm(
+            np.array([world[RSH].x - world[LSH].x, world[RSH].y - world[LSH].y, world[RSH].z - world[LSH].z],
+                     dtype=np.float32)
+        )
+        z_scale = sw_world if sw_world > 1e-6 else 1.0
+        z_vals = z_vals / z_scale
+    else:
+        # world가 없으면 z=0으로 채움(=2D만)
+        z_vals = np.zeros(len(POSE_INDEX_LIST), dtype=np.float32)
+
+    pose_xyz = np.concatenate([pose_xy, z_vals.reshape(-1, 1)], axis=1)  # (K,3)
+    vec_xyz = pose_xyz.reshape(-1).astype(np.float32)
+
+    # ---- 시각화 저장 ----
+    annotated = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    mp_drawing.draw_landmarks(
+        annotated, pres.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+    )
+    for hl in hand_draw:
+        mp_drawing.draw_landmarks(
+            annotated, hl, mp_hands.HAND_CONNECTIONS,
+            landmark_drawing_spec=mp_drawing_styles.get_default_hand_landmarks_style()
+        )
+    name_base = os.path.splitext(os.path.basename(filename))[0]
+    vis_path = os.path.join(save_dir, f"vis_{name_base}.jpg")
+    atomic_write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR), vis_path)
+
+    return {
+        "vec_xy": vec_xy,
+        "vec_xyz": vec_xyz,
+        "vec_conf": vec_conf,
+        "vis_path": vis_path,
+        "has_world": bool(has_world),
+    }
+
+# ================== 유사도(Confidence Distance: CDmax) ==================
+def _per_keypoint_cos_nd(a_flat: np.ndarray, b_flat: np.ndarray, dim: int) -> np.ndarray:
+    A = a_flat.reshape(-1, dim)
+    B = b_flat.reshape(-1, dim)
+    num = (A * B).sum(axis=1)
+    den = (np.linalg.norm(A, axis=1) * np.linalg.norm(B, axis=1)) + 1e-6
+    cos = num / den
+    zero = (np.linalg.norm(A, axis=1) < 1e-6) | (np.linalg.norm(B, axis=1) < 1e-6)
+    cos[zero] = 0.0
+    return cos  # shape: (K,)
+
+def _split_xy(v_flat: np.ndarray):
+    body = v_flat[:POSE_DIMS]
+    hand = v_flat[POSE_DIMS:POSE_DIMS + HAND_DIMS]
+    return body, hand
+
+def confidence_distance_2d(p_xy, q_xy, p_conf, q_conf, scheme="max", allow_mirror=True, w_body=0.6, w_hand=0.4):
+    pb, ph = _split_xy(p_xy)
+    qb, qh = _split_xy(q_xy)
+
+    # 신뢰도 분리
+    pc_body = p_conf[:len(POSE_INDEX_LIST)]
+    qc_body = q_conf[:len(POSE_INDEX_LIST)]
+    pc_hand = p_conf[len(POSE_INDEX_LIST):]
+    qc_hand = q_conf[len(POSE_INDEX_LIST):]
+
+    def weight(c1, c2):
+        if scheme == "p": return c1
+        if scheme == "q": return c2
+        if scheme == "avg": return 0.5 * (c1 + c2)
+        return np.maximum(c1, c2)  # "max"
+
+    def cd_part(a, b, ca, cb):
+        cos_k = _per_keypoint_cos_nd(a, b, dim=2)
+        w = weight(ca, cb)
+        return float((w * cos_k).sum() / (w.sum() + 1e-6))
+
+    s_body = cd_part(pb, qb, pc_body, qc_body)
+    s_hand = cd_part(ph, qh, pc_hand, qc_hand)
+    s0 = w_body * s_body + w_hand * s_hand
+
+    if not allow_mirror:
+        return s0
+
+    # 좌우 반전 보정
+    qb_m = _mirror_xy(qb)
+    qh_m = _mirror_xy(qh)
+    s_body_m = cd_part(pb, qb_m, pc_body, qc_body)
+    s_hand_m = cd_part(ph, qh_m, pc_hand, qc_hand)
+    s1 = w_body * s_body_m + w_hand * s_hand_m
+    return max(s0, s1)
+
+def confidence_distance_3d(p_xyz_flat, q_xyz_flat, p_conf_body, q_conf_body, scheme="max", allow_mirror=True):
+    cos_k = _per_keypoint_cos_nd(p_xyz_flat, q_xyz_flat, dim=3)
+    if scheme == "p": w = p_conf_body
+    elif scheme == "q": w = q_conf_body
+    elif scheme == "avg": w = 0.5 * (p_conf_body + q_conf_body)
+    else: w = np.maximum(p_conf_body, q_conf_body)  # "max"
+    s0 = float((w * cos_k).sum() / (w.sum() + 1e-6))
+
+    if not allow_mirror:
+        return s0
+
+    Q = q_xyz_flat.reshape(-1, 3).copy()
+    Q[:, 0] *= -1  # x 반전
+    cos_m = _per_keypoint_cos_nd(p_xyz_flat, Q.reshape(-1), dim=3)
+    s1 = float((w * cos_m).sum() / (w.sum() + 1e-6))
+    return max(s0, s1)
+
+# ================== Row 이미지 생성(옵션) ==================
 def concat_images_horizontally_with_text(image_paths, similarities, all_pass, save_path="result_row.jpg"):
     images = []
     for p in image_paths:
@@ -247,81 +350,79 @@ def concat_images_horizontally_with_text(image_paths, similarities, all_pass, sa
     atomic_write(concat_img, save_path)
     return save_path
 
-def _slug(s, default):
-    s = (s or default).strip().lower()
-    return re.sub(r'[^a-z0-9._-]+','-', s) or default
-
-# ---------------- FastAPI 엔드포인트 ---------------- #
-
-# ★ 튜닝 파라미터
-ANGLE_BLEND = 0.30   # 팔/어깨 특징 유사도 비중
-PASS_THRESHOLD = 0.90  # 최종 통과 임계값(기존 0.6→0.9 로 상향)
-
+# ================== API ==================
 KST = datetime.timezone(datetime.timedelta(hours=9))
+
+# 튜닝 파라미터
+PASS_THRESHOLD = 0.86          # 상반신 웹캠 권장 0.84~0.90
+PASS_POLICY    = "majority"    # "all" | "majority" | "ref"
+W_BODY_2D, W_HAND_2D = 0.6, 0.4
+DEPTH_BLEND = 0.35             # 2D:3D 가중(0~0.5 추천)
 
 @app.post("/ai/upload_images")
 async def upload_images(
     images: List[UploadFile] = File(...),
     gameId: str | None = Query(default="unknown-game"),
     team: str | None = Query(default="unknown-team"),
-    round_idx: int | None = Query(default=1, alias="round")
+    round_idx: int | None = Query(default=1, alias="round"),
 ):
     if len(images) != 3:
-        return {"status": "error", "message": "정확히 3장의 이미지를 업로드해야 합니다."}
+        return JSONResponse({"ok": False, "message": "정확히 3장의 이미지를 업로드해야 합니다."}, status_code=400)
 
-    vecs, vis_paths, names, arm_feats = [], [], [], []
     gameId = _slug(gameId, "unknown-game")
     team   = _slug(team, "unknown-team")
     round_num = int(round_idx or 1)
 
-     # ★ 최상위 디렉토리를 '오늘 날짜(YYYY-MM-DD)'로
     today_dir = datetime.datetime.now(KST).strftime("%Y-%m-%d")
-
-    # ★ 디렉토리 구조: RESULTS_ROOT / <YYYY-MM-DD> / <gameId> / <team>
     game_dir = os.path.join(RESULTS_ROOT, today_dir, gameId, team)
     os.makedirs(game_dir, exist_ok=True)
+
+    vecs_xy, vecs_xyz, confs, vis_paths, has_worlds = [], [], [], [], []
+    names = []
 
     for file in images:
         contents = await file.read()
         names.append(file.filename)
-        vec, vis_path, arm_feat = extract_normalized_keypoints(contents, file.filename, save_vis_dir=game_dir)
-        if vec is None:
-            return {"status":"error","message":f"관절 추출 실패: {file.filename}"}
-        vecs.append(vec)
-        vis_paths.append(vis_path)
-        arm_feats.append(arm_feat)
+        out = extract_upper_body_vectors(contents, file.filename, save_dir=game_dir)
+        if out is None:
+            return JSONResponse({"ok": False, "message": f"키포인트 추출 실패: {file.filename}"}, status_code=422)
+        vecs_xy.append(out["vec_xy"])
+        vecs_xyz.append(out["vec_xyz"])
+        confs.append(out["vec_conf"])
+        vis_paths.append(out["vis_path"])
+        has_worlds.append(out["has_world"])
 
-    # ✅ 가중치 계산
-    w_pose, w_hand = get_weights_by_keyword(names[0])
+    def pair_score(i, j):
+        s2d = confidence_distance_2d(
+            vecs_xy[i], vecs_xy[j], confs[i], confs[j],
+            scheme="max", allow_mirror=True, w_body=W_BODY_2D, w_hand=W_HAND_2D
+        )
+        # 3D는 몸만(손 3D 없음)
+        bi, bj = confs[i][:len(POSE_INDEX_LIST)], confs[j][:len(POSE_INDEX_LIST)]
+        s3d = confidence_distance_3d(vecs_xyz[i], vecs_xyz[j], bi, bj,
+                                     scheme="max", allow_mirror=True)
+        return (1 - DEPTH_BLEND) * s2d + DEPTH_BLEND * s3d
 
-    # 좌표 기반(포즈+손) 유사도
-    sim12 = float(weighted_similarity(vecs[0], vecs[1], w_pose, w_hand))
-    sim13 = float(weighted_similarity(vecs[0], vecs[2], w_pose, w_hand))
-    sim23 = float(weighted_similarity(vecs[1], vecs[2], w_pose, w_hand))
+    s12 = pair_score(0, 1)
+    s13 = pair_score(0, 2)
+    s23 = pair_score(1, 2)
 
-    # ★ 팔/어깨 특징 유사도(코사인)
-    a12 = float(cosine_similarity([arm_feats[0]], [arm_feats[1]])[0][0])
-    a13 = float(cosine_similarity([arm_feats[0]], [arm_feats[2]])[0][0])
-    a23 = float(cosine_similarity([arm_feats[1]], [arm_feats[2]])[0][0])
+    if PASS_POLICY == "all":
+        match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD and s23 >= PASS_THRESHOLD)
+    elif PASS_POLICY == "ref":
+        match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD)  # 1번 기준
+    else:  # majority
+        match = (sum(s >= PASS_THRESHOLD for s in [s12, s13, s23]) >= 2)
 
-    # ★ 최종 유사도 = (좌표 기반)*(1-ANGLE_BLEND) + (팔/어깨 특징)*ANGLE_BLEND
-    f12 = (1-ANGLE_BLEND)*sim12 + ANGLE_BLEND*a12
-    f13 = (1-ANGLE_BLEND)*sim13 + ANGLE_BLEND*a13
-    f23 = (1-ANGLE_BLEND)*sim23 + ANGLE_BLEND*a23
+    similarities = {"1-2": round(s12, 3), "1-3": round(s13, 3), "2-3": round(s23, 3)}
 
-    all_pass = bool(f12 >= PASS_THRESHOLD and f13 >= PASS_THRESHOLD and f23 >= PASS_THRESHOLD)
-    similarities = {"1-2": round(f12,3), "1-3": round(f13,3), "2-3": round(f23,3)}
-
-    # 아카이브 파일명(절대 덮어쓰기 안 됨) + 라운드/최신 별칭
+    # Row 이미지 생성/저장
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     archive = os.path.join(game_dir, f"r{round_num}_{ts}_{uuid.uuid4().hex[:8]}.jpg")
     round_alias = os.path.join(game_dir, f"round-{round_num}.jpg")
     latest_alias = os.path.join(game_dir, "latest.jpg")
+    concat_path = concat_images_horizontally_with_text(vis_paths, similarities, match, save_path=archive)
 
-    # Row 이미지 생성 → 아카이브로 저장
-    concat_path = concat_images_horizontally_with_text(vis_paths, similarities, all_pass, save_path=archive)
-
-    # 별칭(바로보기) 원자적 교체
     if concat_path:
         img = cv2.imread(concat_path)
         if img is not None:
@@ -329,16 +430,16 @@ async def upload_images(
             atomic_write(img, latest_alias)
 
     return {
-        "status": "ok",
+        "ok": True,
+        "all_pass": bool(match),
+        "scores": similarities,
         "vis_files": [os.path.basename(v) for v in vis_paths],
         "row_file_archive": os.path.basename(archive) if concat_path else None,
         "row_file_round_alias": os.path.basename(round_alias),
         "row_file_latest_alias": os.path.basename(latest_alias),
-        "similarities": similarities,
-        "all_pass": all_pass,
-        "save_dir": f"/results/{gameId}/{team}/"
+        "results_url_base": f"/results/{today_dir}/{gameId}/{team}/",  # 날짜 포함
     }
 
-# ★ 결과 폴더 정적 서빙 (브라우저에서 바로 확인)
+# 정적 서빙
 app.mount("/results", StaticFiles(directory=RESULTS_ROOT, check_dir=False), name="results")
-# 예: http://<도메인>:8001/results/<gameId>/<team>/round-1.jpg
+# 예: http://<host>:<port>/results/2025-08-11/<gameId>/<team>/round-1.jpg
