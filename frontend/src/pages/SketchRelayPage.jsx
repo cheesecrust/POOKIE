@@ -748,7 +748,15 @@ const SketchRelayPage = () => {
       <PopUpModal isOpen={isTurnModalOpen} onClose={closeTurnModal}>
         <div className="text-center">
           <p className="text-4xl font-bold font-pixel mb-2">{turn} 팀 차례!</p>
-          <p className="text-xl font-pixel">라운드 {round}</p>
+          {userRole === 'drawer' && (
+            <p className="text-2xl font-bold">당신의 역할은 '그리기'입니다!</p>
+          )}
+          {userRole === 'guesser' && (
+            <p className="text-2xl font-bold">당신의 역할은 '맞추기'입니다!</p>
+          )}
+          {userRole === 'spectator' && (
+            <p className="text-2xl font-bold">당신의 역할은 '관전자'입니다!</p>
+          )}
         </div>
       </PopUpModal>
 
