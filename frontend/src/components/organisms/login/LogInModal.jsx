@@ -24,7 +24,6 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
         const res = await login({ email, password, navigate });
 
         if (res.success) {
-            alert('로그인 성공!')
 
             const { user, accessToken } = useAuthStore.getState()
 
@@ -37,7 +36,12 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
             onClose();
             navigate('/home'); // 홈으로 리디렉션
         } else {
-            alert(`로그인 실패: ${res.message}`)
+            // 메시지 내용에 따라 alert 분기
+            if (res.message?.includes("비밀번호")) {
+                alert("비밀번호가 틀렸습니다.")
+            } else {
+                alert(`로그인 실패: ${res.message}`)
+            }
         }
     }
     
