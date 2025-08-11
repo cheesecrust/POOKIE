@@ -190,9 +190,9 @@ public class InGameService {
                 gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
             }
             // 턴 바꿔주기
-            room.turnChange();
             log.info("Room {} turn change", room.getRoomId());
             log.info("Before turn change : {}", room.mappingRoomInfo());
+            room.turnChange();
             // Client response msg
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
