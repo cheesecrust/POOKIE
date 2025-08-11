@@ -2,6 +2,9 @@ package com.ssafy.pookie.friend.service;
 
 import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
+import com.ssafy.pookie.character.dto.RepCharacterResponseDto;
+import com.ssafy.pookie.character.model.CharacterCatalog;
+import com.ssafy.pookie.character.repository.CharacterCatalogRepository;
 import com.ssafy.pookie.friend.dto.FriendDto;
 import com.ssafy.pookie.friend.dto.FriendResponseDto;
 import com.ssafy.pookie.friend.model.FriendRequests;
@@ -16,13 +19,16 @@ import com.ssafy.pookie.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +40,7 @@ public class FriendService {
     private final UserAccountsRepository userAccountsRepository;
     private final OnlinePlayerManager onlinePlayerManager;
     private final NotificationService notificationService;
+    private final CharacterCatalogRepository characterCatalogRepository;
 
     public FriendResponseDto sendFriendRequest(Long id, Long addresseeId) throws Exception {
         UserAccounts userAccount = userAccountsRepository.findById(id)
@@ -167,9 +174,40 @@ public class FriendService {
     @Transactional(readOnly = true)
     public Page<FriendDto> getFriends(Long userId, String search, Pageable pageable) {
         Page<Friends> friendsPage = friendsRepository.findFriendsByUserIdAndNickname(userId, search, pageable);
-        return friendsPage.map(
-                (friend) -> FriendDto.from(friend, Status.ACTIVE, userId)
-        );
+        List<Long> friendUserIds = friendsPage.stream()
+                .flatMap(friend -> Stream.of(
+                        friend.getUser1().getId().equals(userId) ? friend.getUser2().getId() : friend.getUser1().getId()
+                ))
+                .distinct()
+                .toList();
+
+        Map<Long, CharacterCatalog> representativeChars = characterCatalogRepository
+                .findRepresentativeCharactersByUserIds(friendUserIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        cc -> cc.getUserAccount().getId(),
+                        cc -> cc
+                ));
+
+        List<FriendDto> friendDtos = friendsPage.stream()
+                .map(friend -> {
+                    // 친구 사용자 정보 추출
+                    UserAccounts friendUser = friend.getUser1().getId().equals(userId)
+                            ? friend.getUser2()
+                            : friend.getUser1();
+
+                    // 대표 캐릭터 정보 변환
+                    CharacterCatalog repCharCatalog = representativeChars.get(friendUser.getId());
+                    RepCharacterResponseDto repCharacterDto = repCharCatalog != null
+                            ? RepCharacterResponseDto.from(repCharCatalog)
+                            : null;
+
+                    // FriendDto 생성
+                    return FriendDto.from(friend, friend.getStatus(), userId, repCharacterDto);
+                })
+                .toList();
+
+        return new PageImpl<>(friendDtos, pageable, friendsPage.getTotalElements());
     }
 
     public boolean deleteFriendRequest(Long userAccountId, Long friendRequestId) {
