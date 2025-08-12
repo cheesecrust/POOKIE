@@ -8,7 +8,6 @@ import java.util.Map;
 
 @Data
 public class MiniGameRoomDto {
-    private String roomId;
     private RoomStateDto.GameType gameType = RoomStateDto.GameType.MINIGAME;
     private UserDto user;
     private Integer score;
@@ -37,7 +36,6 @@ public class MiniGameRoomDto {
     // 방 정보
     public Map<String, Object> mapMiniGameRoom() {
         return Map.of(
-                "roomId", this.roomId,
                 "roomMaster", this.user.getUserNickname(),
                 "score", this.score
         );

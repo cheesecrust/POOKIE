@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,12 +31,10 @@ public class MiniGameService {
     public void handleJoinMiniGameRoom(MiniGameRoomDto request) throws IOException {
         log.info("MINI GAME JOIN REQUEST : {}", request.getUser().getUserEmail());
         try {
-            String createdRoomId = UUID.randomUUID().toString();
             if(findRoom(request.getUser().getUserAccountId()) != null) {    // 이전 방 정보가 남아있다면
                 onlinePlayerManager.getMiniGameRooms().remove(request.getUser().getUserAccountId());
                 log.info("REMOVE PREV ROOM : {}", request.getUser().getUserEmail());
             }
-            request.setRoomId(createdRoomId);
             onlinePlayerManager.getMiniGameRooms().put(request.getUser().getUserAccountId(), request);
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.MINIGAME_JOINED.toString(),
@@ -80,6 +79,10 @@ public class MiniGameService {
                     "result", miniGameRoom.isPassed() ? "성공" : "실패"
             ));
             miniGameRoom.gameOver();
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+                    "type", MessageDto.Type.MINIGAME_RESET.toString(),
+                    "room", miniGameRoom.mapMiniGameRoom()
+            ));
         } catch(IllegalArgumentException e) {
             log.error("MINI GAME OVER ERROR : {}", e.getMessage());
             throw e;

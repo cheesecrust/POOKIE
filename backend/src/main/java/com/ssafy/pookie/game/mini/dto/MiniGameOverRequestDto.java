@@ -5,7 +5,6 @@ import lombok.Data;
 
 @Data
 public class MiniGameOverRequestDto {
-    private String roomId;
     private UserDto user;
     private Integer score;
 }

@@ -172,10 +172,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                     miniGameService.handleMiniGameOver(miniGameOverRequestDto);
                     break;
                 case MINIGAME_LEAVE:
-                    MiniGameLeaveRequestDto miniGameLeaveRequestDto
-                            = objectMapper.convertValue(msg.getPayload(), MiniGameLeaveRequestDto.class);
-                    miniGameLeaveRequestDto.setUser(user);
-                    miniGameService.handleMiniGameLeave(miniGameLeaveRequestDto);
+                    miniGameService.handleMiniGameLeave(new MiniGameLeaveRequestDto(user));
                     break;
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
