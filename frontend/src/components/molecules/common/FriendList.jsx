@@ -15,7 +15,8 @@ const FriendList = ({ friends = [], onRemoveFriend }) => {
               friendId={friend.userId}
               nickname={friend.nickname}
               characterName={friend.repCharacter.characterName}
-              isOnline={friend.status === 'ACTIVE'}
+              status={friend.status}
+              isOnline={friend.online === true}
               onRemoveFriend={onRemoveFriend}
             />
           )

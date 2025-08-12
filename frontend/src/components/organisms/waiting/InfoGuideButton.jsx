@@ -98,7 +98,10 @@ function SilentScreamGuide() {
           <b>한 턴 30초 / 15개 제시어</b>
         </li>
         <p className="mb-2">최대한 많이 맞혀보세요!</p>
-        <li>정답 제출: 비발화자 2명만 엔터/클릭으로 제출창 오픈</li>
+        <li>
+          비발화자 2명만 엔터/클릭으로 <b className="text-pink-500">제출창</b>{" "}
+          오픈 !
+        </li>
         <img src={silentscream_submit} alt="silentcream_submit" />
         <li>우리 팀이 너무 답답하다면? 발화자가 PASS</li>
         <img src={silentscream_pass} alt="silentcream_pass" />

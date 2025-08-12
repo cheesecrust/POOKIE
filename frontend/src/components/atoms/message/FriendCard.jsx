@@ -10,7 +10,7 @@ import RightButton from '../button/RightButton'
 import SendMessageModal from './SendMessageModal'
 import { useState } from 'react'
 
-const FriendCard = ({ characterName, nickname, isOnline, friendId, onRemoveFriend}) => {
+const FriendCard = ({ characterName, nickname, status,isOnline, friendId, onRemoveFriend}) => {
 
   // 쪽지보내기 모달 상태
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -37,8 +37,8 @@ const FriendCard = ({ characterName, nickname, isOnline, friendId, onRemoveFrien
 
       {/* 가운데: 온라인 표시 (줄어들지 않음) */}
       <div className="flex items-center gap-2 text-base shrink-0">
-        <span className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-300'}`} />
-        <span className="font-bold">{isOnline ? 'Online' : 'Offline'}</span>
+        <span className={`w-4 h-4 rounded-full ${status==="ACTIVE" ? 'bg-green-400' : 'bg-gray-300'}`} />
+        <span className="font-bold">{status==="ACTIVE" ? 'Online' : 'Offline'}</span>
       </div>
 
       {/* 오른쪽 버튼들 (줄어들지 않음) */}
