@@ -15,6 +15,8 @@ import com.ssafy.pookie.friend.repository.FriendRequestsRepository;
 import com.ssafy.pookie.friend.repository.FriendsRepository;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.user.dto.UserDto;
+import com.ssafy.pookie.global.exception.CustomException;
+import com.ssafy.pookie.global.exception.constants.ErrorCode;
 import com.ssafy.pookie.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,10 @@ public class FriendService {
                 .orElseThrow(() -> new Exception("User not found"));
         UserAccounts friendAccount = userAccountsRepository.findById(addresseeId)
                 .orElseThrow(() -> new Exception("User not found"));
+
+        if (friendRequestsRepository.existsByUserAndFriend(userAccount, friendAccount)) {
+            throw new CustomException(ErrorCode.ALREADY_SENT);
+        }
 
         FriendRequests friendRequest = FriendRequests.builder()
                 .user(userAccount)
