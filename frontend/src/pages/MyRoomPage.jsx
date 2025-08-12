@@ -184,7 +184,7 @@ const MyRoomPage = () => {
                 <div className="p-2 rounded-md">
                   <div className="flex justify-between items-center mb-1">
                     {!isInventoryOpen ? <span className="font-semibold">Exp:</span> : <span className="font-semibold">Exp:</span>}
-                    {!isInventoryOpen ? <UserExp step={step} exp={exp} forceFull={forceFull} /> : <UserExp step={growingPookie?.step} exp={growingPookie?.exp}  />}
+                    {!isInventoryOpen ? <UserExp step={step} exp={exp} forceFull={forceFull} /> : <UserExp step={growingPookie?.step} exp={growingPookie?.exp} />}
                   </div>
                 </div>
               </div>
