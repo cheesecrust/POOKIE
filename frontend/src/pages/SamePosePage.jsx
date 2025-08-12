@@ -116,6 +116,7 @@ const SamePosePage = () => {
   // 처리중..
   const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
   const [pendingAnswer, setPendingAnswer] = useState(false);
+  const [serverVerdict, setServerVerdict] = useState(null);
   const didSubmitRef = useRef(false); // 중복 방지
 
   // 첫시작 모달
@@ -256,6 +257,17 @@ const SamePosePage = () => {
         formData /* , { withCredentials: true } 쿠키 필요 시 */
       );
       console.log("✅ 업로드 성공:", res.data);
+      const verdict =
+        typeof res.data === "boolean"
+          ? res.data
+          : typeof res.data === "string"
+            ? res.data.toLowerCase() === "true"
+            : Boolean(
+                res.data?.success ?? res.data?.match ?? res.data?.ok ?? false
+              );
+
+      setServerVerdict(verdict);
+      setPendingAnswer(true); // 이후 타이머 타이밍 맞춰 제출
     } catch (err) {
       const msg =
         err.response?.data ||
@@ -263,11 +275,9 @@ const SamePosePage = () => {
         err.message ||
         "unknown error";
       console.error("❌ 업로드 실패:", msg);
+      setServerVerdict(false);
+      setPendingAnswer(true);
     }
-    // ===== 방장일 경우에만 정답 제출 =====
-    // const SEND_CORRECT = true; // true면 제시어, false면 빈값
-    // submitGameAnswer(SEND_CORRECT);
-    setPendingAnswer(true);
   };
 
   // 정답제출
@@ -359,18 +369,20 @@ const SamePosePage = () => {
     if (!pendingAnswer) return;
     if (!isHost) return; // 방장만 제출
     if (didSubmitRef.current) return; // 중복 방지
+    if (serverVerdict === null) return;
 
     // 처리중 모달 로직: time === 3 || time === 2 에서 열림 → 그 이후(<=1)면 닫힘
     if (time <= 1) {
       didSubmitRef.current = true;
-      submitGameAnswer(true); // 여기서 실제 제출
+      submitGameAnswer(serverVerdict);
       setPendingAnswer(false);
+      setServerVerdict(null);
       // 다음 턴/라운드에서 다시 쓸 수 있게 약간의 딜레이 후 리셋
       setTimeout(() => {
         didSubmitRef.current = false;
       }, 500);
     }
-  }, [pendingAnswer, time, isHost]);
+  }, [pendingAnswer, serverVerdict, time, isHost]);
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
