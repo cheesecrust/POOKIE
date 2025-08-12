@@ -8,6 +8,8 @@ import GameResultModal from "../components/organisms/games/GameResultModal";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import useSound from "../utils/useSound";
+
 import axios from "axios";
 
 import useAuthStore from "../store/useAuthStore.js";
@@ -26,6 +28,7 @@ import {
 const SamePosePage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { playSound } = useSound();
 
   // 방정보
   const master = useGameStore((state) => state.master);
@@ -533,6 +536,25 @@ const SamePosePage = () => {
   const enemyGroup = participants.filter(
     (p) => p.role === null && p.team === enemyTeam
   );
+
+  // 모달 사운드
+  useEffect(() => {
+    if (isGameStartModalOpen) {
+      playSound("game_start");
+    }
+  }, [isGameStartModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isTurnModalOpen) {
+      playSound("turn_change");
+    }
+  }, [isTurnModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isResultOpen) {
+      playSound("game_over");
+    }
+  }, [isResultOpen, playSound]);
 
   return (
     <>
