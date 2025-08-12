@@ -2,6 +2,7 @@ package com.ssafy.pookie.game.reward.service;
 
 import com.ssafy.pookie.auth.service.UserService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
+import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,5 +25,9 @@ public class RewardService {
         room.getUsers().get("BLUE").forEach((user) -> {
             userService.updateCoinById(user.getUserAccountId(), coin);
         });
+    }
+    // 미니게임 성공 시 10 코인 지급
+    public void miniGameReward(UserDto user) {
+        userService.updateCoinById(user.getUserAccountId(), 10);
     }
 }

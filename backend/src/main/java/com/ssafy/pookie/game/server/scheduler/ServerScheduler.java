@@ -27,6 +27,7 @@ public class ServerScheduler {
         Integer originRoomCnt = onlinePlayerManager.getRooms().size();
         if(onlinePlayerManager.getLobby().isEmpty()) {
             onlinePlayerManager.getRooms().clear();
+            onlinePlayerManager.getMiniGameRooms().clear();     // 미니 게임 room 은 서비스상 크리티컬하지 않음
         } else {
             onlinePlayerManager.getRooms().keySet().forEach((roomId) -> {
                 RoomStateDto room = onlinePlayerManager.getRooms().get(roomId);

@@ -35,7 +35,10 @@ public class MessageDto {
         // CHAT
         // request
         CHAT,
+        // MINI GAME
+        MINIGAME_JOIN, MINIGAME_SCORE_UPDATE, MINIGAME_OVER, MINIGAME_LEAVE,
 
+        MINIGAME_JOINED, MINIGAME_SCORE_UPDATED, MINIGAME_OVERD, MINIGAME_LEAVED,
         // ERROR
         ERROR
     };
