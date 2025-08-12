@@ -27,32 +27,27 @@ const SignUpModal = ({ isOpen, onClose, onOpenLogIn }) => {
   };
 
   const handleSignUp = async () => {
-    setError("");
-    setSuccess(false);
-
     if (password !== passwordConfirm) {
-      setError("비밀번호가 일치하지 않습니다.");
+      alert("비밀번호가 일치하지 않습니다🥲");
       return;
     }
-
-    console.log("가입 시도:", { email, password, nickname });
+    
     const res = await signup({
-      email: email,
-      password: password,
-      nickname: nickname,
+      email,
+      password,
+      nickname,
     });
-    console.log("가입 결과:", res);
-
+    
+    const errMsg = res.message.includes(":")
+      ? res.message.split(":")[1].trim()
+      : res.message;
+    
     // 회원가입 성공 시, 자동 로그인
     if (res?.success) {
-      setSuccess(true);
-      const currentUser = useAuthStore.getState().user;
-      const accessToken = useAuthStore.getState().accessToken;
-
-      console.log("현재 로그인 유저:", currentUser?.nickname);
       navigate("/home"); // 홈으로 리디렉션
+      return;
     } else {
-      setError(`회원가입 실패: ${res.message}`);
+      alert(`${errMsg}🥲`);
     }
   };
 
