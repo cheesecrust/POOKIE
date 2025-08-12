@@ -446,7 +446,6 @@ const SamePosePage = () => {
 
   useEffect(() => {
     // "찰 칵 !" 순간 자동 촬영 (방장만)
-    if (!isHost) return;
     if (!showModal || countdown !== "찰 칵 !") return;
 
     const shotKey = `${round}-${turn}`;
