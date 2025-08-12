@@ -13,22 +13,24 @@ import RightButton from "../components/atoms/button/RightButton.jsx";
 import Timer from "../components/molecules/games/Timer";
 import GameResultModal from "../components/organisms/games/GameResultModal";
 import KeywordCard from "../components/atoms/modal/KeywordCard";
+import useSound from "../utils/useSound";
 
 import useAuthStore from "../store/useAuthStore.js";
-import useGameStore from '../store/useGameStore';
-import { 
-  emitAnswerSubmit, 
-  emitTurnOver, 
-  emitRoundOver, 
-  emitTimerStart, 
+import useGameStore from "../store/useGameStore";
+import {
+  emitAnswerSubmit,
+  emitTurnOver,
+  emitRoundOver,
+  emitTimerStart,
   emitDrawEvent,
-  emitPainterChange 
+  emitPainterChange,
 } from "../sockets/game/emit.js";
 import { updateHandlers } from "../sockets/websocket";
 
 const SketchRelayPage = () => {
   const navigate = useNavigate();
-  
+  const { playSound } = useSound();
+
   // 방 정보 선언
   const master = useGameStore((state) => state.master);
   const { user } = useAuthStore();
@@ -37,14 +39,14 @@ const SketchRelayPage = () => {
   const participants = useGameStore((state) => state.participants);
 
   const roomId = useGameStore((state) => state.roomId);
-  const roomInfo = useGameStore((state) => state.roomInfo)
+  const roomInfo = useGameStore((state) => state.roomInfo);
 
   // 상태 관리 (전역)
   // 턴, 라운드
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
 
-  // 타이머 
+  // 타이머
   const time = useGameStore((state) => state.time);
   const isTimerEnd = useGameStore((state) => state.isTimerEnd);
   const resetGameTimerEnd = useGameStore((state) => state.resetIsTimerEnd);
@@ -55,16 +57,18 @@ const SketchRelayPage = () => {
   // 그리는 사람(제시어 가짐)
   const repIdx = useGameStore((state) => state.repIdx);
   const repIdxList = useGameStore((state) => state.repIdxList);
-  
+
   // 그림그리기 게임용 상태
   const currentDrawTurn = useGameStore((state) => state.currentDrawTurn);
-  const maxDrawTurnsPerTeam = useGameStore((state) => state.maxDrawTurnsPerTeam);
+  const maxDrawTurnsPerTeam = useGameStore(
+    (state) => state.maxDrawTurnsPerTeam
+  );
   const currentDrawer = useMemo(() => {
     if (!Array.isArray(repIdxList) || repIdxList.length === 0) return null;
     return repIdxList[currentDrawTurn % repIdxList.length];
   }, [repIdxList, currentDrawTurn]);
-  
-  // 키워드 
+
+  // 키워드
   const keywordList = useGameStore((state) => state.keywordList);
   const keywordIdx = useGameStore((state) => state.keywordIdx);
 
@@ -73,11 +77,11 @@ const SketchRelayPage = () => {
   const tempTeamScore = useGameStore((state) => state.tempTeamScore);
   const roundResult = useGameStore((state) => state.roundResult);
   const gameResult = useGameStore((state) => state.gameResult);
-  const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수 
+  const score = useGameStore((state) => state.score); // 현재라운드 현재 팀 점수
 
   // 최종 승자
   const win = useGameStore((state) => state.win);
-  
+
   // 팀 정보
   const red = useGameStore((state) => state.red) || [];
   const blue = useGameStore((state) => state.blue) || [];
@@ -85,7 +89,15 @@ const SketchRelayPage = () => {
   // 공통 id 추출
   const pickId = (u) => {
     if (!u) return NaN;
-    const cands = [u.userAccountId, u.id, u.identity, u.user?.id, u.user?.userAccountId, u.uid, u.userId];
+    const cands = [
+      u.userAccountId,
+      u.id,
+      u.identity,
+      u.user?.id,
+      u.user?.userAccountId,
+      u.uid,
+      u.userId,
+    ];
     for (const c of cands) {
       const n = Number(c);
       if (!Number.isNaN(n)) return n;
@@ -99,35 +111,44 @@ const SketchRelayPage = () => {
     if (Number.isNaN(myIdNum)) return null;
 
     // 1) red/blue 배열 우선
-    if ((red ?? []).some(u => pickId(u) === myIdNum)) return "RED";
-    if ((blue ?? []).some(u => pickId(u) === myIdNum)) return "BLUE";
+    if ((red ?? []).some((u) => pickId(u) === myIdNum)) return "RED";
+    if ((blue ?? []).some((u) => pickId(u) === myIdNum)) return "BLUE";
 
     // 2) participants에 team 정보가 있으면 사용
-    const p = (participants ?? []).find(u => pickId(u) === myIdNum);
+    const p = (participants ?? []).find((u) => pickId(u) === myIdNum);
     if (p?.team === "RED" || p?.team === "BLUE") return p.team;
 
     return null; // 초기 로딩 동안
   }, [red, blue, participants, myIdNum]);
-  console.log("myTeam", myTeam)
-
+  console.log("myTeam", myTeam);
 
   // 팀 데이터가 없으면 participants에서 추출
-  const redTeamFallback = red.length > 0 ? red : participants.filter(p => p.team === "RED");
-  const blueTeamFallback = blue.length > 0 ? blue : participants.filter(p => p.team === "BLUE");
+  const redTeamFallback =
+    red.length > 0 ? red : participants.filter((p) => p.team === "RED");
+  const blueTeamFallback =
+    blue.length > 0 ? blue : participants.filter((p) => p.team === "BLUE");
 
   // 모달
-  const isGameStartModalOpen = useGameStore((state) => state.isGamestartModalOpen);
+  const isGameStartModalOpen = useGameStore(
+    (state) => state.isGamestartModalOpen
+  );
   const isTurnModalOpen = useGameStore((state) => state.isTurnModalOpen);
   const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen);
   const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);
-  const closeGameStartModal = useGameStore((state) => state.closeGamestartModal);
+  const closeGameStartModal = useGameStore(
+    (state) => state.closeGamestartModal
+  );
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
   const closeCorrectModal = useGameStore((state) => state.closeCorrectModal);
   const closeWrongModal = useGameStore((state) => state.closeWrongModal);
-  const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
+  const showTurnChangeModal = useGameStore(
+    (state) => state.showTurnChangeModal
+  ); // 턴 바뀔때 모달
 
   // 첫 시작 모달
-  const handleTimerPrepareSequence = useGameStore((state) => state.handleTimerPrepareSequence);
+  const handleTimerPrepareSequence = useGameStore(
+    (state) => state.handleTimerPrepareSequence
+  );
 
   // 상태 관리 (로컬)
   const [keyword, setKeyword] = useState("");
@@ -167,7 +188,7 @@ const SketchRelayPage = () => {
     }
   }, [roomId]);
 
-  // 3️⃣ 턴 바뀔 때 턴 모달 띄움 
+  // 3️⃣ 턴 바뀔 때 턴 모달 띄움
   useEffect(() => {
     // 첫 로딩(게임 시작) 제외
     if (!isFirstLoad) {
@@ -194,68 +215,80 @@ const SketchRelayPage = () => {
       console.log("팀 정보 대기중 (myTeam 없음).");
       return;
     }
-    
-    console.log("역할 결정 중:", { 
-      myIdx, 
-      myTeam, 
-      currentTurn: turn, 
-      repIdxList, 
-      norIdxList, 
+
+    console.log("역할 결정 중:", {
+      myIdx,
+      myTeam,
+      currentTurn: turn,
+      repIdxList,
+      norIdxList,
       repIdx,
-      isMyTeamTurn: myTeam === turn
+      isMyTeamTurn: myTeam === turn,
     });
 
     // 현재 턴인 팀이 아니면 관전자
     if (myTeam !== turn) {
-      setUserRole('spectator');
+      setUserRole("spectator");
       setIsMyTurn(false);
       console.log(`다른 팀 턴 (내 팀: ${myTeam}, 현재 턴: ${turn}) - 관전자`);
       return;
     }
 
-    console.log(repIdxList.some(item => item.idx === myIdx));
-    console.log(norIdxList.some(item => item.idx === myIdx));
+    console.log(repIdxList.some((item) => item.idx === myIdx));
+    console.log(norIdxList.some((item) => item.idx === myIdx));
     // 현재 턴인 팀의 사람들 중에서 역할 결정
-    if (repIdxList.some(item => item.idx === myIdx)) {
-      setUserRole('drawer');
-      
+    if (repIdxList.some((item) => item.idx === myIdx)) {
+      setUserRole("drawer");
+
       // 현재 팀 그리는 사람들 중에서 내 순서 확인
-      const myIndexInDrawerList = repIdxList.findIndex(item => item.idx === myIdx);
+      const myIndexInDrawerList = repIdxList.findIndex(
+        (item) => item.idx === myIdx
+      );
       const currentDrawIdx = currentDrawTurn % repIdxList.length; // 현재 그리기 턴
-      
-      console.log("그리는 사람 순서 확인:", { 
+
+      console.log("그리는 사람 순서 확인:", {
         norIdxList,
-        myIndexInDrawerList, 
-        currentDrawIdx, 
+        myIndexInDrawerList,
+        currentDrawIdx,
         currentDrawTurn,
         myIdx,
         myTeam,
         currentTurn: turn,
-        isMyTurn: myIndexInDrawerList === currentDrawIdx
+        isMyTurn: myIndexInDrawerList === currentDrawIdx,
       });
-      
+
       // 현재 그리는 순서와 내 순서가 일치하는지 확인
-      console.log("is my turn: ", myIndexInDrawerList === currentDrawIdx)
+      console.log("is my turn: ", myIndexInDrawerList === currentDrawIdx);
       setIsMyTurn(myIndexInDrawerList === currentDrawIdx);
-      
-    } else if (norIdxList.some(item => item.idx === myIdx)) {
+    } else if (norIdxList.some((item) => item.idx === myIdx)) {
       // 나머지는 맞추는 사람
-      setUserRole('guesser');
+      setUserRole("guesser");
       setIsMyTurn(false);
       console.log(`맞추는 역할 부여 (팀: ${myTeam})`);
     }
-  }, [myIdx, myTeam, turn, red, blue, participants, currentDrawTurn, repIdxList, norIdxList, repIdx]);
+  }, [
+    myIdx,
+    myTeam,
+    turn,
+    red,
+    blue,
+    participants,
+    currentDrawTurn,
+    repIdxList,
+    norIdxList,
+    repIdx,
+  ]);
 
   // // +) 내 역할 차례 결정
   // useEffect(() => {
   //   if (!myTeam || !turn) return;
-  
+
   //   if (myTeam !== turn) {
   //     setUserRole("spectator");
   //     setIsMyTurn(false);
   //     return;
   //   }
-    
+
   //   console.log(currentDrawer)
   //   // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
   //   if (currentDrawer?.idx === myIdx) {
@@ -278,17 +311,18 @@ const SketchRelayPage = () => {
   useEffect(() => {
     if (isTimerEnd) {
       const { lastTurnResult } = useGameStore.getState();
-      
+
       // lastTurnResult를 기반으로 캔버스 초기화 여부 결정
-      const shouldClearCanvas = lastTurnResult?.teamChanged || lastTurnResult?.roundComplete;
-      
+      const shouldClearCanvas =
+        lastTurnResult?.teamChanged || lastTurnResult?.roundComplete;
+
       if (shouldClearCanvas) {
         if (lastTurnResult?.teamChanged) {
           console.log("🔄 팀 전환으로 캔버스 초기화");
         } else if (lastTurnResult?.roundComplete) {
           console.log("🏁 라운드 완료로 캔버스 초기화");
         }
-        
+
         const canvas = canvasRef.current;
         const ctx = ctxRef.current;
         if (canvas && ctx) {
@@ -297,9 +331,9 @@ const SketchRelayPage = () => {
       } else {
         console.log("📝 같은 팀 내 턴 변경 (nextPainter), 캔버스 유지");
       }
-      
+
       // 라운드 종료는 이제 setGameTimerEnd에서 처리함
-      
+
       resetGameTimerEnd();
     }
   }, [isTimerEnd, myIdx, master, roomId, turn, score, resetGameTimerEnd]);
@@ -309,7 +343,7 @@ const SketchRelayPage = () => {
     if (win) {
       setIsWinModalOpen(true);
       const timeout = setTimeout(() => {
-        sessionStorage.setItem('waitingPageNormalEntry', 'true');
+        sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
       }, 7000);
 
@@ -358,82 +392,92 @@ const SketchRelayPage = () => {
     };
   };
 
-  const setDrawingStyle = useCallback((ctx) => {
-    if (isErasing) {
-      ctx.lineWidth = 25;
-      ctx.globalCompositeOperation = "destination-out";
-    } else {
-      ctx.lineWidth = 3;
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = "black";
-    }
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }, [isErasing]);
-
-  const startDrawing = useCallback((e) => {
-    if (userRole !== 'drawer' || !isMyTurn) return;
-    
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-
-    const { offsetX, offsetY } = getCoordinates(e);
-
-    ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY);
-    setDrawingStyle(ctx);
-    setIsDrawing(true);
-
-    lastPointRef.current = { x: offsetX, y: offsetY };
-
-    emitDrawEvent({
-      roomId,
-      drawType: "start",
-      data: {
-        x: offsetX,
-        y: offsetY,
-        prevX: offsetX,
-        prevY: offsetY,
-        tool: isErasing ? "eraser" : "pen",
-        brushSize: isErasing ? 25 : 3,
-        color: "black"
+  const setDrawingStyle = useCallback(
+    (ctx) => {
+      if (isErasing) {
+        ctx.lineWidth = 25;
+        ctx.globalCompositeOperation = "destination-out";
+      } else {
+        ctx.lineWidth = 3;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = "black";
       }
-    });
-  }, [roomId, isErasing, userRole, isMyTurn, setDrawingStyle]);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    },
+    [isErasing]
+  );
 
-  const draw = useCallback((e) => {
-    if (!isDrawing || !ctxRef.current || userRole !== 'drawer' || !isMyTurn) return;
+  const startDrawing = useCallback(
+    (e) => {
+      if (userRole !== "drawer" || !isMyTurn) return;
 
-    const { offsetX, offsetY } = getCoordinates(e);
-    const ctx = ctxRef.current;
+      const ctx = ctxRef.current;
+      if (!ctx) return;
 
-    ctx.lineTo(offsetX, offsetY);
-    ctx.stroke();
+      const { offsetX, offsetY } = getCoordinates(e);
 
-    emitDrawEvent({
-      roomId,
-      drawType: "draw",
-      data: {
-        x: offsetX,
-        y: offsetY,
-        prevX: lastPointRef.current.x,
-        prevY: lastPointRef.current.y,
-        tool: isErasing ? "eraser" : "pen",
-        brushSize: isErasing ? 25 : 3,
-        color: "black"
-      }
-    });
+      ctx.beginPath();
+      ctx.moveTo(offsetX, offsetY);
+      setDrawingStyle(ctx);
+      setIsDrawing(true);
 
-    ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY);
-    setDrawingStyle(ctx);
+      lastPointRef.current = { x: offsetX, y: offsetY };
 
-    lastPointRef.current = { x: offsetX, y: offsetY };
-  }, [isDrawing, setDrawingStyle, roomId, isErasing, userRole, isMyTurn]);
+      emitDrawEvent({
+        roomId,
+        drawType: "start",
+        data: {
+          x: offsetX,
+          y: offsetY,
+          prevX: offsetX,
+          prevY: offsetY,
+          tool: isErasing ? "eraser" : "pen",
+          brushSize: isErasing ? 25 : 3,
+          color: "black",
+        },
+      });
+    },
+    [roomId, isErasing, userRole, isMyTurn, setDrawingStyle]
+  );
+
+  const draw = useCallback(
+    (e) => {
+      if (!isDrawing || !ctxRef.current || userRole !== "drawer" || !isMyTurn)
+        return;
+
+      const { offsetX, offsetY } = getCoordinates(e);
+      const ctx = ctxRef.current;
+
+      ctx.lineTo(offsetX, offsetY);
+      ctx.stroke();
+
+      emitDrawEvent({
+        roomId,
+        drawType: "draw",
+        data: {
+          x: offsetX,
+          y: offsetY,
+          prevX: lastPointRef.current.x,
+          prevY: lastPointRef.current.y,
+          tool: isErasing ? "eraser" : "pen",
+          brushSize: isErasing ? 25 : 3,
+          color: "black",
+        },
+      });
+
+      ctx.beginPath();
+      ctx.moveTo(offsetX, offsetY);
+      setDrawingStyle(ctx);
+
+      lastPointRef.current = { x: offsetX, y: offsetY };
+    },
+    [isDrawing, setDrawingStyle, roomId, isErasing, userRole, isMyTurn]
+  );
 
   const stopDrawing = useCallback(() => {
     if (!isDrawing) return;
-    
+
     const ctx = ctxRef.current;
     if (ctx) {
       ctx.closePath();
@@ -443,30 +487,30 @@ const SketchRelayPage = () => {
     emitDrawEvent({
       roomId,
       drawType: "end",
-      data: {}
+      data: {},
     });
   }, [isDrawing, roomId]);
 
   const clearCanvas = () => {
-    if (userRole !== 'drawer' || !isMyTurn) return;
-    
+    if (userRole !== "drawer" || !isMyTurn) return;
+
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     emitDrawEvent({
       roomId,
       drawType: "clear",
-      data: {}
+      data: {},
     });
   };
 
   const handlePainterChange = () => {
-    if (userRole !== 'drawer' || !isMyTurn) return;
+    if (userRole !== "drawer" || !isMyTurn) return;
     emitPainterChange({
       roomId,
-      curRepIdx: repIdx
+      curRepIdx: repIdx,
     });
   };
 
@@ -476,14 +520,14 @@ const SketchRelayPage = () => {
   // 정답 제출 함수
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
-    if (!answerInput.trim() || userRole !== 'guesser') return;
+    if (!answerInput.trim() || userRole !== "guesser") return;
 
     emitAnswerSubmit({
       roomId,
       round,
       norId: myIdx,
       keywordIdx,
-      inputAnswer: answerInput.trim()
+      inputAnswer: answerInput.trim(),
     });
 
     setAnswerInput(""); // 입력 필드 초기화
@@ -500,7 +544,7 @@ const SketchRelayPage = () => {
       case "clear":
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         break;
-      
+
       case "start":
         ctx.beginPath();
         ctx.moveTo(data.x, data.y);
@@ -515,14 +559,14 @@ const SketchRelayPage = () => {
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         break;
-      
+
       case "draw":
         ctx.lineTo(data.x, data.y);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(data.x, data.y);
         break;
-      
+
       case "end":
         ctx.closePath();
         break;
@@ -549,7 +593,7 @@ const SketchRelayPage = () => {
       onGameAnswerSubmitted: (data) => {
         console.log("✅ 정답 제출 응답:", data);
         useGameStore.getState().setGameAnswerSubmitted(data);
-      }
+      },
     };
 
     updateHandlers(gameHandlers);
@@ -564,6 +608,25 @@ const SketchRelayPage = () => {
       });
     };
   }, [handleRemoteDrawEvent]);
+
+  // 모달 사운드
+  useEffect(() => {
+    if (isGameStartModalOpen) {
+      playSound("game_start");
+    }
+  }, [isGameStartModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isTurnModalOpen) {
+      playSound("turn_change");
+    }
+  }, [isTurnModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isWinModalOpen) {
+      playSound("game_over");
+    }
+  }, [isWinModalOpen, playSound]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -611,24 +674,26 @@ const SketchRelayPage = () => {
             {/* 역할 표시 */}
             <div className="mb-4 p-3 bg-white bg-opacity-90 rounded-lg min-w-[120px]">
               <div className="text-sm font-bold mb-2 text-center">내 역할</div>
-              {userRole === 'drawer' && (
-                <div className={`text-center p-2 rounded text-xs ${isMyTurn ? 'bg-green-200' : 'bg-gray-200'}`}>
+              {userRole === "drawer" && (
+                <div
+                  className={`text-center p-2 rounded text-xs ${isMyTurn ? "bg-green-200" : "bg-gray-200"}`}
+                >
                   <div className="font-bold">그리는 사람</div>
-                  <div>{isMyTurn ? '지금 내 차례!' : '차례 대기중'}</div>
-                  {userRole === 'drawer' && keyword && (
+                  <div>{isMyTurn ? "지금 내 차례!" : "차례 대기중"}</div>
+                  {userRole === "drawer" && keyword && (
                     <div className="mt-1 text-red-600 font-bold text-sm">
                       제시어: {keyword}
                     </div>
                   )}
                 </div>
               )}
-              {userRole === 'guesser' && (
+              {userRole === "guesser" && (
                 <div className="text-center p-2 bg-blue-200 rounded text-xs">
                   <div className="font-bold">맞추는 사람</div>
                   <div>그림을 보고 정답을 맞추세요!</div>
                 </div>
               )}
-              {userRole === 'spectator' && (
+              {userRole === "spectator" && (
                 <div className="text-center p-2 bg-yellow-200 rounded text-xs">
                   <div className="font-bold">관전자</div>
                   <div>다른 팀 게임 관전</div>
@@ -642,21 +707,21 @@ const SketchRelayPage = () => {
             </div>
 
             {/* 그리기 도구 - 그리는 사람만 사용 가능 */}
-            {userRole === 'drawer' && (
+            {userRole === "drawer" && (
               <>
-                <RightButton 
-                  onClick={togglePen} 
+                <RightButton
+                  onClick={togglePen}
                   size="sm"
                   disabled={!isMyTurn}
-                  className={!isMyTurn ? 'opacity-50 cursor-not-allowed' : ''}
+                  className={!isMyTurn ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   펜
                 </RightButton>
-                <RightButton 
-                  onClick={toggleEraser} 
+                <RightButton
+                  onClick={toggleEraser}
                   size="sm"
                   disabled={!isMyTurn}
-                  className={!isMyTurn ? 'opacity-50 cursor-not-allowed' : ''}
+                  className={!isMyTurn ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   지우개
                 </RightButton>
@@ -664,7 +729,7 @@ const SketchRelayPage = () => {
                   onClick={clearCanvas}
                   size="sm"
                   disabled={!isMyTurn}
-                  className={!isMyTurn ? 'opacity-50 cursor-not-allowed' : ''}
+                  className={!isMyTurn ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   전체지우기
                 </RightButton>
@@ -672,10 +737,15 @@ const SketchRelayPage = () => {
             )}
 
             {/* 정답 입력 - 맞추는 사람만 사용 가능 */}
-            {userRole === 'guesser' && (
+            {userRole === "guesser" && (
               <div className="p-3 bg-white bg-opacity-90 rounded-lg min-w-[120px]">
-                <div className="text-sm font-bold mb-2 text-center">정답 입력</div>
-                <form onSubmit={handleAnswerSubmit} className="flex flex-col gap-2">
+                <div className="text-sm font-bold mb-2 text-center">
+                  정답 입력
+                </div>
+                <form
+                  onSubmit={handleAnswerSubmit}
+                  className="flex flex-col gap-2"
+                >
                   <input
                     type="text"
                     value={answerInput}
@@ -684,11 +754,13 @@ const SketchRelayPage = () => {
                     className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
                     maxLength={20}
                   />
-                  <RightButton 
-                    type="submit" 
+                  <RightButton
+                    type="submit"
                     size="sm"
                     disabled={!answerInput.trim()}
-                    className={!answerInput.trim() ? 'opacity-50 cursor-not-allowed' : ''}
+                    className={
+                      !answerInput.trim() ? "opacity-50 cursor-not-allowed" : ""
+                    }
                   >
                     제출
                   </RightButton>
@@ -698,16 +770,23 @@ const SketchRelayPage = () => {
           </div>
 
           {/* 칠판 영역 */}
-          <div className={`w-[1000px] h-[500px] bg-white rounded-lg border-4 shadow-inner ${
-            userRole === 'drawer' && isMyTurn ? "border-green-400 shadow-[0_0_20px_#4ade80]" : 
-            userRole === 'guesser' ? 'border-blue-400' : 'border-gray-300'
-          }`}>
+          <div
+            className={`w-[1000px] h-[500px] bg-white rounded-lg border-4 shadow-inner ${
+              userRole === "drawer" && isMyTurn
+                ? "border-green-400 shadow-[0_0_20px_#4ade80]"
+                : userRole === "guesser"
+                  ? "border-blue-400"
+                  : "border-gray-300"
+            }`}
+          >
             <canvas
               ref={canvasRef}
               width={1000}
               height={500}
               className={`w-[1000px] h-[500px] ${
-                userRole === 'drawer' && isMyTurn ? 'cursor-crosshair' : 'cursor-default'
+                userRole === "drawer" && isMyTurn
+                  ? "cursor-crosshair"
+                  : "cursor-default"
               }`}
               onMouseDown={startDrawing}
               onMouseMove={draw}
@@ -716,7 +795,6 @@ const SketchRelayPage = () => {
             />
           </div>
         </div>
-
       </div>
 
       {/* 타이머 */}
@@ -748,25 +826,25 @@ const SketchRelayPage = () => {
       <PopUpModal isOpen={isTurnModalOpen} onClose={closeTurnModal}>
         <div className="text-center">
           <p className="text-4xl font-bold font-pixel mb-2">{turn} 팀 차례!</p>
-          {userRole === 'drawer' && (
+          {userRole === "drawer" && (
             <p className="text-2xl font-bold">당신의 역할은 '그리기'입니다!</p>
           )}
-          {userRole === 'guesser' && (
+          {userRole === "guesser" && (
             <p className="text-2xl font-bold">당신의 역할은 '맞추기'입니다!</p>
           )}
-          {userRole === 'spectator' && (
+          {userRole === "spectator" && (
             <p className="text-2xl font-bold">당신의 역할은 '관전자'입니다!</p>
           )}
         </div>
       </PopUpModal>
 
-      <SubmitModal 
-        isOpen={isSubmitModalOpen} 
+      <SubmitModal
+        isOpen={isSubmitModalOpen}
         onClose={() => setIsSubmitModalOpen(false)}
       />
 
       {/* 키워드 카드 - 그리는 사람만 표시 */}
-      {(userRole === 'drawer' || userRole === 'spectator') && (
+      {(userRole === "drawer" || userRole === "spectator") && (
         <div className="absolute top-24 left-12 z-20">
           <KeywordCard keyword={keyword} />
         </div>
