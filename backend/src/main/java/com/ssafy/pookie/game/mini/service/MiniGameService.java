@@ -8,6 +8,7 @@ import com.ssafy.pookie.game.mini.dto.MiniGameScoreUpdateRequestDto;
 import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
+import com.ssafy.pookie.game.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -74,7 +75,7 @@ public class MiniGameService {
             if(miniGameRoom == null) throw new IllegalArgumentException("잘못된 요청입니다.");
             if(miniGameRoom.isPassed()) rewardService.miniGameReward(request.getUser());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.MINIGAME_OVERD.toString(),
+                    "type", MessageDto.Type.MINIGAME_OVERED.toString(),
                     "room", miniGameRoom.mapMiniGameRoom(),
                     "result", miniGameRoom.isPassed() ? "성공" : "실패"
             ));
@@ -93,7 +94,7 @@ public class MiniGameService {
     }
 
     public void handleMiniGameLeave(MiniGameLeaveRequestDto request) throws IOException {
-        log.info("MINI GAME SCORE REQUEST : {}", request.getUser().getUserEmail());
+        log.info("MINI GAME LEAVE REQUEST : {}", request.getUser().getUserEmail());
         try {
             MiniGameRoomDto miniGameRoom = findRoom(request.getUser().getUserAccountId());
             if(miniGameRoom == null) throw new IllegalArgumentException("잘못된 요청입니다.");
@@ -107,10 +108,29 @@ public class MiniGameService {
                     "roomList", gameServerService.existingRoomList()
             ));
         } catch(IllegalArgumentException e) {
-            log.error("MINI GAME SCORE ERROR : {}", e.getMessage());
+            log.error("MINI GAME LEAVE ERROR : {}", e.getMessage());
             throw e;
         } catch(Exception e) {
-            log.error("MINI GAME SCORE ERROR : {}", e.getMessage());
+            log.error("MINI GAME LEAVE ERROR : {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public void handleMiniGameRegame(UserDto user) throws IOException {
+        log.info("MINI GAME REGAME REQUEST : {}", user.getUserEmail());
+        try {
+            MiniGameRoomDto miniGameRoom = findRoom(user.getUserAccountId());
+            if(miniGameRoom == null) throw new IllegalArgumentException("잘못된 요청입니다.");
+            miniGameRoom.gameOver();
+            onlinePlayerManager.sendToMessageUser(user.getSession(), Map.of(
+                    "type", MessageDto.Type.MINIGAME_RESET.toString(),
+                    "room", miniGameRoom.mapMiniGameRoom()
+            ));
+        } catch(IllegalArgumentException e) {
+            log.error("MINI GAME REGAME ERROR : {}", e.getMessage());
+            throw e;
+        } catch(Exception e) {
+            log.error("MINI GAME REGAME ERROR : {}", e.getMessage());
             throw e;
         }
     }
