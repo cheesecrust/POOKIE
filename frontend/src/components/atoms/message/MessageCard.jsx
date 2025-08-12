@@ -1,39 +1,90 @@
-// 경로: src/components/atoms/message/MessageCard.jsx
-// 사용 예시
-//   <MessageCard messageType="received" nickname="다예" date="2023-08-05 12:00:00" message="안녕하세용" isRead={false} onDelete={() => {}} onReport={() => {}} />
+// src/components/atoms/message/MessageCard.jsx
+import { useState } from "react";
+import axiosInstance from "../../../lib/axiosInstance";
+import MessageDetailCard from "./MessageDetailCard";
 
-// 필요 기능: 쪽지 삭제, 쪽지 신고
+const MessageCard = ({
+  messageType,          // 'received' | 'sent'
+  nickname,
+  date,
+  messageContent,
+  requestId,
+  isRead,
+  onDelete,
+  onReport,
+}) => {
+  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState(null);
 
-const MessageCard = ({messageType, nickname, date, messageContent,requestId,isRead,onDelete,onReport}) => {
-    return (
-        <div className="relative w-full p-4 rounded-2xl bg-white  h-[95px]">
-          <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
-            <span>{messageType === 'sent' ? `받은사람 : ${nickname}` : `보낸 사람 : ${nickname}`} </span>
-            <span>{date}</span>
-          </div>
-    
+  const isReceived = messageType === "received";
 
-          <div className="text-base text-gray-800 mb-6">{messageContent}</div>
-    
-          <div className="absolute bottom-2 right-2 flex gap-2 text-xs">
-            {messageType === 'sent' && (
-              <>
-              <span className="text-gray-500 italic">{isRead===1 ? '읽음' : '읽지 않음'}</span>
-              <button onClick={()=> {onDelete(requestId,messageType)}} className="text-gray-400 hover:underline">삭제</button>
-              </>
-            )}
-    
-            {messageType === 'received' && (
-              <>
-              <button onClick={onReport} className="text-red-500 hover:underline">신고</button>
-              <button onClick={()=> {onDelete(requestId,messageType)}} className="text-gray-400 hover:underline">삭제</button>
-              </>
-            )}
-    
-          </div>
+  const openDetail = async () => {
+    if (!isReceived || !requestId) return;
+    setOpen(true);
+    try {
+      const res = await axiosInstance.get(`/letter/${requestId}/detail`);
+      setDetail(res.data?.data ?? null);
+    } catch (e) {
+      console.log("쪽지 상세 조회 실패:", e);
+    }
+  };
+
+  return (
+    <>
+      <div
+        className={`relative w-full p-4 rounded-2xl bg-white h-[95px] select-none ${
+          isReceived ? "cursor-pointer" : "cursor-default"
+        }`}
+        onDoubleClick={isReceived ? openDetail : undefined}     
+      >
+        <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
+          <span className="truncate max-w-[60%]">
+            {messageType === "sent"
+              ? `받은사람 : ${nickname}`
+              : `보낸 사람 : ${nickname}`}
+          </span>
+          <span className="shrink-0">{date}</span>
         </div>
-      );
-    };
-    
+
+        <div className="text-base text-gray-800 mb-6 truncate" title={messageContent}>
+          {messageContent}
+        </div>
+
+        <div className="absolute bottom-2 right-2 flex gap-2 text-xs">
+          {messageType === "sent" && (
+            <>
+              <span className="text-gray-500 italic">
+                {isRead === 1 || isRead === "READ" ? "읽음" : "읽지 않음"}
+              </span>
+              <button
+                onClick={() => onDelete?.(requestId, messageType)}
+                className="text-gray-400 hover:underline"
+              >
+                삭제
+              </button>
+            </>
+          )}
+
+          {isReceived && (
+            <>
+              <button onClick={onReport} className="text-red-500 hover:underline">
+                신고
+              </button>
+              <button
+                onClick={() => onDelete?.(requestId, messageType)}
+                className="text-gray-400 hover:underline"
+              >
+                삭제
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 상세 모달 */}
+      <MessageDetailCard isOpen={open} detail={detail} onClose={() => setOpen(false)} />
+    </>
+  );
+};
 
 export default MessageCard;
