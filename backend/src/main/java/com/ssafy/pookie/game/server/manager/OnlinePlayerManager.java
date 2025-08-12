@@ -5,6 +5,7 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
 import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
@@ -33,6 +34,7 @@ public class OnlinePlayerManager {
     private final UserAccountsRepository userAccountsRepository;
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
+    private final ConcurrentHashMap<Long, MiniGameRoomDto> miniGameRooms = new ConcurrentHashMap<>();     // <userAccountId, MiniGameRoomDto>
     private final SocketMetrics socketMetrics;
     private final RewardService rewardService;
 
@@ -250,6 +252,10 @@ public class OnlinePlayerManager {
                 user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
             }
         }
+    }
+
+    public void removeMiniGameRoom(Long userAccountId) {
+        this.miniGameRooms.remove(userAccountId);
     }
 
     public boolean isInvalid(WebSocketSession session) {
