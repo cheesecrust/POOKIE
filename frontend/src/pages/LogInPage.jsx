@@ -11,9 +11,17 @@ import useAuthStore from "../store/useAuthStore";
 import useAudioStore from "../store/useAudioStore";
 import mainTheme from "../assets/audio/themesong1.mp3";
 
+// 섹션
+import IntroSection from "../sections/IntroSection";
+import GamesSection from "../sections/GamesSection";
+import MyRoomSection from "../sections/MyRoomSection";
+import CharacterSection from "../sections/CharacterSection";
+import OutroSection from "../sections/OutroSection";
+
 const LogInPage = () => {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthStore((state) => state);
+
   const [started, setStarted] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
@@ -88,38 +96,25 @@ const LogInPage = () => {
   }, [isLoggedIn, navigate]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      {/* 배경 이미지 */}
-      <img
-        src={backgroundLogIn}
-        alt="login background"
-        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
-      />
-
-      {/* 로고 */}
-      <img
-        src={TitleLogo}
-        alt="titlelogo"
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-250 animate-bounce"
-      />
-
-      {!started && (
-        <div className="absolute bottom-55 left-1/2 transform -translate-x-1/2">
-          <ModalButton size="xl" onClick={handleStart}>
-            START
-          </ModalButton>
-        </div>
-      )}
-      <p className="absolute bottom-30 left-1/2 transform -translate-x-1/2 text-white text-2xl">
-        <b>F11</b> 을 눌러 전체화면 사용을 권장합니다
-      </p>
-      <p
-        className="absolute bottom-10 left-1/2 transform -translate-x-1/2 
-               text-black text-xl text-center whitespace-pre-line w-[300px] leading-tight"
-      >
-        본 게임은 사용자의 캠 화면을{"\n"} 이용하여 초상권을{"\n"} 침해할 수
-        있습니다
-      </p>
+    // 스크롤 스냅 컨테이너
+    <div className="relative w-full h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth">
+      {/* 5 섹션: 각 섹션은 내부에서 h-screen 처리됨 */}
+      <div className="snap-start">
+        <IntroSection />
+      </div>
+      <div className="snap-start">
+        <GamesSection />
+      </div>
+      <div className="snap-start">
+        <MyRoomSection />
+      </div>
+      <div className="snap-start">
+        <CharacterSection />
+      </div>
+      <div className="snap-start">
+        {/* 기존 START 버튼을 Outro에서 재사용 */}
+        <OutroSection onStart={handleStart} started={started} />
+      </div>
 
       {/* 모달 */}
       {started && (
