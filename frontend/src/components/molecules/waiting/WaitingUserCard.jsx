@@ -81,7 +81,7 @@ const WaitingUserCard = ({
       {/* 닉네임 */}
       <div
         className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-violet-400/90" : "bg-red-50"
+          isMe ? "bg-violet-300/90" : "bg-red-50"
         } rounded px-2 py-1 text-center`}
       >
         {user.userNickname}
