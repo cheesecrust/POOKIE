@@ -557,10 +557,10 @@ const SketchRelayPage = () => {
     return () => {
       updateHandlers({
         onDrawEvent: null,
-        onGameTimerEnd: null,
-        onTimer: null,
-        onGameTimerStart: null,
-        onGameAnswerSubmitted: null
+        // onGameTimerEnd: null,
+        // onTimer: null,
+        // onGameTimerStart: null,
+        // onGameAnswerSubmitted: null
       });
     };
   }, [handleRemoteDrawEvent]);

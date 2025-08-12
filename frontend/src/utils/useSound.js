@@ -8,11 +8,14 @@ import pookie from "../assets/audio/effect/pookie_sound.mp3";
 import buy from "../assets/audio/effect/buy.mp3";
 import leave from "../assets/audio/effect/leave.mp3";
 import entry from "../assets/audio/effect/entry.mp3";
-import game_over from "../assets/audio/effect/game_over.mp3";
 import countdown from "../assets/audio/effect/countdown.mp3";
 import correct from "../assets/audio/effect/correct.mp3";
 import incorrect from "../assets/audio/effect/incorrect.mp3";
 import grow from "../assets/audio/effect/grow.mp3";
+import game_start from "../assets/audio/effect/game_start.mp3";
+import turn_change from "../assets/audio/effect/turn_change.mp3";
+import round_over from "../assets/audio/effect/round_over.mp3";
+import game_over from "../assets/audio/effect/game_over.mp3";
 
 // 사운드 파일 경로 관리
 const soundMap = {
@@ -26,8 +29,11 @@ const soundMap = {
     leave,
 
     // 모달 사운드(start, turn, round, end)
-    game_over,
     countdown,
+    game_start,
+    turn_change,
+    round_over,
+    game_over,
 
     // 게임 사운드()
     correct,
