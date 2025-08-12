@@ -173,7 +173,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                     break;
                 case MINIGAME_REGAME:
                     miniGameService.handleMiniGameRegame(user);
-                    break;;
+                    break;
                 case MINIGAME_LEAVE:
                     miniGameService.handleMiniGameLeave(new MiniGameLeaveRequestDto(user));
                     break;
