@@ -8,6 +8,8 @@ import numpy as np
 import cv2
 import mediapipe as mp
 
+# TODO: 일심동체 게임방이 여러개일 경우 별도 처리를 해줘야함. 현 상황에서는 stay
+
 # ================== 기본 설정 ==================
 RESULTS_ROOT = os.getenv("RESULTS_ROOT", "/app/results_debug")
 os.makedirs(RESULTS_ROOT, exist_ok=True)
@@ -71,7 +73,7 @@ USE_3D = True            # 웹캠 각도 제각각이면 True 권장
 DEPTH_BLEND = 0.35       # 0.25~0.40에서 튜닝
 
 PASS_THRESHOLD = 0.60          # ← 낮춤 (이상이면 통과)
-PASS_POLICY    = "majority"    # all | majority | ref
+PASS_POLICY    = "all"    # all | majority | ref
 
 # 몸이나 손의 비중 비율
 # (기본값은 쓰이지만, 동적 모드에선 무시되고 자동으로 덮어씌움)
