@@ -28,7 +28,7 @@ public class RoomStateDto {
 
     public enum Status {WAITING, READY, START, END};
     public enum Turn {RED, BLUE, NONE};
-    public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
+    public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY, MINIGAME};
 
     // 타이머
     private GameTimerDto timer;

@@ -12,6 +12,11 @@ import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
+import com.ssafy.pookie.game.mini.dto.MiniGameLeaveRequestDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameOverRequestDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameScoreUpdateRequestDto;
+import com.ssafy.pookie.game.mini.service.MiniGameService;
 import com.ssafy.pookie.game.room.dto.*;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
@@ -43,6 +48,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameChatService gameChatService;
     private final GameRoomService gameRoomService;
     private final InGameService inGameService;
+    private final MiniGameService miniGameService;
     private final SocketMetrics socketMetrics;
     private final MessageSenderManager messageSenderManager;
 
@@ -149,6 +155,25 @@ public class GameServerHandler extends TextWebSocketHandler {
                     drawEvent.setUser(user);
                     drawService.drawEvent(drawEvent);
                     break;
+                case MINIGAME_JOIN:
+                    // 미니 게임은 별도로 처리
+                    miniGameService.handleJoinMiniGameRoom(new MiniGameRoomDto(user));
+                    break;
+                case MINIGAME_SCORE_UPDATE:
+                    MiniGameScoreUpdateRequestDto miniGameScoreUpdateRequestDto
+                            = objectMapper.convertValue(msg.getPayload(), MiniGameScoreUpdateRequestDto.class);
+                    miniGameScoreUpdateRequestDto.setUser(user);
+                    miniGameService.handleUpdateMiniGameScore(miniGameScoreUpdateRequestDto);
+                    break;
+                case MINIGAME_OVER:
+                    MiniGameOverRequestDto miniGameOverRequestDto
+                            = objectMapper.convertValue(msg.getPayload(), MiniGameOverRequestDto.class);
+                    miniGameOverRequestDto.setUser(user);
+                    miniGameService.handleMiniGameOver(miniGameOverRequestDto);
+                    break;
+                case MINIGAME_LEAVE:
+                    miniGameService.handleMiniGameLeave(new MiniGameLeaveRequestDto(user));
+                    break;
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
@@ -185,6 +210,7 @@ public class GameServerHandler extends TextWebSocketHandler {
         log.info("[WebSocket] Disconnected : "+ session.getId());
         socketMetrics.recordConnectionClosed(session.getId());
         onlinePlayerManager.removeFromLobby(session);
+        onlinePlayerManager.removeMiniGameRoom((Long) session.getAttributes().get("userAccountId"));
         log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }
 }
