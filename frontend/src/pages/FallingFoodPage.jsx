@@ -35,7 +35,7 @@ const OVER_REPORT_DELAY_MS = 0; // ✅ 종료 보고 지연(ms). 0 이면 즉시
 const ITEM_TYPES = {
   EGG: { img: egg, score: 30, size: 64 },
   MILK: { img: milk, score: 20, size: 72 },
-  SUGAR: { img: sugar, score: 10, size: 60 },
+  SUGAR: { img: sugar, score: 10, size: 65 },
   POOP: { img: poop, score: -20, size: 64 },
 };
 const ITEM_KEYS = Object.keys(ITEM_TYPES);
@@ -266,7 +266,7 @@ export default function FallingFoodPage() {
 
         if (isHit(px, py, PLAYER_SIZE, ix, iy, it.size)) {
           const itemScore = ITEM_TYPES[it.type].score;
-
+          playSound("correct");
           // 서버에 델타 보고
           emitMiniGameScoreUpdate({ score: itemScore });
 
@@ -382,6 +382,11 @@ export default function FallingFoodPage() {
     };
   }, []);
 
+  // 사운드
+  useEffect(() => {
+    playSound("entry");
+  }, []);
+
   // =============== 렌더 ===============
   return (
     <div
@@ -394,11 +399,11 @@ export default function FallingFoodPage() {
       style={{ backgroundImage: `url(${background})` }}
     >
       {/* HUD */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-6 text-rose-500 z-10">
-        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-2xl font-semibold">
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center gap-6 text-rose-500 z-10">
+        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-5xl font-semibold">
           ⏱ {timeLeft}s
         </div>
-        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-2xl font-semibold">
+        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-5xl font-semibold">
           ⭐ {score}
         </div>
       </div>
@@ -453,7 +458,7 @@ export default function FallingFoodPage() {
         className={`absolute z-10 flex gap-3 ${
           !running && timeLeft === GAME_TIME
             ? "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            : "top-20 left-1/2 -translate-x-1/2"
+            : "top-30 left-1/2 -translate-x-1/2"
         }`}
       >
         {!running && timeLeft === GAME_TIME && (
@@ -463,9 +468,9 @@ export default function FallingFoodPage() {
               internalStart(true);
               playSound("game_start");
             }}
-            className="px-5 py-2 h-15 w-28 text-md shadow-cyan-600 bg-cyan-500 text-white font-bold shadow"
+            className="px-5 py-2 h-20 w-35 text-lg shadow-cyan-700 bg-cyan-500 hover:bg-cyan-400 text-white font-bold shadow"
           >
-            게임시작
+            게임 시작
           </button>
         )}
 
@@ -475,9 +480,9 @@ export default function FallingFoodPage() {
               internalPause();
               playSound("click");
             }}
-            className="px-5 py-2 shadow-amber-600 bg-amber-500 text-white font-bold shadow"
+            className="px-5 py-2 h-10 w-15 text-md shadow-amber-700 bg-amber-500/90 hover:bg-amber-400 text-white font-bold shadow"
           >
-            중지
+            ⏸
           </button>
         ) : (
           timeLeft > 0 &&
@@ -487,38 +492,35 @@ export default function FallingFoodPage() {
                 internalStart(false);
                 playSound("click");
               }}
-              className="px-5 py-2 shadow-sky-600 bg-sky-500 text-white font-bold shadow"
+              className="px-5 py-2 h-10 w-15 text-md shadow-teal-700 bg-teal-500/90 hover:bg-teal-400 text-white font-bold shadow"
             >
-              재개
+              ▶
             </button>
           )
         )}
       </div>
 
-      {/* 나가기 */}
-      <div className="absolute top-10 right-20 translate-x-1/2 flex gap-3 z-10">
-        <button
-          onClick={() => {
-            goToHome();
-            playSound("click");
-          }}
-          className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
-        >
-          나가기
-        </button>
-      </div>
-
-      {/* 설명 버튼 */}
-      <div className="absolute top-10 left-10 translate-x-1/2 flex gap-3 z-10">
+      <div className="absolute top-10 right-40 translate-x-1/2 flex gap-3 z-10">
+        {/* 설명 버튼 */}
         <button
           onClick={() => {
             setShowInfo(true);
             playSound("click");
           }}
-          className="w-10 h-10 rounded-full bg-pink-500 shadow-rose-100 text-white font-bold shadow flex items-center justify-center"
+          className="w-30 h-12 bg-pink-500 shadow-pink-700 hover:bg-pink-400 text-white font-bold shadow flex items-center justify-center"
           title="게임 설명"
         >
-          i
+          게임 설명
+        </button>
+        {/* 나가기 버튼 */}
+        <button
+          onClick={() => {
+            goToHome();
+            playSound("click");
+          }}
+          className="px-5 py-2 shadow-rose-600 bg-rose-500 hover:bg-rose-400 text-white font-bold shadow"
+        >
+          나가기
         </button>
       </div>
 
@@ -548,7 +550,7 @@ export default function FallingFoodPage() {
               onClick={() => {
                 emitMiniGameJoin();
                 internalStart(true);
-                playSound("click");
+                playSound("game_start");
               }}
               className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold shadow"
             >
@@ -572,10 +574,10 @@ export default function FallingFoodPage() {
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-rose-100 text-black rounded-xl shadow-lg p-6 w-[400px]">
             <h2 className="text-xl font-bold mb-4">게임 설명</h2>
-            <p className="mb-2">좌우 방향키로 푸키를 움직이세요!</p>
-            <p className="mb-6 text-xs">
-              떨어지는 재료를 먹으면 점수를 얻습니다.
+            <p className="mb-2">
+              <b>↔</b> 방향키로 푸키를 움직이세요
             </p>
+            <p className="mb-6 text-md">푸키의 재료를 모아 점수를 얻으세요 !</p>
             <ul className="list-disc pl-5 mb-4 space-y-2">
               <li className="flex items-center gap-2">
                 <img src={egg} alt="계란" className="w-8 h-8" />
@@ -590,15 +592,18 @@ export default function FallingFoodPage() {
                 설탕: <b className="text-green-500">+10점</b>
               </li>
               <li className="flex items-center gap-2">
-                <img src={poop} alt="똥" className="w-8 h-8" />
-                똥: <b className="text-red-500">-20점</b>
+                <img src={poop} alt="똥" className="w-8 h-8" />똥 :{" "}
+                <b className="text-red-500">-20점</b>
               </li>
             </ul>
-            <p className="mb-6 text-md">
-              <b className="text-pink-500">30초</b> 동안{" "}
-              <b className="text-violet-500">600점</b> 이상이면{" "}
-              <b className="text-amber-500">10코인</b> 지급!
-            </p>
+            <div className="mt-6 mb-6 text-md flex items-center gap-2">
+              <span className="text-pink-500">30초</span> 동안{" "}
+              <span className="text-pink-500 font-bold">600점</span> 이상이면{" "}
+              <div className="flex items-center gap-2">
+                <img src={coin} alt="coin" className="w-6 h-6" />
+                <b className="text-amber-500">10코인</b> 지급!
+              </div>
+            </div>
             <div className="flex justify-end">
               <button
                 onClick={() => setShowInfo(false)}
