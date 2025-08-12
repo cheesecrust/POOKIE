@@ -156,7 +156,7 @@ export default function FallingFoodPage() {
     lastTsRef.current = ts;
 
     // 경과/잔여 시간 (초) – setTimeout 없이 동일 동작
-    const elapsedSec = (ts - startTsRef.current) / 1000;
+    const elapsedSec = Math.max(0, (ts - startTsRef.current) / 1000);
     const remain = Math.max(0, GAME_TIME - Math.floor(elapsedSec));
     if (remain !== timeLeft) setTimeLeft(remain);
     if (elapsedSec >= GAME_TIME) {
@@ -243,7 +243,7 @@ export default function FallingFoodPage() {
   };
   const restart = () => {
     setScore(0);
-    setTimeLeft(GAME_TIME);
+    setTimeLeft(GAME_TIME - 1);
     itemsRef.current = [];
     hitEffectsRef.current = [];
     idRef.current = 0;
@@ -327,12 +327,19 @@ export default function FallingFoodPage() {
       })}
 
       {/* 컨트롤 바 */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 flex gap-3 z-10">
+      <div
+        className={`absolute z-10 flex gap-3
+    ${
+      !running && timeLeft === GAME_TIME
+        ? "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        : "top-20 left-1/2 -translate-x-1/2"
+    }`}
+      >
         {/* START: 아직 시작 전 */}
         {!running && timeLeft === GAME_TIME && (
           <button
             onClick={start}
-            className="px-5 py-2 shadow-emerald-600 bg-emerald-500 text-white font-bold shadow"
+            className="px-5 py-2 h-15 w-25 text-lg shadow-cyan-600 bg-cyan-500 text-white font-bold shadow"
           >
             START
           </button>
@@ -358,7 +365,7 @@ export default function FallingFoodPage() {
           )
         )}
 
-        {/* RESTART: 시간 0이거나(게임오버) 일시정지 상태에서 새로 시작하고 싶을 때도 노출 가능 */}
+        {/* RESTART */}
         {!running && timeLeft === 0 && (
           <button
             onClick={restart}
@@ -367,22 +374,25 @@ export default function FallingFoodPage() {
             RESTART
           </button>
         )}
-
-        {/* i: 설명 */}
-        <button
-          onClick={() => setShowInfo(true)}
-          className="w-10 h-10 rounded-full bg-gray-700 text-white font-bold shadow flex items-center justify-center"
-          title="게임 설명"
-        >
-          i
-        </button>
       </div>
+
       <div className="absolute top-10 right-20 translate-x-1/2 flex gap-3 z-10">
         <button
           onClick={goToHome}
           className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
         >
           나가기
+        </button>
+      </div>
+
+      <div className="absolute top-10 left-10 translate-x-1/2 flex gap-3 z-10">
+        {/* i: 설명 */}
+        <button
+          onClick={() => setShowInfo(true)}
+          className="w-10 h-10 rounded-full bg-pink-500 shadow-rose-100 text-white font-bold shadow flex items-center justify-center"
+          title="게임 설명"
+        >
+          i
         </button>
       </div>
 
