@@ -21,7 +21,7 @@ function AppContent() {
   return (
     <>
       <BGMProvider isPlaying={true} />
-      <SoundWrapper showOnRoutes={["/", "/login", "/home", "/waiting*"]} />
+      <SoundWrapper showOnRoutes={["/", "/login", "/home"]} />
       <Router />
     </>
   );

@@ -9,6 +9,7 @@ import com.ssafy.pookie.friend.dto.FriendRequestDto;
 import com.ssafy.pookie.friend.dto.FriendResponseDto;
 import com.ssafy.pookie.friend.model.Status;
 import com.ssafy.pookie.friend.service.FriendService;
+import com.ssafy.pookie.global.exception.CustomException;
 import com.ssafy.pookie.global.security.user.CustomUserDetails;
 import com.ssafy.pookie.notification.service.NotificationService;
 import jakarta.validation.Valid;
@@ -42,10 +43,8 @@ public class FriendController {
     public ResponseEntity<ApiResponse<FriendResponseDto>> sendFriendRequest(
             @RequestBody @Valid FriendRequestDto requestDto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
         log.info("친구 요청 전송 - 요청자: {}, 수신자: {}",
                 userDetails.getUserAccountId(), requestDto.getAddresseeId());
-
         try {
             Long currentUserId = userDetails.getUserAccountId();
             FriendResponseDto result = friendService.sendFriendRequest(
@@ -61,6 +60,9 @@ public class FriendController {
             log.error("알림 전송 실패" + e.getMessage());
           return ResponseEntity.badRequest()
                   .body(ApiResponse.error(e.getMessage()));  
+        } catch (CustomException e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             log.error("친구 요청 전송 실패", e);
             return ResponseEntity.internalServerError()

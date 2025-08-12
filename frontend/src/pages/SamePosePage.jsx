@@ -115,6 +115,9 @@ const SamePosePage = () => {
 
   // 처리중..
   const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
+  const [pendingAnswer, setPendingAnswer] = useState(false);
+  const [serverVerdict, setServerVerdict] = useState(null);
+  const didSubmitRef = useRef(false); // 중복 방지
 
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
@@ -254,6 +257,17 @@ const SamePosePage = () => {
         formData /* , { withCredentials: true } 쿠키 필요 시 */
       );
       console.log("✅ 업로드 성공:", res.data);
+      const verdict =
+        typeof res.data === "boolean"
+          ? res.data
+          : typeof res.data === "string"
+            ? res.data.toLowerCase() === "true"
+            : Boolean(
+                res.data?.success ?? res.data?.match ?? res.data?.ok ?? false
+              );
+
+      setServerVerdict(verdict);
+      setPendingAnswer(true); // 이후 타이머 타이밍 맞춰 제출
     } catch (err) {
       const msg =
         err.response?.data ||
@@ -261,10 +275,9 @@ const SamePosePage = () => {
         err.message ||
         "unknown error";
       console.error("❌ 업로드 실패:", msg);
+      setServerVerdict(false);
+      setPendingAnswer(true);
     }
-    // ===== 방장일 경우에만 정답 제출 =====
-    const SEND_CORRECT = true; // true면 제시어, false면 빈값
-    submitGameAnswer(SEND_CORRECT);
   };
 
   // 정답제출
@@ -342,7 +355,7 @@ const SamePosePage = () => {
     }
   }, [time]);
 
-  // 타이머 변화 감지
+  // 처리중 모달
   useEffect(() => {
     if (time === 3 || time === 2) {
       setIsProcessingModalOpen(true);
@@ -350,6 +363,26 @@ const SamePosePage = () => {
       setIsProcessingModalOpen(false);
     }
   }, [time]);
+
+  // 일치 모달 - 일부러 pending
+  useEffect(() => {
+    if (!pendingAnswer) return;
+    if (!isHost) return; // 방장만 제출
+    if (didSubmitRef.current) return; // 중복 방지
+    if (serverVerdict === null) return;
+
+    // 처리중 모달 로직: time === 3 || time === 2 에서 열림 → 그 이후(<=1)면 닫힘
+    if (time <= 1) {
+      didSubmitRef.current = true;
+      submitGameAnswer(serverVerdict);
+      setPendingAnswer(false);
+      setServerVerdict(null);
+      // 다음 턴/라운드에서 다시 쓸 수 있게 약간의 딜레이 후 리셋
+      setTimeout(() => {
+        didSubmitRef.current = false;
+      }, 500);
+    }
+  }, [pendingAnswer, serverVerdict, time, isHost]);
 
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
@@ -376,24 +409,25 @@ const SamePosePage = () => {
   useEffect(() => {
     if (!myIdx) return;
 
-    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
-    const isMyTurn =
-      (isMyTeamRed && turn === "RED") || (!isMyTeamRed && turn === "BLUE");
+    // 내 정보/팀
+    const me = participants.find((p) => Number(p.identity) === Number(myIdx));
+    const myTeamName =
+      me?.team ??
+      (redTeam.some((p) => p.userAccountId === myIdx) ? "RED" : "BLUE");
+    const isMyTurn = myTeamName === turn;
 
+    // 이번 턴의 REP만 뽑아 ID 통일(Number(identity))
+    const repIdsThisTurn = participants
+      .filter((p) => p.role === "REP" && p.team === turn)
+      .map((p) => Number(p.identity));
     if (isMyTurn) {
       // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
-      setHideTargetIds(norIdxList.map(e=>e.idx).filter((id) => id !== myIdx));
+      setHideTargetIds(repIdsThisTurn.filter((id) => id !== Number(myIdx)));
     } else {
       // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
-      const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
-      const repIds = repIdxList; // 이미 서버에서 받은 REP 리스트
-      const repUserIds = enemyTeam
-        .filter((p) => repIds.includes(p.id)) // 실제 팀원 중 rep에 해당하는 사람만
-        .map((p) => p.id);
-
-      setHideTargetIds(repUserIds);
+      setHideTargetIds(repIdsThisTurn);
     }
-  }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
+  }, [turn, participants, redTeam, blueTeam, myIdx]);
 
   useEffect(() => {
     // "찰 칵 !" 순간 자동 촬영 (방장만)
@@ -509,24 +543,23 @@ const SamePosePage = () => {
         style={{ backgroundImage: `url(${background_same_pose})` }}
       >
         <section className="basis-3/9 flex flex-col p-4">
-          <div className="flex flex-row flex-1 items-center justify-around px-6">
-            <div className="flex flex-col text-sm text-gray-700 leading-tight w-[160px]">
-              <span className="mb-2">제시어에 맞게 동작을 취하세요</span>
-              <span className="text-xs">
-                최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
-                취해주세요.
-              </span>
-              {/* <button
-                onClick={handleCapture}
-                className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
-              >
-                📸 사진 찰칵{" "}
-              </button> */}
+          <div className="grid grid-cols-3 items-center gap-6 px-6">
+            <div className="col-span-1 flex justify-start">
+              <div className="text-sm text-gray-700 leading-tight w-full max-w-[300px]">
+                <span className="mb-2 block">제시어에 맞게</span>
+                <span className="mb-2 block">
+                  최대한 <b className="text-pink-500">정자세</b>에서 동작을
+                  취해주세요.
+                </span>
+                <span className="block">
+                  <b className="text-cyan-500">손</b>을 정확히 보여야
+                </span>
+                <span>정확한 판정이 가능합니다 !</span>
+              </div>
             </div>
 
-            {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
-            <div>
-              <div className="relative text-center text-2xl">
+            <div className="col-span-1 flex flex-col items-center">
+              <div className="relative text-center text-2xl mb-3">
                 <span
                   className={turn === "RED" ? "text-red-500" : "text-blue-700"}
                 >
@@ -534,23 +567,25 @@ const SamePosePage = () => {
                 </span>{" "}
                 <span className="text-black">TEAM TURN</span>
               </div>
-              {/* 제시어 */}
-              <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[170px] gap-5 ">
+              <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-full max-w-[400px] h-[170px] gap-5">
                 <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
                   <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
                   <p>제시어</p>
                 </div>
-                <p className="text-2xl font-semibold text-black mt-2">
+                <p className="text-2xl font-semibold text-black mt-2 text-center">
                   {keywordList?.[keywordIdx] ?? "제시어를 가져오는 중..."}
                 </p>
               </div>
             </div>
 
-            <RoundInfo
-              round={round}
-              redScore={teamScore?.RED}
-              blueScore={teamScore?.BLUE}
-            />
+            {/* 라운드, 점수 */}
+            <div className="col-span-1 flex justify-end">
+              <RoundInfo
+                round={round}
+                redScore={teamScore?.RED}
+                blueScore={teamScore?.BLUE}
+              />
+            </div>
           </div>
         </section>
 
