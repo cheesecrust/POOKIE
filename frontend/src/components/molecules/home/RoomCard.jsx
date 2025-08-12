@@ -66,7 +66,12 @@ const RoomCard = ({ room, onPasswordRequest }) => {
     });
   };
 
-  const participantCount = room.teamInfo?.TOTAL || 0;
+  // const participantCount = room.teamInfo?.TOTAL || 0;
+  const redCount = room.teamInfo?.RED || 0;
+  const blueCount = room.teamInfo?.BLUE || 0;
+  const totalCount = room.teamInfo?.TOTAL || 0;
+  let participantCount = Math.max(totalCount, redCount+blueCount)
+  if (participantCount === 0 && room.roomMaster) participantCount = 1;
   const isFull = participantCount >= 6;
 
   return (
