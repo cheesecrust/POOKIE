@@ -248,13 +248,12 @@ def _hand_points_and_conf(image_bgr, w, h, wrists=None, elbows=None, vis=None):
 # ================== “아무 포즈도 안함(idle)” 판정 함수 ==================
 def _is_idle_pose(hand_meta, vis_dict):
     # 팔꿈치·손목 모두 신뢰도 낮고, 손도 양쪽 다 'absent_or_uncertain' 이면 idle
-    lw = vis_dict.get("LW", 0.0); rw = vis_dict.get("RW", 0.0)
-    le = vis_dict.get("LE", 0.0); re = vis_dict.get("RE", 0.0)
-    wrists_low  = (lw < HAND_VIS_TH) and (rw < HAND_VIS_TH)
-    elbows_low  = (le < HAND_VIS_TH) and (re < HAND_VIS_TH)
-    hands_absent = all(s == "absent_or_uncertain" for s in hand_meta["status"].values())
-    return wrists_low and elbows_low and hands_absent
+    # 한 장이라도 손이 'present_detected'가 아니면 = idle 로 간주
+    detected = [s for s, st in hand_meta["status"].items() if st == "present_detected"]
+    return len(detected) == 0
 
+
+NEG_FILTER_REQUIRE = "majority"  # "all" | "majority" | "any"
 
 # ================== 상반신 벡터/신뢰도 추출 ==================
 def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str, save_prefix: str = ""):
@@ -662,6 +661,40 @@ async def upload_images(
         idle_flags.append(bool(out.get("is_idle", False)))
         has_world_flags.append(bool(out.get("has_world", False)))
 
+    #  네거티브 필터: 손이 충분히 보이지 않으면 즉시 실패(유사도 계산 전에 컷)
+    def _num_detected_hands(meta):
+        return sum(1 for st in meta["status"].values() if st == "present_detected")
+
+    imgs_with_any_hand = sum(1 for m in hand_metas if _num_detected_hands(m) >= 1)
+    need = {"all": 3, "majority": 2, "any": 1}[NEG_FILTER_REQUIRE]
+
+    if imgs_with_any_hand < need:
+        similarities = {"1-2": 0.0, "1-3": 0.0, "2-3": 0.0}
+        ts = datetime.datetime.now(KST).strftime("%Y%m%d-%H%M%S")
+        archive = os.path.join(base_dir, f"{prefix}_{ts}_{uuid.uuid4().hex[:8]}.jpg")
+        team_round_latest = os.path.join(base_dir, f"latest_{team}_r{round_num:02d}.jpg")
+        overall_latest = os.path.join(base_dir, "latest.jpg")
+        concat_path = concat_images_horizontally_with_text(vis_paths, similarities, False, save_path=archive)
+        if concat_path:
+            img = cv2.imread(concat_path)
+            if img is not None:
+                atomic_write(img, team_round_latest)
+                atomic_write(img, overall_latest)
+
+        return {
+            "ok": True,
+            "all_pass": False,
+            "scores": similarities,
+            "vis_files": [os.path.basename(v) for v in vis_paths],
+            "row_file_archive": os.path.basename(archive) if concat_path else None,
+            "row_file_team_round_latest": os.path.basename(team_round_latest),
+            "row_file_latest": os.path.basename(overall_latest),
+            "results_url_base": f"/results/{today_dir}/{gameId}/",
+            "hand_status": [{"L": m["status"]["L"], "R": m["status"]["R"]} for m in hand_metas],
+            "idle_per_image": idle_flags,
+            "reason": f"negative_filter:no_enough_hands ({imgs_with_any_hand}/{need})",
+        }
+
     # ── 규칙 #1: 모두 idle이면 => 아무 포즈도 안하면 무조건 탈락 ──
     all_idle = all(idle_flags)
 
@@ -686,7 +719,7 @@ async def upload_images(
         # << 핵심: 동적 손 비중 계산 >>
         if USE_DYNAMIC_HAND_WEIGHT:
             w_body, w_hand = _adaptive_whand_wbody(confs[i], confs[j],
-                                                hand_metas[i], hand_metas[j])
+                                                   hand_metas[i], hand_metas[j])
         else:
             w_body, w_hand = W_BODY_2D, W_HAND_2D
 
@@ -696,12 +729,11 @@ async def upload_images(
             scheme_body=SCHEME_BODY_2D, scheme_hand=SCHEME_HAND_2D,
             allow_mirror=True, w_body=w_body, w_hand=w_hand, use_hand=True
         )
-        if not np.isfinite(s2d):  # <<< NaN/Inf 가드
+        if not np.isfinite(s2d):
             s2d = 0.0
 
-        # 3D (정렬+가중 코사인) — 손가락 제외 상체 정렬 인덱스 추천
-        # 둘 다 3D가 있을 때만 블렌딩
-        use_3d_pair = USE_3D and has_world_flags[i] and has_world_flags[j] 
+        # 3D (정렬+가중 코사인) — 둘 다 3D가 있을 때만 블렌딩
+        use_3d_pair = USE_3D and has_world_flags[i] and has_world_flags[j]
         if use_3d_pair:
             bi = confs[i][:len(POSE_INDEX_LIST)]
             bj = confs[j][:len(POSE_INDEX_LIST)]
@@ -709,7 +741,7 @@ async def upload_images(
                 vecs_xyz[i], vecs_xyz[j], bi, bj,
                 scheme="CD_max", allow_mirror=True, align_idx=ALIGN_IDX
             )
-            if not np.isfinite(s3d):  # <<< NaN/Inf 가드
+            if not np.isfinite(s3d):
                 s3d = 0.0
             return (1 - DEPTH_BLEND) * s2d + DEPTH_BLEND * s3d
         else:
@@ -733,7 +765,7 @@ async def upload_images(
     similarities = {"1-2": round(s12, 3), "1-3": round(s13, 3), "2-3": round(s23, 3)}
 
     # ── Row 이미지 생성/저장 (파일명으로만 구분) ──
-    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    ts = datetime.datetime.now(KST).strftime("%Y%m%d-%H%M%S")
     archive = os.path.join(base_dir, f"{prefix}_{ts}_{uuid.uuid4().hex[:8]}.jpg")
     team_round_latest = os.path.join(base_dir, f"latest_{team}_r{round_num:02d}.jpg")
     overall_latest = os.path.join(base_dir, "latest.jpg")
