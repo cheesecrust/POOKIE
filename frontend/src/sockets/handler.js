@@ -36,7 +36,7 @@ export const handleSocketMessage = (msg, handlers) => {
             .catch((err) => {
                 console.error("[SocketRouter] WAITING_JOINED(home) 핸들러 로딩 실패:", err);
             });
-        
+
         // 동시에 대기실에 있는 다른 사용자들에게도 알림
         import("./waiting/handleWaitingMessage")
             .then((mod) => mod.default?.(msg, {
@@ -119,6 +119,7 @@ export const handleSocketMessage = (msg, handlers) => {
                 navigate: handlers?.navigate,
             })), // waiting
         GAME: () => import("./game/handleGameMessage").then((mod) => mod.default?.(msg, handlers)), // game
+        MINIGAME: () => import("./minigame/handleMiniGameMessage").then((mod) => mod.default?.(msg, handlers)), // minigame
     };
 
     const handlerFn = routeMap[typePrefix]; // 접두사있는지 확인

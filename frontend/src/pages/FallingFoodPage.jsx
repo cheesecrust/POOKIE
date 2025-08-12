@@ -1,4 +1,3 @@
-// src/pages/FallingFoodPage.jsx
 import {
   useCallback,
   useEffect,
@@ -15,7 +14,23 @@ import egg from "../assets/fallingfood/egg.png";
 import milk from "../assets/fallingfood/milk.png";
 import poop from "../assets/fallingfood/poop.png";
 import sugar from "../assets/fallingfood/sugar.png";
+import coin from "../assets/item/coin.png";
 import useSound from "../utils/useSound";
+import PopUpModal from "../components/atoms/modal/PopUpModal";
+
+import {
+  emitMiniGameJoin,
+  emitMiniGameScoreUpdate,
+  emitMiniGameOver,
+  emitMiniGameLeave,
+} from "../sockets/minigame/emit";
+import handleMiniGameMessage from "../sockets/minigame/handleMiniGameMessage";
+import { updateHandlers } from "../sockets/websocket";
+
+// =================== 튜닝 포인트 ===================
+const GAME_TIME = 30; // 초
+const OVER_REPORT_DELAY_MS = 0; // ✅ 종료 보고 지연(ms). 0 이면 즉시 서버 보고
+// ===================================================
 
 const ITEM_TYPES = {
   EGG: { img: egg, score: 30, size: 64 },
@@ -26,18 +41,14 @@ const ITEM_TYPES = {
 const ITEM_KEYS = Object.keys(ITEM_TYPES);
 
 const PLAYER_SIZE = 140;
+const PLAYER_SPEED_PPS = 600;
+const BASE_FALL_SPEED_PPS = 240;
+const MAX_FALL_BONUS_PPS = 360;
+const FALL_ACCEL_PPS_PER_SEC = 30;
 
-// 초당 픽셀(pps) 기반 속도들
-const PLAYER_SPEED_PPS = 600; // 대략 10px/frame @60fps
-const BASE_FALL_SPEED_PPS = 240; // 대략 4px/frame @60fps
-const MAX_FALL_BONUS_PPS = 360; // 낙하 가속 최대 추가치
-const FALL_ACCEL_PPS_PER_SEC = 30; // 초당 가속치
-
-const SPAWN_INTERVAL_MS = 600; // 시작 스폰 주기
-const SPAWN_INTERVAL_MIN_MS = 220; // 최소 스폰 주기
-const SPAWN_REDUCE_MS_PER_SEC = 9; // 초당 스폰주기 감소
-
-const GAME_TIME = 30;
+const SPAWN_INTERVAL_MS = 600;
+const SPAWN_INTERVAL_MIN_MS = 220;
+const SPAWN_REDUCE_MS_PER_SEC = 9;
 
 export default function FallingFoodPage() {
   const { user } = useAuthStore();
@@ -47,68 +58,84 @@ export default function FallingFoodPage() {
   const playerImg =
     characterImageMap[user?.repCharacter?.characterName] || defaultCharacter;
 
+  // ----- 화면 크기 -----
   const wrapRef = useRef(null);
   const [vw, setVw] = useState(1280);
   const [vh, setVh] = useState(720);
 
+  // ----- 표시 상태 -----
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [running, setRunning] = useState(false);
-  const [, setFrame] = useState(0); // 렌더 트리거
-  // 설명 모달
+  const [, forceRerender] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
+  const [finalScore, setFinalScore] = useState(null);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
 
-  // ==== 내부 동작용 refs ====
-  const runningRef = useRef(false); // 최신 실행 상태
-  const playerX = useRef(0);
+  // ----- 내부 런타임 상태(ref) -----
+  const runningRef = useRef(false);
+  const playerRx = useRef(0); // 비율 좌표 [0, 1 - PLAYER_SIZE/vw]
   const keyRef = useRef({ left: false, right: false });
-  const itemsRef = useRef([]); // {id,type,x,y,size}
+  const itemsRef = useRef([]);
   const idRef = useRef(0);
   const lastSpawnRef = useRef(0);
   const lastTsRef = useRef(0);
-  const startTsRef = useRef(0); // 게임 시작 시간(ms)
-  const elapsedOffsetMsRef = useRef(0); // 경과시간 누적
+  const startTsRef = useRef(0);
+  const elapsedOffsetMsRef = useRef(0);
   const rafRef = useRef(null);
-  const hitEffectsRef = useRef([]); // {id,x,y,text,color,start}
+  const hitEffectsRef = useRef([]);
+  const scoreRef = useRef(0);
 
-  // 첫 렌더: 중앙 배치
-  useLayoutEffect(() => {
-    const w =
-      wrapRef.current?.getBoundingClientRect().width ?? window.innerWidth;
-    playerX.current = Math.max(0, (w - PLAYER_SIZE) / 2);
+  // 게임 식별자(재시작 레이스 방지)
+  const gameIdRef = useRef(0);
+  // 종료 타임아웃 ID
+  const overTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  // ----- 서버 핸들러 등록 -----
+  useEffect(() => {
+    const onMiniGameMessage = (msg) =>
+      handleMiniGameMessage(msg, {
+        setScore, // 서버 권위 점수 동기화
+        navigate,
+        setErrorModalOpen,
+        onScoreSynced: () => {},
+      });
+    updateHandlers({ onMiniGameMessage });
+    return () => updateHandlers({ onMiniGameMessage: null });
   }, []);
 
-  // 컨테이너 리사이즈
+  // ----- 초기 플레이어 위치 -----
+  useLayoutEffect(() => {
+    playerRx.current = Math.max(0, 0.5 - PLAYER_SIZE / (2 * vw));
+  }, [vw]);
+
+  // ----- 리사이즈 -----
   useEffect(() => {
     const resize = () => {
       if (!wrapRef.current) return;
       const rect = wrapRef.current.getBoundingClientRect();
       setVw(rect.width);
       setVh(rect.height);
-      if (!runningRef.current && timeLeft === GAME_TIME) {
-        playerX.current = Math.max(0, (rect.width - PLAYER_SIZE) / 2);
-      } else {
-        playerX.current = Math.min(
-          playerX.current,
-          Math.max(0, rect.width - PLAYER_SIZE)
-        );
-      }
-      setFrame((f) => f + 1);
+      forceRerender((f) => f + 1);
     };
     resize();
     const ro = new ResizeObserver(resize);
-    ro.observe(wrapRef.current);
+    if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-  }, [timeLeft]);
+  }, []);
 
-  // 포커스 보장
+  // 포커스
   useEffect(() => {
     const t = setTimeout(() => wrapRef.current?.focus(), 0);
     return () => clearTimeout(t);
   }, []);
   const handleWrapperClick = () => wrapRef.current?.focus();
 
-  // 방향키(래퍼에만 바인딩)
+  // ----- 입력 -----
   const onKeyDown = useCallback((e) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault();
     if (e.key === "ArrowLeft") keyRef.current.left = true;
@@ -120,29 +147,23 @@ export default function FallingFoodPage() {
     if (e.key === "ArrowRight") keyRef.current.right = false;
   }, []);
 
-  // 충돌(AABB)
+  // ----- 유틸 -----
   const isHit = (ax, ay, as, bx, by, bs) =>
     !(ax + as < bx || ax > bx + bs || ay + as < by || ay > by + bs);
 
-  // 스폰/난이도
   const spawnItem = () => {
     const key = ITEM_KEYS[Math.floor(Math.random() * ITEM_KEYS.length)];
     const spec = ITEM_TYPES[key];
     const size = spec.size;
-    const x = Math.random() * Math.max(1, vw - size);
-    itemsRef.current.push({
-      id: idRef.current++,
-      type: key,
-      x,
-      y: -size,
-      size,
-    });
+    const rx = Math.random() * (1 - size / vw);
+    const ry = -size / vh;
+    itemsRef.current.push({ id: idRef.current++, type: key, rx, ry, size });
   };
 
-  // 시간 기반 속도/주기 (실행마다 동일)
-  const fallSpeedPps = (elapsedSec) =>
-    BASE_FALL_SPEED_PPS +
-    Math.min(MAX_FALL_BONUS_PPS, elapsedSec * FALL_ACCEL_PPS_PER_SEC);
+  const fallSpeedRatioPerSec = (elapsedSec) =>
+    (BASE_FALL_SPEED_PPS +
+      Math.min(MAX_FALL_BONUS_PPS, elapsedSec * FALL_ACCEL_PPS_PER_SEC)) /
+    vh;
 
   const spawnIntervalMsByTime = (elapsedSec) =>
     Math.max(
@@ -150,35 +171,78 @@ export default function FallingFoodPage() {
       SPAWN_INTERVAL_MS - Math.min(350, elapsedSec * SPAWN_REDUCE_MS_PER_SEC)
     );
 
-  // RAF 루프 (runningRef로 최신값 확인)
-  const tick = (ts) => {
-    if (!runningRef.current) return; // 중지 상태면 종료
+  // ----- 종료 처리(단일화) -----
+  const stopGame = useCallback((why = "TIME_UP") => {
+    if (!runningRef.current) return;
+    const myGameId = gameIdRef.current;
 
-    // dt(초) 계산 (탭 복귀 급점프 방지 위해 50ms 캡)
+    setRunning(false);
+    runningRef.current = false;
+    setTimeLeft(0);
+    // 최종 점수 표시용(서버 동기화 전일 수도 있으니 ref 우선)
+    setFinalScore(scoreRef.current);
+
+    // RAF 정지
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    // 종료 보고(지연 설정 반영 + gameId 일치 검사)
+    const emitReport = () => {
+      // 재시작 등으로 gameId 바뀌었으면 무시
+      if (myGameId !== gameIdRef.current) return;
+      emitMiniGameOver({ score: scoreRef.current, reason: why });
+    };
+
+    if (OVER_REPORT_DELAY_MS > 0) {
+      // 이전 예약 제거
+      if (overTimeoutRef.current) {
+        clearTimeout(overTimeoutRef.current);
+        overTimeoutRef.current = null;
+      }
+      overTimeoutRef.current = setTimeout(() => {
+        overTimeoutRef.current = null;
+        emitReport();
+      }, OVER_REPORT_DELAY_MS);
+    } else {
+      emitReport();
+    }
+  }, []);
+
+  // ----- 메인 루프 -----
+  const tick = (ts) => {
+    // 해당 프레임이 현재 게임인지 확인
+    const myGameId = gameIdRef.current;
+    if (!runningRef.current || myGameId !== gameIdRef.current) return;
+
     if (!lastTsRef.current) lastTsRef.current = ts;
     const dtSec = Math.min(0.05, (ts - lastTsRef.current) / 1000);
     lastTsRef.current = ts;
 
-    // 경과/잔여 시간 (초) – setTimeout 없이 동일 동작
     const elapsedSec = Math.max(
       0,
       (ts - startTsRef.current + elapsedOffsetMsRef.current) / 1000
     );
-    const remain = Math.max(0, GAME_TIME - Math.floor(elapsedSec));
-    if (remain !== timeLeft) setTimeLeft(remain);
+
+    // 표시용 남은 시간(ceil)
+    const remainDisplay = Math.max(0, Math.ceil(GAME_TIME - elapsedSec));
+    if (remainDisplay !== timeLeft) setTimeLeft(remainDisplay);
+
+    // 종료 판정(경과 시간 기준)
     if (elapsedSec >= GAME_TIME) {
-      setRunning(false);
-      runningRef.current = false;
+      stopGame("TIME_UP");
       return;
     }
 
-    // 이동 (pps * dt)
+    // 플레이어 이동
     const dir = (keyRef.current.right ? 1 : 0) - (keyRef.current.left ? 1 : 0);
-    playerX.current = Math.max(
+    const moveRatioPerSec = PLAYER_SPEED_PPS / vw;
+    playerRx.current = Math.max(
       0,
       Math.min(
-        vw - PLAYER_SIZE,
-        playerX.current + dir * PLAYER_SPEED_PPS * dtSec
+        1 - PLAYER_SIZE / vw,
+        playerRx.current + dir * moveRatioPerSec * dtSec
       )
     );
 
@@ -190,19 +254,23 @@ export default function FallingFoodPage() {
       spawnItem();
     }
 
-    // 낙하 + 충돌
-    const dy = fallSpeedPps(elapsedSec) * dtSec;
-    let delta = 0;
+    // 낙하 & 충돌 처리
+    const dyRatio = fallSpeedRatioPerSec(elapsedSec) * dtSec;
     itemsRef.current = itemsRef.current
-      .map((it) => ({ ...it, y: it.y + dy }))
+      .map((it) => ({ ...it, ry: it.ry + dyRatio }))
       .filter((it) => {
-        const px = playerX.current;
-        const py = vh - PLAYER_SIZE; // 캐릭터 실제 top 근처
-        if (isHit(px, py, PLAYER_SIZE, it.x, it.y, it.size)) {
-          const itemScore = ITEM_TYPES[it.type].score;
-          delta += itemScore;
+        const px = playerRx.current * vw;
+        const py = vh - PLAYER_SIZE;
+        const ix = it.rx * vw;
+        const iy = it.ry * vh;
 
-          // 획득 이펙트
+        if (isHit(px, py, PLAYER_SIZE, ix, iy, it.size)) {
+          const itemScore = ITEM_TYPES[it.type].score;
+
+          // 서버에 델타 보고
+          emitMiniGameScoreUpdate({ score: itemScore });
+
+          // 히트 이펙트
           hitEffectsRef.current.push({
             id: Date.now() + Math.random(),
             x: px + PLAYER_SIZE / 2,
@@ -211,71 +279,110 @@ export default function FallingFoodPage() {
             color: itemScore > 0 ? "#4ade80" : "#f87171",
             start: performance.now(),
           });
-          // 1초 뒤 제거
           setTimeout(() => {
+            // 만약 게임이 바뀌었으면(재시작) 그냥 버려도 무방
             hitEffectsRef.current = hitEffectsRef.current.filter(
               (fx) => fx.start + 1000 > performance.now()
             );
           }, 1000);
-
           return false;
         }
-        if (it.y > vh + 60) return false;
+        if (iy > vh + 60) return false;
         return true;
       });
 
-    if (delta) setScore((s) => Math.max(0, s + delta));
+    // 렌더 트리거
+    forceRerender((f) => f + 1);
 
-    // 리렌더 + 다음 프레임
-    setFrame((f) => f + 1);
-    rafRef.current = requestAnimationFrame(tick);
+    // 다음 프레임
+    rafRef.current = requestAnimationFrame((nts) => {
+      // 게임이 바뀌었거나 종료되었으면 중단
+      if (!runningRef.current || myGameId !== gameIdRef.current) return;
+      tick(nts);
+    });
   };
 
-  // 제어
-  const start = (fresh = false) => {
+  // ----- 시작/일시정지/재개 -----
+  const internalStart = (fresh = false) => {
+    // 이미 실행 중이면 무시
+    if (runningRef.current) return;
+
+    // 새로운 게임 ID 부여 (fresh일 때만 완전 초기화)
     if (fresh) {
-      // 완전 초기화(스코어/시간/아이템/좌표)
-      setScore(0);
-      setTimeLeft(GAME_TIME);
+      gameIdRef.current += 1;
+
+      // 타이머/RAF 정리
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (overTimeoutRef.current) {
+        clearTimeout(overTimeoutRef.current);
+        overTimeoutRef.current = null;
+      }
+
+      // 상태/레퍼런스 초기화
       itemsRef.current = [];
       hitEffectsRef.current = [];
       idRef.current = 0;
       lastSpawnRef.current = 0;
-      playerX.current = Math.max(0, (vw - PLAYER_SIZE) / 2);
-      elapsedOffsetMsRef.current = 0; // 누적도 초기화
+      playerRx.current = Math.max(0, 0.5 - PLAYER_SIZE / (2 * vw));
+
+      elapsedOffsetMsRef.current = 0;
+      lastTsRef.current = 0;
+      startTsRef.current = 0;
+
+      setTimeLeft(GAME_TIME);
+      setFinalScore(null);
+
+      // 낙관적 점수 리셋(서버 동기화 오기 전 표시 안정)
+      setScore(0);
     }
-    if (runningRef.current) return;
+
     setRunning(true);
-    runningRef.current = true; // ★ 즉시 ref 동기화
-    startTsRef.current = performance.now(); // 시작 시각 저장
-    lastTsRef.current = startTsRef.current; // 첫 dt 안정화
+    runningRef.current = true;
+
+    startTsRef.current = performance.now();
+    lastTsRef.current = startTsRef.current;
     lastSpawnRef.current = startTsRef.current;
-    rafRef.current && cancelAnimationFrame(rafRef.current);
+
     rafRef.current = requestAnimationFrame(tick);
     wrapRef.current?.focus();
   };
-  const pause = () => {
+
+  const internalPause = () => {
+    if (!runningRef.current) return;
     setRunning(false);
-    runningRef.current = false; // ★ 즉시 ref 동기화
+    runningRef.current = false;
     elapsedOffsetMsRef.current += performance.now() - startTsRef.current;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  };
-  const restart = () => {
-    pause();
-    start(true);
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
   };
 
   const goToHome = () => {
+    try {
+      emitMiniGameLeave();
+    } catch {}
     navigate("/home");
   };
 
-  // 정리
+  // ----- 언마운트 정리 -----
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (overTimeoutRef.current) {
+        clearTimeout(overTimeoutRef.current);
+        overTimeoutRef.current = null;
+      }
+      try {
+        emitMiniGameLeave();
+      } catch {}
     };
   }, []);
 
+  // =============== 렌더 ===============
   return (
     <div
       ref={wrapRef}
@@ -287,11 +394,11 @@ export default function FallingFoodPage() {
       style={{ backgroundImage: `url(${background})` }}
     >
       {/* HUD */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-6 text-white z-10">
-        <div className="px-4 py-2 bg-black/50 rounded-xl text-lg font-semibold">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-6 text-rose-500 z-10">
+        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-2xl font-semibold">
           ⏱ {timeLeft}s
         </div>
-        <div className="px-4 py-2 bg-black/50 rounded-xl text-lg font-semibold">
+        <div className="px-4 py-2 bg-rose-100/70 rounded-xl text-2xl font-semibold">
           ⭐ {score}
         </div>
       </div>
@@ -302,35 +409,37 @@ export default function FallingFoodPage() {
         alt="대표캐릭터"
         className="absolute bottom-0 w-40 h-40 z-10 select-none"
         draggable={false}
-        style={{ left: Math.round(playerX.current) }}
+        style={{ left: playerRx.current * vw }}
       />
 
       {/* 아이템 */}
-      {itemsRef.current.map((it) => (
-        <img
-          key={it.id}
-          src={ITEM_TYPES[it.type].img}
-          alt={it.type}
-          className="absolute z-0 select-none"
-          draggable={false}
-          style={{ left: it.x, top: it.y, width: it.size, height: it.size }}
-        />
-      ))}
+      {itemsRef.current.map((it) => {
+        const ix = it.rx * vw;
+        const iy = it.ry * vh;
+        return (
+          <img
+            key={it.id}
+            src={ITEM_TYPES[it.type].img}
+            alt={it.type}
+            className="absolute z-0 select-none"
+            draggable={false}
+            style={{ left: ix, top: iy, width: it.size, height: it.size }}
+          />
+        );
+      })}
 
       {/* 획득 효과 */}
       {hitEffectsRef.current.map((fx) => {
         const progress = Math.min(1, (performance.now() - fx.start) / 1000);
-        const translateY = -progress * 40;
-        const opacity = 1 - progress;
         return (
           <div
             key={fx.id}
             className="absolute z-20 font-bold text-3xl select-none pointer-events-none"
             style={{
               left: fx.x,
-              top: fx.y + translateY,
+              top: fx.y - progress * 40,
               color: fx.color,
-              opacity,
+              opacity: 1 - progress,
               transform: "translateX(-50%)",
             }}
           >
@@ -339,20 +448,19 @@ export default function FallingFoodPage() {
         );
       })}
 
-      {/* 컨트롤 바 */}
+      {/* 컨트롤 */}
       <div
-        className={`absolute z-10 flex gap-3
-    ${
-      !running && timeLeft === GAME_TIME
-        ? "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        : "top-20 left-1/2 -translate-x-1/2"
-    }`}
+        className={`absolute z-10 flex gap-3 ${
+          !running && timeLeft === GAME_TIME
+            ? "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            : "top-20 left-1/2 -translate-x-1/2"
+        }`}
       >
-        {/* START: 아직 시작 전 */}
         {!running && timeLeft === GAME_TIME && (
           <button
             onClick={() => {
-              start(true);
+              emitMiniGameJoin();
+              internalStart(true);
               playSound("game_start");
             }}
             className="px-5 py-2 h-15 w-28 text-md shadow-cyan-600 bg-cyan-500 text-white font-bold shadow"
@@ -361,11 +469,10 @@ export default function FallingFoodPage() {
           </button>
         )}
 
-        {/* PAUSE / RESUME */}
         {running ? (
           <button
             onClick={() => {
-              pause();
+              internalPause();
               playSound("click");
             }}
             className="px-5 py-2 shadow-amber-600 bg-amber-500 text-white font-bold shadow"
@@ -377,7 +484,7 @@ export default function FallingFoodPage() {
           timeLeft < GAME_TIME && (
             <button
               onClick={() => {
-                start();
+                internalStart(false);
                 playSound("click");
               }}
               className="px-5 py-2 shadow-sky-600 bg-sky-500 text-white font-bold shadow"
@@ -386,33 +493,9 @@ export default function FallingFoodPage() {
             </button>
           )
         )}
-        {/* ✅ RESTART: 게임 중/일시정지 중에도 항상 보이기 */}
-        {timeLeft > 0 && timeLeft < GAME_TIME && (
-          <button
-            onClick={() => {
-              restart();
-              playSound("click");
-            }}
-            className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
-          >
-            다시시작
-          </button>
-        )}
-
-        {/* RESTART */}
-        {!running && timeLeft === 0 && (
-          <button
-            onClick={() => {
-              restart();
-              playSound("click");
-            }}
-            className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
-          >
-            다시시작
-          </button>
-        )}
       </div>
 
+      {/* 나가기 */}
       <div className="absolute top-10 right-20 translate-x-1/2 flex gap-3 z-10">
         <button
           onClick={() => {
@@ -425,8 +508,8 @@ export default function FallingFoodPage() {
         </button>
       </div>
 
+      {/* 설명 버튼 */}
       <div className="absolute top-10 left-10 translate-x-1/2 flex gap-3 z-10">
-        {/* i: 설명 */}
         <button
           onClick={() => {
             setShowInfo(true);
@@ -443,11 +526,28 @@ export default function FallingFoodPage() {
       {!running && timeLeft === 0 && (
         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-20">
           <div className="text-3xl font-bold mb-2">GAME OVER</div>
-          <div className="text-xl mb-6">최종 점수: {score}</div>
+          <div
+            className={`text-xl mb-6 font-bold ${
+              (finalScore ?? score) >= 600 ? "text-green-400" : "text-rose-400"
+            }`}
+          >
+            최종 점수: {finalScore ?? score}
+          </div>
+          <div className="text-lg mb-6">
+            {(finalScore ?? score) >= 600 ? (
+              <p className="flex items-center text-yellow-400 font-bold">
+                <img src={coin} alt="coin" className="w-6 h-6 mr-1" />
+                10코인 <span className="text-white ml-1">획득 !</span>
+              </p>
+            ) : (
+              "ㅠㅠ 다시 도전하세요"
+            )}
+          </div>
           <div className="gap-3 flex">
             <button
               onClick={() => {
-                restart();
+                emitMiniGameJoin();
+                internalStart(true);
                 playSound("click");
               }}
               className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold shadow"
@@ -472,32 +572,32 @@ export default function FallingFoodPage() {
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-rose-100 text-black rounded-xl shadow-lg p-6 w-[400px]">
             <h2 className="text-xl font-bold mb-4">게임 설명</h2>
-            <p className="mb-2">좌우 방향키로 당신의 푸키를 움직이세요 !</p>
+            <p className="mb-2">좌우 방향키로 푸키를 움직이세요!</p>
             <p className="mb-6 text-xs">
-              떨어지는 재료를 먹으면 점수를 얻을 수 있습니다
+              떨어지는 재료를 먹으면 점수를 얻습니다.
             </p>
-            <ul className="list-disc pl-5 mb-4">
-              <li>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li className="flex items-center gap-2">
+                <img src={egg} alt="계란" className="w-8 h-8" />
                 계란: <b className="text-green-500">+30점</b>
-                <img src={egg} alt="계란" className="w-10 h-10" />
               </li>
-              <li>
+              <li className="flex items-center gap-2">
+                <img src={milk} alt="우유" className="w-8 h-8" />
                 우유: <b className="text-green-500">+20점</b>
-                <img src={milk} alt="우유" className="w-10 h-10" />
               </li>
-              <li>
+              <li className="flex items-center gap-2">
+                <img src={sugar} alt="설탕" className="w-8 h-8" />
                 설탕: <b className="text-green-500">+10점</b>
-                <img src={sugar} alt="설탕" className="w-10 h-10" />
               </li>
-              <li>
+              <li className="flex items-center gap-2">
+                <img src={poop} alt="똥" className="w-8 h-8" />
                 똥: <b className="text-red-500">-20점</b>
-                <img src={poop} alt="똥" className="w-10 h-10" />
               </li>
             </ul>
-            <p className="mb-6 text-xs">
+            <p className="mb-6 text-md">
               <b className="text-pink-500">30초</b> 동안{" "}
-              <b className="text-violet-500">600점</b> 이상을 획득 시{" "}
-              <b className="text-amber-500">10코인</b> 지급 !
+              <b className="text-violet-500">600점</b> 이상이면{" "}
+              <b className="text-amber-500">10코인</b> 지급!
             </p>
             <div className="flex justify-end">
               <button
@@ -510,6 +610,14 @@ export default function FallingFoodPage() {
           </div>
         </div>
       )}
+
+      {/* 에러 모달 */}
+      <PopUpModal
+        isOpen={errorModalOpen}
+        onClose={() => setErrorModalOpen(false)}
+        title="요청 오류"
+        description="요청 처리에 문제가 발생해 홈으로 이동합니다."
+      />
     </div>
   );
 }

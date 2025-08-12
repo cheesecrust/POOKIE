@@ -277,9 +277,7 @@ const SamePosePage = () => {
           ? res.data
           : typeof res.data === "string"
             ? res.data.toLowerCase() === "true"
-            : Boolean(
-                res.data?.success ?? res.data?.match ?? res.data?.ok ?? false
-              );
+            : Boolean(res.data?.all_pass ?? false);
 
       setServerVerdict(verdict);
       setPendingAnswer(true); // 이후 타이머 타이밍 맞춰 제출
