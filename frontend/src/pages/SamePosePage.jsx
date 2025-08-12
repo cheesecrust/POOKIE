@@ -133,7 +133,6 @@ const SamePosePage = () => {
 
   // 팀끼리 사진 캡쳐 (participants + role 기반) → FastAPI 업로드
   const handleCapture = async () => {
-    if (!isHost) return; // ✅ 방장만 캡쳐/업로드
     if (!participants?.length) return; // (옵션) 트랙 준비 전엔 스킵
     console.log("📸 사진 촬영 시작");
 
@@ -243,6 +242,7 @@ const SamePosePage = () => {
       })
     );
 
+    if (!isHost) return; // ✅ 방장만 캡쳐/업로드
     // 업로드
     console.log("🚀 업로드 시작:", import.meta.env.VITE_FASTAPI_URL);
 
