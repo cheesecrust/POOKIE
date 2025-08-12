@@ -205,10 +205,23 @@ def _hand_points_and_conf(image_bgr, w, h, wrists=None, elbows=None, vis=None):
         else:
             pts.extend([[-1.0, -1.0]] * HAND_POINTS_PER_HAND); confs.extend([0.0]*HAND_POINTS_PER_HAND)
 
+    # 손 메타에 vis 저장 
     return (np.array(pts, np.float32),
             np.array(confs, np.float32),
             draw,
-            {"status": status, "rois": rois})
+            {"status": status, "rois": rois, "vis": dict(vis or {})})
+
+
+# ================== “아무 포즈도 안함(idle)” 판정 함수 ==================
+def _is_idle_pose(hand_meta, vis_dict):
+    # 팔꿈치·손목 모두 신뢰도 낮고, 손도 양쪽 다 'absent_or_uncertain' 이면 idle
+    lw = vis_dict.get("LW", 0.0); rw = vis_dict.get("RW", 0.0)
+    le = vis_dict.get("LE", 0.0); re = vis_dict.get("RE", 0.0)
+    wrists_low  = (lw < HAND_VIS_TH) and (rw < HAND_VIS_TH)
+    elbows_low  = (le < HAND_VIS_TH) and (re < HAND_VIS_TH)
+    hands_absent = all(s == "absent_or_uncertain" for s in hand_meta["status"].values())
+    return wrists_low and elbows_low and hands_absent
+
 
 # ================== 상반신 벡터/신뢰도 추출 ==================
 def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str, save_prefix: str = ""):
@@ -264,7 +277,8 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str,
             "RE": float(pres.pose_landmarks.landmark[RE].visibility),
         }
 
-    hand_xy, hand_conf, hand_draw, hand_meta = _hand_points_and_conf(image, w, h, wrists=wrists, elbows=elbows, vis=vis)
+    hand_xy, hand_conf, hand_draw, hand_meta = _hand_points_and_conf(
+                        image, w, h, wrists=wrists, elbows=elbows, vis=vis)
 
     mask = (hand_xy[:, 0] < 0) & (hand_xy[:, 1] < 0)
     if np.any(mask):
@@ -331,6 +345,8 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str,
     vis_path = os.path.join(save_dir, f"vis_{prefix_part}{name_base}.jpg")
     atomic_write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR), vis_path)
 
+    is_idle = _is_idle_pose(hand_meta, vis)
+
     return {
         "vec_xy": vec_xy,
         "vec_xyz": vec_xyz,
@@ -338,6 +354,7 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str,
         "vis_path": vis_path,
         "has_world": bool(has_world),
         "hand_meta": hand_meta,
+        "is_idle": bool(is_idle),
     }
 
 # ================== 유사도(Confidence Distance: CDmax) ==================
@@ -454,11 +471,14 @@ def _expected_hand_set(meta):
     # present_detected 또는 present_missed(있어야 하나 미검출)만 “사용 의도”로 간주
     return {s for s, st in meta["status"].items() if st in ("present_detected", "present_missed")}
 
-def _hands_pair_ok(mi, mj):
+def _hands_pair_ok(mi, mj, allow_cross_side_single=False):
     Si = _expected_hand_set(mi); Sj = _expected_hand_set(mj)
     if len(Si) != len(Sj):
         return False, f"different hand count: {sorted(Si)} vs {sorted(Sj)}"
     if len(Si) == 1 and Si != Sj:
+        # 세 명 모두가 '한 손만' 상황이면 좌우 반대 허용
+        if allow_cross_side_single:
+            return True, None
         return False, f"different single-hand side: {sorted(Si)} vs {sorted(Sj)}"
     return True, None
 
@@ -516,6 +536,7 @@ async def upload_images(
     vecs_xy, vecs_xyz, confs, vis_paths = [], [], [], []
     hand_metas = []
 
+    idle_flags = []
     for file in images:
         contents = await file.read()
         out = extract_upper_body_vectors(contents, file.filename, save_dir=base_dir, save_prefix=prefix)
@@ -526,12 +547,21 @@ async def upload_images(
         confs.append(out["vec_conf"])
         vis_paths.append(out["vis_path"])
         hand_metas.append(out["hand_meta"])
+        idle_flags.append(bool(out.get("is_idle", False)))
+
+    # ── 규칙 #1: 모두 idle이면 => 아무 포즈도 안하면 무조건 탈락 ──
+    all_idle = all(idle_flags)
+
+    # ── 규칙 #2 준비: 세 명 모두 '한 손만'인지 체크 ──
+    def _hand_count(meta): return len(_expected_hand_set(meta))
+    all_onehand = all(_hand_count(m) == 1 for m in hand_metas)
 
     # ── (쌍별) 손 패턴 사전검사 ──
     pairs = [(0,1), (1,2), (0,2)]
     pair_gate = {}
     for a,b in pairs:
-        ok, reason = _hands_pair_ok(hand_metas[a], hand_metas[b])
+        ok, reason = _hands_pair_ok(hand_metas[a], hand_metas[b],
+                                    allow_cross_side_single=all_onehand)
         pair_gate[f"{a+1}-{b+1}"] = {"ok": ok, "reason": reason}
 
     # ── 유사도 점수 계산 ──
@@ -554,12 +584,16 @@ async def upload_images(
     s13 = pair_score(0, 2)
     s23 = pair_score(1, 2)
 
-    if PASS_POLICY == "all":
-        match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD and s23 >= PASS_THRESHOLD)
-    elif PASS_POLICY == "ref":
-        match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD)  # 1번 기준
-    else:  # majority
-        match = (sum(s >= PASS_THRESHOLD for s in [s12, s13, s23]) >= 2)
+    # 최종 판정
+    if all_idle:
+        match = False   # 규칙 #1 강제 탈락
+    else:
+        if PASS_POLICY == "all":
+            match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD and s23 >= PASS_THRESHOLD)
+        elif PASS_POLICY == "ref":
+            match = (s12 >= PASS_THRESHOLD and s13 >= PASS_THRESHOLD)
+        else:
+            match = (sum(s >= PASS_THRESHOLD for s in [s12, s13, s23]) >= 2)
 
     similarities = {"1-2": round(s12, 3), "1-3": round(s13, 3), "2-3": round(s23, 3)}
 
@@ -591,6 +625,8 @@ async def upload_images(
         "results_url_base": f"/results/{today_dir}/{gameId}/",
         "hand_status": hand_status,
         "pair_gate": pair_gate,
+        "rule_flags": {"all_idle": all_idle, "all_onehand": all_onehand},
+        "idle_per_image": idle_flags,
     }
 
 # 정적 서빙
