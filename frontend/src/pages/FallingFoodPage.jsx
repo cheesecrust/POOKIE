@@ -445,6 +445,11 @@ export default function FallingFoodPage() {
                 <img src={poop} alt="똥" className="w-10 h-10" />
               </li>
             </ul>
+            <p className="mb-6 text-xs">
+              <b className="text-pink-500">30초</b> 동안{" "}
+              <b className="text-violet-500">600점</b> 이상을 획득 시{" "}
+              <b className="text-amber-500">10코인</b> 지급 !
+            </p>
             <div className="flex justify-end">
               <button
                 onClick={() => setShowInfo(false)}
