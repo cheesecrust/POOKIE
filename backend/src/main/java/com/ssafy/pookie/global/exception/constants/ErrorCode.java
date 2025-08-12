@@ -28,7 +28,10 @@ public enum ErrorCode {
 
     INVALID_USER_ACCOUNT(HttpStatus.BAD_REQUEST, "UserAccount가 아직 DB에 저장되지 않았습니다."),
 
-    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다.");
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다."),
+
+    // 이미 보낸 요청입니다.
+    ALREADY_SENT(HttpStatus.BAD_REQUEST, "이미 보낸 친구 요청입니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
