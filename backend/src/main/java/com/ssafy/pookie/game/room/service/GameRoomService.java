@@ -80,7 +80,6 @@ public class GameRoomService {
             }
             joinDto.getUser().setStatus(UserDto.Status.READY);
             joinDto.getUser().setRepCharacter(characterService.getRepPookie(joinDto.getUser().getUserAccountId()));
-            System.out.println(joinDto.getUser().getRepCharacter().getCharacterName());
             // 세션 설정
             // 게임 설정
             // 각 팀에 유저 배치
@@ -316,14 +315,13 @@ public class GameRoomService {
 
     // Sending Message
     // 방이 생성되었을 때, GAME 중이 아닌, Lobby 에 있는 상태의 player 들에게 정보 업데이트
-    public void broadCastCreateRoomEvent(RoomStateDto room) {
+    public void broadCastCreateRoomEvent(RoomStateDto room) throws IOException {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
-                    messageSenderManager.sendMessageToUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
                 } catch (Exception e) {
                     log.error("{}", e.getMessage());
-                    throw e;
                 }
             }
         });

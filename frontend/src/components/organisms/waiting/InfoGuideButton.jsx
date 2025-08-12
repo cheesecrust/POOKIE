@@ -133,8 +133,12 @@ function SamePoseGuide() {
       <ul className="list-disc pl-5">
         <img src={samepose_pose} alt="samepose_pose" />
         <li>
-          카운트 다운 후 <b className="text-rose-500">"찰 칵!"</b> 순간에
-          팀원들과 포즈 일치 시 정답!
+          카운트 다운 <b className="text-cyan-500">3 2 1 </b>후{" "}
+          <b className="text-rose-500">"찰 칵!"</b> 순간에 팀원들과 포즈 일치 시
+          정답!
+        </li>
+        <li>
+          <b>찰 칵 !</b> 순간을 잘 맞추는 것이 중요합니다
         </li>
       </ul>
     </div>

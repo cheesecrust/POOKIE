@@ -132,7 +132,7 @@ public class RoomStateDto {
         if(this.getTurn() == Turn.RED) this.setTurn(Turn.BLUE);
         else this.setTurn(Turn.RED);
         // 실행 중인 타이머가 있다면 종료
-        this.timer.stop();
+        if(timer!=null) this.timer.stop();
     }
 
     private String win;
@@ -155,7 +155,7 @@ public class RoomStateDto {
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
         }
-        this.timer.stop();
+        if(timer!=null) this.timer.stop();
     }
 
     public Map<String, Object> gameOver() {
