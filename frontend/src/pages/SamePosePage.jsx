@@ -278,7 +278,7 @@ const SamePosePage = () => {
           : typeof res.data === "string"
             ? res.data.toLowerCase() === "true"
             : Boolean(
-                res.data?.success ?? res.data?.match ?? res.data?.ok ?? false
+                res.data?.all_pass ?? false
               );
 
       setServerVerdict(verdict);
