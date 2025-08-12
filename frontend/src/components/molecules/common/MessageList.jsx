@@ -48,7 +48,7 @@ const MessageList = ({ messageType, messages = [], onDelete, onReport, onAccept,
                 date={message.createdAt}
                 messageContent={message.message}
                 requestId={message.requestId}
-                isRead={message.status}
+                status={message.status}
                 onDelete={onDelete}
                 onReport={onReport}
               />

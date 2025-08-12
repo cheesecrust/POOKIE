@@ -40,6 +40,7 @@ const InventoryCard = ({ item, onUseSuccess }) => {
     try {
       const res = await axiosInstance.post(`/inventories/${item.idx}`);
       // 성공
+      console.log("인벤토리 아이템 사용",res);
       onUseSuccess && onUseSuccess(); // 인벤토리/유저정보 갱신
       playSound("pookie");
       openModal("아이템을 사용했습니다!");
@@ -59,12 +60,10 @@ const InventoryCard = ({ item, onUseSuccess }) => {
   const disabled = loading || item.amount <= 0;
 
   return (
-    <div className="w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md hover:scale-105 transition-transform">
-      <img
-        src={itemimage[item.image]}
-        alt={item.itemName}
-        className="w-14 h-16 object-contain mb-2"
-      />
+    <div
+      className={`relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md transition-transform`}
+    >
+      <img src={itemimage[item.image]} alt={item.itemName} className="w-14 h-16 object-contain mb-2" />
       <h3 className="font-bold text-lg">{item.itemName}</h3>
       <p className="text-sm text-gray-600">경험치: {item.exp}</p>
       <p className="text-sm text-gray-600">수량: {item.amount}</p>
@@ -76,7 +75,7 @@ const InventoryCard = ({ item, onUseSuccess }) => {
         {loading ? "사용중..." : "사용"}
       </RightButton>
 
-      {/* 모달 */}
+      {/* 카드 위에 바로 뜨는 모달 (백드롭 없음) */}
       <MyRoomModal
         isOpen={modalOpen}
         title="인벤토리"
