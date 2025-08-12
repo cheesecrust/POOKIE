@@ -31,6 +31,9 @@ const MyRoomPage = () => {
   const [step, setStep] = useState(null);
   const [exp, setExp] = useState(null);
 
+  // 성장중인 푸키
+  const [growingPookie, setGrowingPookie] = useState(null);
+
   // 대표/성장 요약 (도감에서)
   const [dexSummary, setDexSummary] = useState({ repName: null, growingName: null });
 
@@ -43,6 +46,9 @@ const MyRoomPage = () => {
 
   // step 비교용
   const prevStepRef = useRef(null);
+
+  // 인벤토리 탭 on/off
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
 
   // 도감 요약 조회 (growing/represent)
   const loadDexSummary = async () => {
@@ -62,6 +68,7 @@ const MyRoomPage = () => {
   const fetchAuthInfo = async () => {
     try {
       const res = await axiosInstance.get("/auth/info");
+      console.log("auth/info",res.data.data);
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
@@ -74,7 +81,7 @@ const MyRoomPage = () => {
 
   // 둘 다 새로고침 (도감/좌측 동기화)
   const refreshAll = async () => {
-    await Promise.allSettled([fetchAuthInfo(), loadDexSummary()]);
+    await Promise.allSettled([fetchAuthInfo(), loadDexSummary(), myPookie()]);
   };
 
   // 공용 이펙트 트리거
@@ -88,6 +95,17 @@ const MyRoomPage = () => {
       refreshAll();
     }, 1800);
   };
+
+  // 키우고 있는 푸키 조회 
+  const myPookie = async() => {
+    try {
+      const res = await axiosInstance.get("/characters/my-pookie");
+      setGrowingPookie(res.data);
+      console.log("my-pookie",res.data);
+    } catch (err) {
+      console.log("my-pookie 에러", err);
+    }
+  }
 
   // 초기 로드
   useEffect(() => {
@@ -109,6 +127,12 @@ const MyRoomPage = () => {
       if (evolveTimeRef.current) clearTimeout(evolveTimeRef.current);
     };
   }, [step]);
+
+  // 인벤토리 탭 누를때마다 myPookie() 갱신 
+  useEffect(() => {
+    setIsInventoryOpen(activeTab === "인벤토리");
+    if (activeTab === "인벤토리") myPookie();
+  }, [activeTab]);
 
   // 대표 변경 이펙트
   useEffect(() => {
@@ -148,19 +172,19 @@ const MyRoomPage = () => {
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded-md">
-                  <span className="font-semibold">대표 캐릭터:</span>
-                  <span>{userInfo?.repCharacter?.characterName}</span>
+                {!isInventoryOpen ? <span className="font-semibold">대표 푸키:</span> : <span className="font-semibold">성장중인 푸키:</span>}
+                  {!isInventoryOpen ? <span>{userInfo?.repCharacter?.characterName}</span> : <span>{growingPookie?.name}</span>}
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded-md">
-                  <span className="font-semibold">레벨:</span>
-                  <span>LV {typeof step === "number" ? step + 1 : "-"}</span>
+                  {!isInventoryOpen ? <span className="font-semibold">레벨:</span> : <span className="font-semibold">레벨:</span>}
+                  {!isInventoryOpen ? <span>LV {typeof step === "number" ? step + 1 : "-"}</span> : <span>LV {typeof growingPookie?.step === "number" ? growingPookie.step + 1 : "-"}</span>}
                 </div>
 
                 <div className="p-2 rounded-md">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold">Exp:</span>
-                    <UserExp step={step} exp={exp} forceFull={forceFull} />
+                    {!isInventoryOpen ? <span className="font-semibold">Exp:</span> : <span className="font-semibold">Exp:</span>}
+                    {!isInventoryOpen ? <UserExp step={step} exp={exp} forceFull={forceFull} /> : <UserExp step={growingPookie?.step} exp={growingPookie?.exp}  />}
                   </div>
                 </div>
               </div>
@@ -171,7 +195,7 @@ const MyRoomPage = () => {
               <div className="w-full h-full flex items-center justify-center">
                 <img
                   src={
-                    characterImageMap[userInfo?.repCharacter?.characterName] ||
+                    !isInventoryOpen ? characterImageMap[userInfo?.repCharacter?.characterName] : characterImageMap[growingPookie?.name] ||
                     characterImageMap.default
                   }
                   alt="대표 캐릭터"

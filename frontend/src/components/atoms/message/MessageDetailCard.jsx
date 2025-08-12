@@ -15,6 +15,7 @@ const MessageDetailCard = ({ isOpen, detail, onClose }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
+  console.log("detail 들어옴 ", detail);
   if (!isOpen) return null;
 
   return (
@@ -25,7 +26,7 @@ const MessageDetailCard = ({ isOpen, detail, onClose }) => {
       onClick={onClose} 
     >
       <div
-        className="w-[360px] max-w-[92vw] rounded-2xl bg-white border-2 border-black shadow-2xl p-5"
+        className="w-[360px] max-h-[400px] rounded-2xl bg-white border-2 border-black shadow-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-xl font-bold mb-3">쪽지 상세</h3>
@@ -34,16 +35,6 @@ const MessageDetailCard = ({ isOpen, detail, onClose }) => {
             <div className="flex justify-between">
               <span className="font-semibold">보낸 사람</span>
               <span>{detail.senderNickname}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">받는 사람</span>
-              <span>{detail.receiverNickname}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">상태</span>
-              <span className="px-2 py-0.5 rounded-full border text-xs">
-                {detail.status}
-              </span>
             </div>
             <div>
               <span className="font-semibold">내용</span>
@@ -60,8 +51,7 @@ const MessageDetailCard = ({ isOpen, detail, onClose }) => {
           확인
         </button>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 };
 

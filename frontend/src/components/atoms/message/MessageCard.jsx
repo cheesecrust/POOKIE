@@ -9,26 +9,31 @@ const MessageCard = ({
   date,
   messageContent,
   requestId,
-  isRead,
+  status,
   onDelete,
   onReport,
 }) => {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const isReceived = messageType === "received";
 
   const openDetail = async () => {
     if (!isReceived || !requestId) return;
-    setOpen(true);
+    setLoading(true);
     try {
       const res = await axiosInstance.get(`/letter/${requestId}/detail`);
-      setDetail(res.data?.data ?? null);
+      console.log("쪽지 상세 조회:", res.data.data);
+      setDetail(res.data.data);
+      
+      setOpen(true);
     } catch (e) {
       console.log("쪽지 상세 조회 실패:", e);
     }
   };
 
+  console.log("status", status);
   return (
     <>
       <div
@@ -54,7 +59,7 @@ const MessageCard = ({
           {messageType === "sent" && (
             <>
               <span className="text-gray-500 italic">
-                {isRead === 1 || isRead === "READ" ? "읽음" : "읽지 않음"}
+                {status === "1" ? "읽지 않음" : "읽음"}
               </span>
               <button
                 onClick={() => onDelete?.(requestId, messageType)}
