@@ -46,7 +46,7 @@ public class GameTimerDto {
     }
 
     public void stop() {    // 현재 실행중인 타이머가 있다면 중지
-        if(scheduledTask != null && !scheduledTask.isCancelled()) scheduledTask.cancel(false);
+        if(isRunning()) scheduledTask.cancel(false);
     }
 
     public boolean isRunning() { return scheduledTask != null && !scheduledTask.isCancelled(); }
