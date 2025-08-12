@@ -165,15 +165,13 @@ const CharacterDex = ({ onAfterChange }) => {
   const rep = dex.find(d => d.represent) || null;
   const growingNames = dex.filter(d => d.growing).map(d => d.characterName);
   const canGetNewPookie = isPookieButtonActive && !newPookieLoading;
-  console.log("growingNames", growingNames);
-  console.log("rep", rep);
   return (
     <div className="w-full">
       {/* 상단 안내 + 버튼 */}
       <div className="mb-3 flex flex-col items-center gap-2">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">푸키 LV3</span>되면 <span className="font-semibold">새로운 푸키푸키</span>를 발급받아요.
-          더블클릭하면 대표 푸키를 바꿀 수 있어요!
+          <span className="font-semibold"> 더블클릭</span>하면 대표 푸키를 바꿀 수 있어요!
         </p>
 
         <div className="flex items-center gap-2 flex-wrap w-full justify-center">

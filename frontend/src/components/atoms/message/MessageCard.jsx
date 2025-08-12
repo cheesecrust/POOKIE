@@ -11,7 +11,6 @@ const MessageCard = ({
   requestId,
   status,
   onDelete,
-  onReport,
 }) => {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);
@@ -33,7 +32,6 @@ const MessageCard = ({
     }
   };
 
-  console.log("status", status);
   return (
     <>
       <div
@@ -72,9 +70,9 @@ const MessageCard = ({
 
           {isReceived && (
             <>
-              <button onClick={onReport} className="text-red-500 hover:underline">
+              {/* <button onClick={onReport} className="text-red-500 hover:underline">
                 신고
-              </button>
+              </button> */}
               <button
                 onClick={() => onDelete?.(requestId, messageType)}
                 className="text-gray-400 hover:underline"
