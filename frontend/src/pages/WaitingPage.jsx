@@ -448,10 +448,11 @@ const WaitingPage = () => {
         </div>
 
         <div className="basis-4/8 relative flex justify-center items-center">
+          <p className="text-xl text-white">까 꿍 ^_^</p>
           <div className="absolute bottom-0">
             <ChatBox
               className="w-full"
-              height="300px"
+              height="400px"
               roomId={room.id}
               team={team}
             />

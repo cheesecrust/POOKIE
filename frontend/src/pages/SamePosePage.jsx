@@ -122,6 +122,9 @@ const SamePosePage = () => {
   const [serverVerdict, setServerVerdict] = useState(null);
   const didSubmitRef = useRef(false); // 중복 방지
 
+  // 유저에게 찍힌 사진 보여주기
+  const [capturePreviews, setCapturePreviews] = useState([]);
+
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
     (state) => state.handleTimerPrepareSequence
@@ -141,10 +144,7 @@ const SamePosePage = () => {
     // 단일 트랙 캡처
     const captureTrack = (trackObj, nickname) => {
       return new Promise((resolve) => {
-        if (!trackObj?.mediaStreamTrack) {
-          console.warn(`⚠️ ${nickname}의 track 없음`);
-          return resolve();
-        }
+        if (!trackObj?.mediaStreamTrack) return resolve(null);
 
         const videoEl = document.createElement("video");
         videoEl.srcObject = new MediaStream([trackObj.mediaStreamTrack]);
@@ -166,10 +166,15 @@ const SamePosePage = () => {
               canvas.toBlob(
                 (blob) => {
                   if (blob) {
+                    // 1) 업로드용
                     formData.append("images", blob, `${nickname}.jpg`);
+                    // 2) 모달 표시용 미리보기 URL
+                    const url = URL.createObjectURL(blob);
+                    resolve({ url });
+                  } else {
+                    resolve(null);
                   }
                   videoEl.remove();
-                  resolve();
                 },
                 "image/jpeg",
                 0.9
@@ -183,7 +188,7 @@ const SamePosePage = () => {
             }
           } catch (err) {
             console.error("❌ 비디오 캡처 실패:", err);
-            resolve();
+            resolve(null);
           }
         });
       });
@@ -217,7 +222,14 @@ const SamePosePage = () => {
     );
 
     // 병렬 캡처
-    await Promise.all(targets.map((p) => captureTrack(p.track, p.nickname)));
+    const results = await Promise.all(
+      targets.map((p) => captureTrack(p.track, p.nickname))
+    );
+    const previews = results.filter(Boolean).map((r) => r.url);
+
+    // 기존 URL revoke 후 교체
+    capturePreviews.forEach((u) => URL.revokeObjectURL(u));
+    setCapturePreviews(previews);
 
     // 메타데이터 추가 (원하면 확장)
     formData.append(
@@ -456,6 +468,13 @@ const SamePosePage = () => {
     })();
   }, [isHost, showModal, countdown, round, turn]);
 
+  // 메모리 누수 방지: URL revoke
+  useEffect(() => {
+    return () => {
+      capturePreviews.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, []);
+
   // 최종 누가 이겼는지
   useEffect(() => {
     if (win) {
@@ -567,7 +586,7 @@ const SamePosePage = () => {
         <section className="basis-3/9 flex flex-col p-4">
           <div className="grid grid-cols-3 items-center gap-6 px-6">
             <div className="col-span-1 flex justify-start">
-              <div className="text-sm text-gray-700 leading-tight w-full max-w-[300px]">
+              <div className="text-sm text-gray-800 leading-tight w-full max-w-[300px]">
                 <span className="mb-2 block">제시어에 맞게</span>
                 <span className="mb-2 block">
                   최대한 <b className="text-pink-500">정자세</b>에서 동작을
@@ -654,12 +673,14 @@ const SamePosePage = () => {
 
       {/* 정답 모달 */}
       <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
-        <p className="text-6xl font-bold font-pixel">일 치 !</p>
+        <p className="text-6xl font-bold font-pixel text-cyan-600">일 치 !</p>
       </PopUpModal>
 
       {/* 오답 모달 */}
       <PopUpModal isOpen={isWrongModalOpen} onClose={closeWrongModal}>
-        <p className="text-6xl font-bold font-pixel">불 일 치 !</p>
+        <p className="text-6xl font-bold font-pixel text-pink-600">
+          불 일 치 !
+        </p>
       </PopUpModal>
 
       {/* 처리중 모달 */}
@@ -667,8 +688,23 @@ const SamePosePage = () => {
         isOpen={isProcessingModalOpen}
         onClose={() => setIsProcessingModalOpen(false)}
       >
-        <p className="text-6xl font-bold font-pixel">처리중...</p>
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-4xl font-bold font-pixel">처 리 중...</p>
+          {capturePreviews?.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 bg-pink-500 p-4">
+              {capturePreviews.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`capture-${i}`}
+                  className="w-45 h-45 object-cover rounded-lg shadow transform -scale-x-100"
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </PopUpModal>
+
       {/* 최종 승자 모달 */}
       {isResultOpen && (
         <GameResultModal

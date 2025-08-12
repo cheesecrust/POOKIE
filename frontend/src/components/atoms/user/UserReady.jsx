@@ -4,7 +4,7 @@ const UserReady = ({ team }) => {
   const bgColor = team === "red" ? "bg-rose-300" : "bg-cyan-300";
   return (
     <div
-      className={`absolute bottom-0 w-full h-1/5 ${bgColor} text-black text-center py-1 text-lg z-10`}
+      className={`absolute bottom-0 w-full h-1/5 ${bgColor} text-black flex items-center justify-center text-xl z-10`}
     >
       READY
     </div>
