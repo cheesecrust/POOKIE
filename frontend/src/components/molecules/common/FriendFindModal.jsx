@@ -8,9 +8,12 @@ import RightButton from "../../atoms/button/RightButton";
 import submit_left from "../../../assets/icon/submit_left.png";
 import Pagination from "../home/Pagination";
 import BasicModal from "../../atoms/modal/BasicModal";
-
+import useAuthStore from "../../../store/useAuthStore";
 
 const FriendFindModal = ({ onClose }) => {
+  const { user } = useAuthStore();
+  // 내 id 
+  const myAccountId = user.userAccountId;
   // 친구 nickname input
   const [nickname, setNickname] = useState("");
   // 검색 결과
@@ -29,6 +32,9 @@ const FriendFindModal = ({ onClose }) => {
 
   useEffect(() => {
     if (!nickname.trim()) return;
+    // console.log("user",user);
+    // console.log("myAccountId",myAccountId);
+
     handleSearch()
   }, [currentPage,nickname]);
 
@@ -67,6 +73,7 @@ const FriendFindModal = ({ onClose }) => {
   // 친구 요청 함수
   const handleSendRequest = async (userId,nickname) => {
     try {
+      if(myAccountId === userId) return;
       await axiosInstance.post("/friends/requests", { 
         addresseeId: userId, 
         addresseeNickname: nickname, 

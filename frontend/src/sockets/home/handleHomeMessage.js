@@ -21,34 +21,35 @@ const handleHomeMessage = (
   // 디버깅용 추가
   const updateRoomList = (roomList) => {
     console.log("📥 updateRoomList 호출됨:", roomList);
-    console.log("📥 setRoomList 함수:", typeof setRoomList);
-    console.log("📥 setRoomList 함수 내용:", setRoomList?.toString?.()?.substring(0, 100));
-
-    if (typeof setRoomList !== 'function') {
-      console.error("❌ setRoomList가 함수가 아님:", setRoomList);
-      return;
-    }
-
-    if (!Array.isArray(roomList)) {
-      console.warn("🚫 roomList가 배열이 아님:", typeof roomList, roomList);
-      return;
-    }
-
-    if (roomList.length === 0) {
-      console.warn("🚫 빈 roomList:", roomList);
-      // 빈 배열도 업데이트 해야함 (방이 모두 삭제된 경우)
-    }
-
-    console.log("📥 상태 갱신: roomList =", roomList);
-    console.log("🧩 setRoomList() 호출 직전 - 리스트 길이:", roomList.length);
-
+  
+    // 안전 처리
+    const arr = Array.isArray(roomList) ? roomList : [];
+    // 0명 방 컷 (TOTAL 또는 RED+BLUE 기준)
+    const cleaned = arr.filter((r) => {
+      const ti = r?.teamInfo ?? {};
+      const red = Number(ti.RED) || 0;
+      const blue = Number(ti.BLUE) || 0;
+      const total = Number(ti.TOTAL) || 0;
+      const cnt = Math.max(total, red + blue);
+      return cnt > 0;
+    });
+  
     try {
-      setRoomList(roomList);
-      console.log("✅ setRoomList 실행 완료");
+      // ✅ 항상 스토어를 직접 갱신 (핸들러가 비어 있어도 반영)
+      const setRoomListStore = useRoomStore.getState().setRoomList;
+      setRoomListStore(cleaned);
+  
+      // (옵션) 핸들러도 있으면 호출 – 로깅/부가처리용
+      if (typeof setRoomList === "function") {
+        setRoomList(cleaned);
+      }
+  
+      console.log("✅ roomList 갱신 완료:", cleaned.length);
     } catch (error) {
-      console.error("❌ setRoomList 실행 중 오류:", error);
+      console.error("❌ roomList 갱신 실패:", error);
     }
   };
+ 
 
   switch (data.type) {
     case "ON":
@@ -70,8 +71,9 @@ const handleHomeMessage = (
     case "ROOM_LIST": {
       console.log("ROOM_LIST 수신", data);
 
-      const roomList = data.payload?.roomList;
-      if (roomList) updateRoomList(roomList);
+      const roomList = data.roomList || data.payload?.roomList || data.rooms;
+      if (!roomList) break;
+      updateRoomList(roomList);
       break;
     }
 
@@ -88,6 +90,8 @@ const handleHomeMessage = (
           // 새 방을 roomList에 추가 (중복 방지)
           const roomExists = currentRoomList.some(room => room.roomId === newRoom.roomId);
           if (!roomExists) {
+
+            const safeTotal = Math.max(newRoom.teamInfo?.TOTAL || 0, newRoom.teamInfo?.RED || 0 + newRoom.teamInfo?.BLUE || 0, 1);
             const updatedRoomList = [...currentRoomList, {
               roomId: newRoom.roomId,
               roomTitle: newRoom.roomTitle,
@@ -95,12 +99,11 @@ const handleHomeMessage = (
               roomMaster: newRoom.roomMaster,
               roomPw: newRoom.roomPw,
               teamInfo: {
-                red: newRoom.teamInfo?.RED || 0,
-                blue: newRoom.teamInfo?.BLUE || 0,
-                total: newRoom.teamInfo?.TOTAL || 0
+                RED: newRoom.teamInfo?.RED || 0,
+                BLUE: newRoom.teamInfo?.BLUE || 0,
+                TOTAL: safeTotal
               }
             }];
-
             console.log("📋 방 추가 완료:", updatedRoomList.length, "개 방");
             updateRoomList(updatedRoomList);
           }
@@ -133,6 +136,7 @@ const handleHomeMessage = (
 
     // 추가적인 방 관련 메시지들 처리
     case "ROOM_UPDATE": {
+      console.log("ROOM_UPDATE 수신", data);
       const updatedRoom = data.room;
 
       // 현재 roomList 상태 가져오기
