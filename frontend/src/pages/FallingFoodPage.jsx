@@ -36,7 +36,7 @@ const SPAWN_INTERVAL_MS = 600; // 시작 스폰 주기
 const SPAWN_INTERVAL_MIN_MS = 220; // 최소 스폰 주기
 const SPAWN_REDUCE_MS_PER_SEC = 9; // 초당 스폰주기 감소
 
-const GAME_TIME = 45;
+const GAME_TIME = 30;
 
 export default function FallingFoodPage() {
   const { user } = useAuthStore();
@@ -332,7 +332,7 @@ export default function FallingFoodPage() {
         {!running && timeLeft === GAME_TIME && (
           <button
             onClick={start}
-            className="px-5 py-2 rounded-xl bg-emerald-500 text-white font-bold shadow"
+            className="px-5 py-2 shadow-emerald-600 bg-emerald-500 text-white font-bold shadow"
           >
             START
           </button>
@@ -342,7 +342,7 @@ export default function FallingFoodPage() {
         {running ? (
           <button
             onClick={pause}
-            className="px-5 py-2 rounded-xl bg-amber-500 text-white font-bold shadow"
+            className="px-5 py-2 shadow-amber-600 bg-amber-500 text-white font-bold shadow"
           >
             PAUSE
           </button>
@@ -351,7 +351,7 @@ export default function FallingFoodPage() {
           timeLeft < GAME_TIME && (
             <button
               onClick={start}
-              className="px-5 py-2 rounded-xl bg-sky-600 text-white font-bold shadow"
+              className="px-5 py-2 shadow-sky-600 bg-sky-500 text-white font-bold shadow"
             >
               RESUME
             </button>
@@ -362,7 +362,7 @@ export default function FallingFoodPage() {
         {!running && timeLeft === 0 && (
           <button
             onClick={restart}
-            className="px-5 py-2 rounded-xl bg-rose-600 text-white font-bold shadow"
+            className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
           >
             RESTART
           </button>
@@ -375,6 +375,14 @@ export default function FallingFoodPage() {
           title="게임 설명"
         >
           i
+        </button>
+      </div>
+      <div className="absolute top-10 right-20 translate-x-1/2 flex gap-3 z-10">
+        <button
+          onClick={goToHome}
+          className="px-5 py-2 shadow-rose-600 bg-rose-500 text-white font-bold shadow"
+        >
+          나가기
         </button>
       </div>
 
@@ -405,8 +413,10 @@ export default function FallingFoodPage() {
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-rose-100 text-black rounded-xl shadow-lg p-6 w-[400px]">
             <h2 className="text-xl font-bold mb-4">게임 설명</h2>
-            <p className="mb-2">좌우 방향키로 캐릭터를 움직입니다.</p>
-            <p className="mb-6">떨어지는 재료를 먹으면 점수가 변합니다.</p>
+            <p className="mb-2">좌우 방향키로 당신의 푸키를 움직이세요 !</p>
+            <p className="mb-6 text-xs">
+              떨어지는 재료를 먹으면 점수를 얻을 수 있습니다
+            </p>
             <ul className="list-disc pl-5 mb-4">
               <li>
                 계란: <b className="text-green-500">+30점</b>
@@ -428,7 +438,7 @@ export default function FallingFoodPage() {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowInfo(false)}
-                className="px-4 py-2 rounded-xl bg-rose-500 text-white font-bold shadow"
+                className="px-4 py-2 bg-rose-500 text-white font-bold shadow"
               >
                 닫기
               </button>
