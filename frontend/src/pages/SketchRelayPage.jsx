@@ -648,10 +648,10 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 그리는 사람 */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30">
+        <div className="absolute top-32 left-1/2 -translate-x-1/2 z-10">
           <div
             className="flex flex-col items-center bg-green-500 text-white font-semibold
-                      px-4 py-2 border-b-4 border-green-700 rounded shadow-lg"
+                      px-4 py-2 border-b-4 border-green-700 rounded"
           >
             {/* 윗줄: 아이콘 + 타이틀 */}
             <div className="flex items-center gap-2">
@@ -668,40 +668,33 @@ const SketchRelayPage = () => {
         </div>
 
         {/* 칠판과 도구 */}
-        <div className="absolute top-40 left-1/2 -translate-x-1/2 flex flex-row items-start gap-4 z-20">
+        <div className="absolute top-14 left-24 flex flex-row items-start mt-42 gap-4 my-6 z-20">
           {/* 도구 영역 */}
           <div className="flex flex-col gap-2">
             {/* 역할 표시 */}
-            <div className="mb-4 p-3 bg-white bg-opacity-90 rounded-lg min-w-[120px]">
+            <div className="mb-4 p-3 bg-white bg-opacity-90 rounded-lg">
               <div className="text-sm font-bold mb-2 text-center">내 역할</div>
               {userRole === "drawer" && (
                 <div
-                  className={`text-center p-2 rounded text-xs ${isMyTurn ? "bg-green-200" : "bg-gray-200"}`}
+                  className={`w-40 h-12 flex flex-col text-center p-2 rounded text-xs ${isMyTurn ? "bg-green-200" : "bg-gray-200"}`}
                 >
                   <div className="font-bold">그리는 사람</div>
                   <div>{isMyTurn ? "지금 내 차례!" : "차례 대기중"}</div>
-                  {userRole === "drawer" && keyword && (
-                    <div className="mt-1 text-red-600 font-bold text-sm">
-                      제시어: {keyword}
-                    </div>
-                  )}
                 </div>
               )}
               {userRole === "guesser" && (
-                <div className="text-center p-2 bg-blue-200 rounded text-xs">
+                <div className="flex flex-col text-center p-2 bg-blue-200 rounded text-xs">
                   <div className="font-bold">맞추는 사람</div>
-                  <div>그림을 보고 정답을 맞추세요!</div>
+                  <div>
+                    <span>그림을 보고</span>
+                    <br />
+                    <span>정답을 맞추세요!</span>
+                  </div>
                 </div>
               )}
               {userRole === "spectator" && (
-                <div className="text-center p-2 bg-yellow-200 rounded text-xs">
+                <div className="w-40 h-12 flex flex-col text-center p-2 bg-yellow-200 rounded text-md">
                   <div className="font-bold">관전자</div>
-                  <div>다른 팀 게임 관전</div>
-                  {keyword && (
-                    <div className="mt-1 text-red-600 font-bold text-sm">
-                      제시어: {keyword}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -738,7 +731,7 @@ const SketchRelayPage = () => {
 
             {/* 정답 입력 - 맞추는 사람만 사용 가능 */}
             {userRole === "guesser" && (
-              <div className="p-3 bg-white bg-opacity-90 rounded-lg min-w-[120px]">
+              <div className="w-46 flex flex-col text-center p-2 bg-white bg-opacity-90 rounded-lg">
                 <div className="text-sm font-bold mb-2 text-center">
                   정답 입력
                 </div>
@@ -751,7 +744,7 @@ const SketchRelayPage = () => {
                     value={answerInput}
                     onChange={(e) => setAnswerInput(e.target.value)}
                     placeholder="정답을 입력하세요"
-                    className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
                     maxLength={20}
                   />
                   <RightButton
@@ -845,9 +838,14 @@ const SketchRelayPage = () => {
 
       {/* 키워드 카드 - 그리는 사람만 표시 */}
       {(userRole === "drawer" || userRole === "spectator") && (
-        <div className="absolute top-24 left-12 z-20">
-          <KeywordCard keyword={keyword} />
-        </div>
+        <div className="absolute top-26 left-24 z-20 w-50 rounded-xl border border-gray-300 bg-white/90 backdrop-blur-sm shadow px-4 py-3 flex flex-col items-center text-center">
+          <div className="text-md font-semibold bg-gray-800 text-white px-2 py-0.5 rounded-md">
+            제시어
+          </div>
+          <div className="mt-2 text-2xl font-extrabold leading-tight break-keep text-gray-900">
+            {keyword || "로딩 중..."}
+          </div>
+        </div>      
       )}
 
       {/* 정답 모달 */}
