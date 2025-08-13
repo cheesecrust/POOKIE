@@ -57,6 +57,7 @@ const SignUpModal = ({ isOpen, onClose, onOpenLogIn }) => {
       onClose={onClose}
       className="w-[550px] min-h-[500px]"
       closeBackdropClick={false}
+      backgroundPoacity="opacity-90"
     >
       <h2 className="text-center text-2xl font-bold mt-4 mb-8">회원가입</h2>
 

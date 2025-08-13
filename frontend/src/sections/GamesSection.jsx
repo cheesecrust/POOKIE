@@ -10,7 +10,7 @@ const GAMES = [
     {
       key: "silentScream",
       title: "고요 속의 외침",
-      desc: "발화 없이 팀을 승리로!",
+      desc: "소리x, 입모양만 보고 맞춰요!",
       bg: silentScream,
     },
     {
@@ -22,7 +22,7 @@ const GAMES = [
     {
       key: "samePose",
       title: "일심동체",
-      desc: "같은 자세로 팀을 승리로!",
+      desc: "AI과 맞춰주는 팀원과의 유사도!",
       bg: samePose,
     },
   ];
