@@ -211,12 +211,18 @@ const handleHomeMessage = (
       break;
     }
 
+    case "NOTIFICATION": {
+      handlers?.onNotification?.(data);
+      break;
+    }
+
+    
     case "ERROR": {
       console.error("❌ 서버 오류:", data.msg);
       alert(data.msg);
       break;
     }
-
+    
     default:
       console.warn("처리되지 않은 메시지 타입:", data);
       break;
