@@ -21,20 +21,20 @@ const MyRoomSection = () => {
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.7 }}
           >
-            <span className="bg-white text-black px-3 py-1 rounded-full text-sm font-semibold">
+            <span className="bg-white text-black px-3 py-1 rounded-full text-xl font-semibold">
               Myroom
             </span>
             <h2 className="mt-4 text-3xl md:text-5xl font-extrabold">
               나만의 <span className="text-pink-600">푸키 도감</span>
             </h2>
             <p className="mt-4 md:text-lg leading-relaxed text-black/80">
-              미니게임에서 얻은 아이템과 캐릭터를 보관하는 공간이에요.
+              미니게임에서 얻은 아이템과 캐릭터를 보관하는 공간!
               수집한 아이템으로 푸키를 꾸미고 성장시켜 보세요!
             </p>
             <ul className="mt-6 space-y-2 text-black/80">
-              <li>• 아이템 세트 보너스</li>
-              <li>• 진화 히스토리 열람</li>
-              <li>• 희귀도 컬렉션</li>
+              <li>🤍 아이템 세트 보너스</li>
+              <li>🤍 진화 히스토리 열람</li>
+              <li>🤍 희귀도 컬렉션</li>
             </ul>
           </motion.div>
     
