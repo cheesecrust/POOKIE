@@ -68,12 +68,12 @@ public class GameTimerService {
                                         "msg", "시간이 종료되었습니다."
                                 )
                         );
-                        log.info("TIMER START SUCCESS : ROOM {}", room.getRoomId());
+                        log.info("TIMER END SUCCESS : ROOM {}", room.getRoomId());
                     } catch (IOException e) {
-                        log.error("TIMER START SUCCESS : ROOM {}", room.getRoomId());
+                        log.error("TIMER START FAIL : ROOM {}", room.getRoomId());
                         log.error("REASON : {}", e.getMessage());
                     } catch (Exception e) {
-                        log.error("TIMER START SUCCESS : ROOM {}", room.getRoomId());
+                        log.error("TIMER START FAIL : ROOM {}", room.getRoomId());
                         log.error("REASON : {}", e.getMessage());
                     } finally {
                         scheduler.shutdown();
