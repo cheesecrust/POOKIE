@@ -8,7 +8,7 @@ import coffee from "../../../assets/item/coffee.png";
 import RightButton from "../../atoms/button/RightButton";
 import axiosInstance from "../../../lib/axiosInstance";
 import useSound from "../../../utils/useSound";
-import MyRoomModal from "../../atoms/modal/MyRoomModal"; 
+import MyRoomModal from "../../atoms/modal/MyRoomModal";
 
 const itemimage = {
   "milk.png": milk,
@@ -47,7 +47,10 @@ const StoreCard = ({ item, onBuySuccess }) => {
       if (err?.response?.status === 400) {
         openModal("잔액이 부족합니다.", "error");
       } else {
-        openModal("구매 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.", "error");
+        openModal(
+          "구매 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.",
+          "error"
+        );
       }
       console.log(err);
     } finally {
@@ -56,7 +59,7 @@ const StoreCard = ({ item, onBuySuccess }) => {
   };
 
   return (
-    <div className="relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md transition-transform">
+    <div className="relative w-[250px] bg-white p-4 flex flex-col items-center hover:shadow-rose-300 shadow-md hover:scale-105 transition-transform">
       <img
         src={itemimage[item.image]}
         alt={item.name}
@@ -64,7 +67,9 @@ const StoreCard = ({ item, onBuySuccess }) => {
       />
       <h3 className="font-bold text-lg">{item.name}</h3>
       <p className="text-sm text-gray-600">경험치: {item.exp}</p>
-      <p className="text-sm text-gray-600">가격: {item.price.toLocaleString()}</p>
+      <p className="text-sm text-gray-600">
+        가격: {item.price.toLocaleString()}
+      </p>
 
       <RightButton
         className={`scale-75 ${loading ? "opacity-50 pointer-events-none" : ""}`}
