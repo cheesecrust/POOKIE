@@ -29,14 +29,17 @@ public class FollowService {
             RoomStateDto targetRoom = findRoom(targetUser.getSession());
             if(targetRoom == null) throw new IllegalArgumentException("대상이 대기방에 없습니다.");
             gameRoomService.handleJoin(request.getUser().getSession(), mapJoinRequest(targetRoom, request.getUser()));
+            log.info("Follow Request SUCCESS : {}", request.getUser().getUserNickname());
         } catch (IllegalArgumentException e) {
-            log.info("Follow Request : {}", request.getUser().getUserNickname());
+            log.error("Follow Request FAIL: {}", request.getUser().getUserNickname());
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.info("Follow Request : {}", request.getUser().getUserNickname());
+            log.error("Follow Request FAIL: {}", request.getUser().getUserNickname());
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
