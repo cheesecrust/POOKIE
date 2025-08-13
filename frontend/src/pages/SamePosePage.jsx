@@ -483,6 +483,8 @@ const SamePosePage = () => {
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 4000);
 
       return () => {
@@ -574,6 +576,10 @@ const SamePosePage = () => {
       playSound("game_over");
     }
   }, [isResultOpen, playSound]);
+
+  // 게임 정상 종료 여부
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
 
   return (
     <>
@@ -709,6 +715,8 @@ const SamePosePage = () => {
       {isResultOpen && (
         <GameResultModal
           win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
           redTeam={redTeam}
           blueTeam={blueTeam}
           onClose={() => setIsResultOpen(false)}

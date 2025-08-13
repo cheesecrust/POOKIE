@@ -76,7 +76,7 @@ const CharacterDex = ({ onAfterChange }) => {
     try {
       const res = await axiosInstance.put("/characters/representative", { id, characterId });
       setDex(prev => prev.map(d => ({ ...d, represent: d.id === id })));
-      console.log("대표 변경",res);
+      // console.log("대표 변경",res);
       onAfterChange?.();
     } catch (e) {
       console.log("대표 변경 실패:", e);
