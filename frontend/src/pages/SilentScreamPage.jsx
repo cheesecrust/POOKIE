@@ -146,6 +146,10 @@ const SilentScreamPage = () => {
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
+  // 게임 정상 종료 여부
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
+
   // 1️. 첫 페이지 로딩
   useEffect(() => {
     console.log("keywordIdx", keywordIdx);
@@ -367,14 +371,20 @@ const SilentScreamPage = () => {
 
   // 최종 누가 이겼는지
   useEffect(() => {
-    console.log(win);
-    console.log(isWinModalOpen);
+    // console.log(win);
+    // console.log(isWinModalOpen);
+    // console.log(isNormalEnd);
     if (win) {
       setIsWinModalOpen(true);
+
       const timeout = setTimeout(() => {
         // 게임 종료 후 대기방 복귀 - 정상 입장 플래그 설정
+        // 비정상 게임 종료때 IsNormalEnd false된것을 대비하여 리셋
+
         sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 5000);
 
       return () => clearTimeout(timeout);
@@ -562,6 +572,8 @@ const SilentScreamPage = () => {
       {isWinModalOpen && (
         <GameResultModal
           win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
           redTeam={redTeam}
           blueTeam={blueTeam}
           isOpen={isWinModalOpen}

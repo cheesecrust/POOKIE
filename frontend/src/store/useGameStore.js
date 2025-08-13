@@ -46,6 +46,12 @@ const useGameStore = create((set, get) => ({
     roundResult: null,
     finalScore: { RED: 0, BLUE: 0 },
 
+    // 게임 정상적인 종료 여부
+    isNormalEnd: true,
+    isAbnormalPerson: null,
+    setIsNormalEnd: (isNormalEnd) => set({ isNormalEnd }),
+    setISAbnormalPerson: (isAbnormalPerson) => set({ isAbnormalPerson }),
+
     win: 0,
 
     roomInstance: null,
@@ -437,8 +443,10 @@ const useGameStore = create((set, get) => ({
         currentDrawTurn: 0 // 게임 시작 시 초기화
     }),
 
+    // 게임 정상 종료 여부 (Interrupt 발생하면 정상적인 종료가 아님)
     setInterrupt: (data) => set({
-        interrupt: data,
+        isNormalEnd: false,
+        isAbnormalPerson: data.nickname,
     }),
 
     // 다음 그리기 턴으로 이동

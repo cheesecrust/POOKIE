@@ -53,11 +53,11 @@ const FriendFindModal = ({ onClose }) => {
     try {
       const res = await axiosInstance.get(`/friends/candidate?search=${nickname}&size=6&page=${currentPage - 1}`);
       // 백엔드가 해당 nickname을 포함한 유저들의 data 리턴 
-      console.log("응답:", res.data.data);
+      // console.log("응답:", res.data.data);
       setSearchResult(res.data.data.content); // 유저 존재
       setTotalPages(res.data.data.totalPages);
       setNotFound(res.data.data.content.length === 0);
-      console.log("검색 성공");
+      // console.log("검색 성공");
     } catch (err) {
        console.log(err);
        setSearchResult([]);
@@ -78,9 +78,9 @@ const FriendFindModal = ({ onClose }) => {
         addresseeId: userId, 
         addresseeNickname: nickname, 
       });
-      console.log(userId)
-      console.log(nickname)
-      console.log("친구 요청 완료!");
+      // console.log(userId)
+      // console.log(nickname)
+      // console.log("친구 요청 완료!");
       openConfirm(`${nickname}님에게 친구 요청을 보냈습니다!`);
     } catch (err) {
       console.log("친구 요청 실패...");

@@ -15,7 +15,6 @@ const MessageDetailCard = ({ isOpen, detail, onClose }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  console.log("detail 들어옴 ", detail);
   if (!isOpen) return null;
 
   return (

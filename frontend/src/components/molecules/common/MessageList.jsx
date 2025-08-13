@@ -1,7 +1,7 @@
 import MessageCard from '../../atoms/message/MessageCard'
 import FriendRequestCard from '../../atoms/message/FriendRequestCard'
 
-const MessageList = ({ messageType, messages = [], onDelete, onReport, onAccept, onReject}) => {
+const MessageList = ({ messageType, messages = [], onDelete, onAccept, onReject}) => {
   const totalSlots = 4
 
   return (
@@ -35,7 +35,6 @@ const MessageList = ({ messageType, messages = [], onDelete, onReport, onAccept,
                   requestId={message.requestId}
                   isRead={message.status}
                   onDelete={onDelete}
-                  onReport={onReport}
                 />
               )
             }
@@ -50,7 +49,6 @@ const MessageList = ({ messageType, messages = [], onDelete, onReport, onAccept,
                 requestId={message.requestId}
                 status={message.status}
                 onDelete={onDelete}
-                onReport={onReport}
               />
             )
           }
@@ -63,7 +61,6 @@ const MessageList = ({ messageType, messages = [], onDelete, onReport, onAccept,
               messageContent={message.messageContent}
               isRead={message.isRead}
               onDelete={onDelete}
-              onReport={onReport}
             />
           )
         } else {
