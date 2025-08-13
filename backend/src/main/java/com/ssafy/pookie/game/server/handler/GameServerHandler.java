@@ -194,7 +194,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
-            log.error("{}",e.getMessage());
+            log.error("Handler ERROR : {}", e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
             messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", "Error",
@@ -206,7 +206,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     // web socket 연결하는 순간 user를 만든다.
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("[WebSocket] Conncted : {} - {}", session.getId(), session.getAttributes().get("userNickname"));
+        log.info("[WebSocket] Conncted : {} - {}", session.getId(), session.getAttributes().get("nickname"));
 
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
