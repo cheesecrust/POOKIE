@@ -63,8 +63,11 @@ public class NotificationService {
      * 알림 보내주기
      */
     public void sendNotification(UserDto user, long notificationCnt) throws IOException {
-        Map<String, Object> notification = new HashMap<>();
-        notification.put("notificationCnt", notificationCnt);
-        onlinePlayerManager.sendToMessageUser(user.getSession(), notification);
+        onlinePlayerManager.sendToMessageUser(user.getSession(), Map.of(
+                "type", "NOTIFICATION",
+                "data", Map.of(
+                        "notificationCnt", notificationCnt
+                )
+        ));
     }
 }

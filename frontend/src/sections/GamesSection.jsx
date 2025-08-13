@@ -6,24 +6,31 @@ import sketchRelay from "../assets/background/background_sketchrelay.gif";
 import samePose from "../assets/background/background_samepose.gif";
 import scrollArrow from "../assets/icon/toggle_down.png";
 
+import silentScreamThumb from "../assets/background/Thumbnail/silentscreamThumb.png"
+import sketchRelayThumb from "../assets/background/Thumbnail/sketchrelayThumb.png"
+import samePoseThumb from "../assets/background/Thumbnail/sameposeThumb.png"
+
 const GAMES = [
     {
       key: "silentScream",
-      title: "고요 속의 외침",
-      desc: "발화 없이 팀을 승리로!",
+      title: "고요 속의 외침",  
+      desc: "소리x, 입모양만 보고 맞춰요!",
       bg: silentScream,
+      img: silentScreamThumb,
     },
     {
       key: "sketchRelay",
       title: "이어 그리기",
       desc: "그림으로 이어가는 릴레이!",
       bg: sketchRelay,
+      img: sketchRelayThumb,
     },
     {
       key: "samePose",
       title: "일심동체",
-      desc: "같은 자세로 팀을 승리로!",
+      desc: "AI가 맞춰주는 팀원과의 유사도!",
       bg: samePose,
+      img: samePoseThumb,
     },
   ];
 
@@ -48,9 +55,18 @@ const GamesSection = () => {
             >
               {/* overlay */}
               <div className="absolute inset-0 bg-black/40 transition-all group-hover:bg-black/20" />
+
               {/* content */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-wide drop-shadow">
+                {/* 이미지 카드 */}
+                <img
+                  src={g.img ?? g.bg}
+                  alt={`${g.title} 카드`}
+                  className="w-100 aspect-[16/9] object-cover rounded-xl shadow-xl border border-white/30 mb-4 pointer-events-none
+                            transition-transform duration-500 group-hover:scale-[1.03]"
+                  loading="lazy"
+                />
+                <h2 className="text-3xl md:text-4xl mt-10 font-extrabold tracking-wide drop-shadow">
                   {g.title}
                 </h2>
                 <p className="mt-3 text-base md:text-lg opacity-90">{g.desc}</p>

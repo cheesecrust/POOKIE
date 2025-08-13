@@ -10,7 +10,7 @@ import coffee from "../../../assets/item/coffee.png";
 import RightButton from "../../atoms/button/RightButton";
 import axiosInstance from "../../../lib/axiosInstance";
 import useSound from "../../../utils/useSound";
-import MyRoomModal from "../../atoms/modal/MyRoomModal"; 
+import MyRoomModal from "../../atoms/modal/MyRoomModal";
 
 const itemimage = {
   "milk.png": milk,
@@ -40,7 +40,7 @@ const InventoryCard = ({ item, onUseSuccess }) => {
     try {
       const res = await axiosInstance.post(`/inventories/${item.idx}`);
       // 성공
-      console.log("인벤토리 아이템 사용",res);
+      console.log("인벤토리 아이템 사용", res);
       onUseSuccess && onUseSuccess(); // 인벤토리/유저정보 갱신
       playSound("pookie");
       openModal("아이템을 사용했습니다!");
@@ -49,7 +49,9 @@ const InventoryCard = ({ item, onUseSuccess }) => {
       if (err?.response?.status === 404) {
         openModal("더이상 먹지 못합니다!");
       } else {
-        openModal("아이템 사용 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
+        openModal(
+          "아이템 사용 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요."
+        );
       }
       console.log("인벤토리 아이템 사용 실패:", err);
     } finally {
@@ -61,9 +63,13 @@ const InventoryCard = ({ item, onUseSuccess }) => {
 
   return (
     <div
-      className={`relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center shadow-md transition-transform`}
+      className={`relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center hover:shadow-rose-300 shadow-md hover:scale-105 transition-transform`}
     >
-      <img src={itemimage[item.image]} alt={item.itemName} className="w-14 h-16 object-contain mb-2" />
+      <img
+        src={itemimage[item.image]}
+        alt={item.itemName}
+        className="w-14 h-16 object-contain mb-2"
+      />
       <h3 className="font-bold text-lg">{item.itemName}</h3>
       <p className="text-sm text-gray-600">경험치: {item.exp}</p>
       <p className="text-sm text-gray-600">수량: {item.amount}</p>
