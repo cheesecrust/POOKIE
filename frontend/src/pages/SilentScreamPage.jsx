@@ -189,8 +189,8 @@ const SilentScreamPage = () => {
         } else if (turn === "BLUE") {
           emitRoundOver({ roomId, team: turn, score: score });
           if (round <= 2) {
-            ({ roomId });
-          }emitTimerStart
+            emitTimerStart({ roomId });
+          }
         }
       }
     // 추가 조건 : 타이머 끝났을 때
