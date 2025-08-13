@@ -5,6 +5,7 @@ import cleanupLiveKit from "../../utils/cleanupLiveKit";
 export default async function handleGameMessage(msg, handlers) {
   console.log("🟢 게임 메시지 수신:", msg);
   const { type } = msg;
+  const { gameType } = useGameStore.getState();
 
   switch (type) {
     // -----------------------------

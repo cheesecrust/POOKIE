@@ -24,6 +24,7 @@ public class ServerScheduler {
     @Scheduled(fixedDelay = 1000*30)
     public void checkInvalidInformation() {
         log.info("Server Checking [{}]", LocalDateTime.now());
+        log.info("Online Users : {}", onlinePlayerManager.getLobby().size());
         Integer originRoomCnt = onlinePlayerManager.getRooms().size();
         if(onlinePlayerManager.getLobby().isEmpty()) {
             onlinePlayerManager.getRooms().clear();

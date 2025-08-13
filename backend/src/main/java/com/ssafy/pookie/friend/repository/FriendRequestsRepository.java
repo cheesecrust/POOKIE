@@ -32,4 +32,6 @@ public interface FriendRequestsRepository extends JpaRepository<FriendRequests, 
     int deleteByLetterIdAndUserInvolved(@Param("friendRequestId") Long friendRequestId, @Param("accountId") Long accountId);
 
     boolean existsByUserAndFriend(UserAccounts user, UserAccounts friend);
+
+    boolean existsByUserAndFriendAndStatus(UserAccounts user, UserAccounts friend, RequestStatus status);
 }
