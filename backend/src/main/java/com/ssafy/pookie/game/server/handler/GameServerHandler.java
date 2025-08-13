@@ -186,6 +186,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                     inviteRequestDto.setUser(user);
                     inviteService.handleInvite(inviteRequestDto);
                     break;
+                case FOLLOW:
+                    FollowRequestDto followRequestDto = objectMapper.convertValue(msg.getPayload(), FollowRequestDto.class);
+                    followRequestDto.setUser(user);
+
+                    break;
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
