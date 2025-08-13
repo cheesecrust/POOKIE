@@ -190,8 +190,8 @@ public class InGameService {
                 gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
             }
             // 턴 바꿔주기
-            log.info("Room {} turn change", room.getRoomId());
-            log.info("Before turn change : {}", room.mappingRoomInfo());
+//            log.info("Room {} turn change", room.getRoomId());
+//            log.info("Before turn change : {}", room.mappingRoomInfo());
             room.turnChange();
             // Client response msg
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, Map.of(
@@ -201,16 +201,19 @@ public class InGameService {
                     "turn", room.getTurn().toString(),
                     "tempTeamScore", room.getTempTeamScores()
             ));
-            log.info("After turn change : {}", room.mappingRoomInfo());
+//            log.info("After turn change : {}", room.mappingRoomInfo());
             deliverKeywords(room);
+            log.info("TURN OVER REQUEST SUCCESS : ROOM {}", gameResult.getRoomId());
         } catch (IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("TURN REQUEST FAIL : ROOM {}", gameResult.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.info("{}", e.getMessage());
+            log.error("TURN OVER REQUEST FAIL : ROOM {}", gameResult.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -256,7 +259,7 @@ public class InGameService {
             if (!room.validationTempScore(gameResult)) {
                 gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
             }
-            log.info("Before round over : {}", room.mappingRoomInfo());
+//            log.info("Before round over : {}", room.mappingRoomInfo());
             room.roundOver();
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, room.roundResult());
             // 라운드별 점수 초기화
@@ -268,8 +271,8 @@ public class InGameService {
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
                 return;
             }
-            log.info("After round over : {}", room.mappingRoomInfo());
-            log.info("Room {} round over", room.getRoomId());
+//            log.info("After round over : {}", room.mappingRoomInfo());
+//            log.info("Room {} round over", room.getRoomId());
             // client response message
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_NEW_ROUND.toString(),
@@ -279,14 +282,17 @@ public class InGameService {
                     "teamScore", room.getTeamScores()
             ));
             deliverKeywords(room);
+            log.info("ROUND OVER REQUEST SUCCESS : ROOM {}", gameResult.getRoomId());
         } catch(IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("ROUND OVER REQUEST FAIL : ROOM {}", gameResult.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             messageSenderManager.sendMessageToUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("ROUND OVER REQUEST FAIL : ROOM {}", gameResult.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -319,14 +325,17 @@ public class InGameService {
                     "msg", room.getTurn().toString() + "팀 " + (isAnswer ? CORRECT : WRONG),
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
+            log.info("SUBMIT ANSWER REQUEST SUCCESS : ROOM {}", request.getRoomId());
         } catch (IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -352,14 +361,17 @@ public class InGameService {
             for(UserDto opp : room.getUsers().get(opposite.toString())) {
                 messageSenderManager.sendMessageToUser(opp.getSession(), room.getGameInfo().mapGameInfoToNor(MessageDto.Type.GAME_PAINTER_CHANGED.toString()));
             }
+            log.info("PAINTER CHANGE REQUEST SUCCESS : Room {}", room.getRoomId());
         } catch (IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -375,14 +387,17 @@ public class InGameService {
                     "msg", "제시어를 패스합니다.",
                     "nowInfo", room.getGameInfo().mapGameInfoChange()
             ));
+            log.info("PASS REQUEST SUCCESS : ROOM {}", request.getRoomId());
         } catch (IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("PASS REQUEST REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             messageSenderManager.sendMessageToUser(request.getRequestUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("PASS REQUEST REQUEST FAIL : ROOM {}", request.getRoomId());
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }

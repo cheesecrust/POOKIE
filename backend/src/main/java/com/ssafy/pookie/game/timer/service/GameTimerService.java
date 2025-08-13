@@ -26,6 +26,7 @@ public class GameTimerService {
     private final OnlinePlayerManager onlinePlayerManager;
 
     public void gameStartTimer(RoomStateDto room, TimerRequestDto timerRequest) throws IOException {
+        log.info("TIMER START REQUEST : ROOM {}", room.getRoomId());
         if(!onlinePlayerManager.isAuthorized(timerRequest.getUser().getSession(), room) || !onlinePlayerManager.isMaster(timerRequest.getUser().getSession(), room)) {
             onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
@@ -67,12 +68,16 @@ public class GameTimerService {
                                         "msg", "시간이 종료되었습니다."
                                 )
                         );
+                        log.info("TIMER START SUCCESS : ROOM {}", room.getRoomId());
                     } catch (IOException e) {
-                        log.error("{}", e.getMessage());
+                        log.error("TIMER START SUCCESS : ROOM {}", room.getRoomId());
+                        log.error("REASON : {}", e.getMessage());
                     } catch (Exception e) {
-                        log.error("{}", e.getMessage());
+                        log.error("TIMER START SUCCESS : ROOM {}", room.getRoomId());
+                        log.error("REASON : {}", e.getMessage());
                     } finally {
                         scheduler.shutdown();
+                        log.info("TIMER SHUTDOWN : ROOM {}", room.getRoomId());
                     }
                 }
         );

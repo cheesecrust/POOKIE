@@ -22,7 +22,7 @@ public class MessageSenderManager {
     @Scheduled(fixedDelay = 10)
     private void sendMessageSchedule() {
         if(sendMessage.isEmpty()) return;
-        log.info("Message Flush");
+//        log.info("Message Flush");
         SendMessageDto message = sendMessage.poll();
         try {
             if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST)) {
@@ -35,7 +35,7 @@ public class MessageSenderManager {
             else {
                 onlinePlayerManager.sendToMessageUser(message.getSession(), message.getPayload());
             }
-            log.info("Message 전송 완료 : \n{}", message.getPayload());
+//            log.info("Message 전송 완료 : \n{}", message.getPayload());
         } catch (Exception e) { // 전송 실패 -> 가장 우선순위로 실행
             if(!onlinePlayerManager.isInvalid(message.getSession())) {
                 log.error("Invalid Message : \n{}\n{}", message.getSession(), message.getPayload());
