@@ -479,7 +479,7 @@ const SamePosePage = () => {
 
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
-        sessionStorage.removeItem("waitingPageNormalEntry");
+        sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
         useGameStore.getState().setIsNormalEnd(true);
         useGameStore.getState().setIsAbnormalPerson(null);
