@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     // User 관련
     INVALID_LOGIN(HttpStatus.BAD_REQUEST, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 올바르지 않습니다."),
 
     // Store 관련
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 상품을 찾을 수 없습니다."),
@@ -28,7 +29,10 @@ public enum ErrorCode {
 
     INVALID_USER_ACCOUNT(HttpStatus.BAD_REQUEST, "UserAccount가 아직 DB에 저장되지 않았습니다."),
 
-    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다.");
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다."),
+
+    // 이미 보낸 요청입니다.
+    ALREADY_SENT(HttpStatus.BAD_REQUEST, "이미 보낸 친구 요청입니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

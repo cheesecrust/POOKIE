@@ -128,7 +128,7 @@ public class CharacterService {
 
         if (catalog.isRepresent()) return; // 이미 대표면 무시
 
-        updateCatalogStates(userAccount, catalog.getCharacter(), true, catalog.isGrowing());
+        changeCatalogStates(userAccount, catalog.getCharacter(), true, catalog.isGrowing());
     }
 
     /** Base 푸키 새로 지급하기 (기존 사용자에게) */
@@ -283,6 +283,22 @@ public class CharacterService {
         // reset → set
         characterCatalogRepository.resetAllRepresent(user.getId());
         characterCatalogRepository.resetAllGrowing(user.getId());
+
+        characterCatalogRepository.updateCatalogState(user.getId(), character.getId(), represent, growing);
+
+        // Lazy 필드 접근 피해서 id로만 로깅
+        log.info("도감 상태 업데이트: userId={}, characterId={}, rep={}, grow={}",
+                user.getId(), character.getId(), represent, growing);
+    }
+
+    /** 도감 상태 업데이트 (대표/성장 동기화) : reset → set */
+    @Transactional(propagation = Propagation.MANDATORY)
+    protected void changeCatalogStates(UserAccounts user, Characters character, boolean represent, boolean growing) {
+        // 도감 행 보장
+        setPookieCatalogIfNotExists(user, character);
+
+        // reset → set
+        characterCatalogRepository.resetAllRepresent(user.getId());
 
         characterCatalogRepository.updateCatalogState(user.getId(), character.getId(), represent, growing);
 

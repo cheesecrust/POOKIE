@@ -843,7 +843,7 @@ const SketchRelayPage = () => {
             제시어
           </div>
           <div className="mt-2 text-2xl font-extrabold leading-tight break-keep text-gray-900">
-            {keyword || "로딩 중..."}
+            {keyword || "정답!"}
           </div>
         </div>      
       )}

@@ -80,7 +80,6 @@ public class GameRoomService {
             }
             joinDto.getUser().setStatus(UserDto.Status.READY);
             joinDto.getUser().setRepCharacter(characterService.getRepPookie(joinDto.getUser().getUserAccountId()));
-            System.out.println(joinDto.getUser().getRepCharacter().getCharacterName());
             // 세션 설정
             // 게임 설정
             // 각 팀에 유저 배치
@@ -92,7 +91,7 @@ public class GameRoomService {
             log.info("User {} joined room {} ({})", joinDto.getUser().getUserNickname(), room.getRoomTitle(), joinDto.getUser().getGrant());
 
             // Client response msg
-            messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null,
+            onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
                     Map.of(
                             "type", MessageDto.Type.WAITING_JOINED.toString(),
                             "msg", joinDto.getUser().getUserNickname() + "님이 입장하였습니다.",
@@ -101,7 +100,7 @@ public class GameRoomService {
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -161,7 +160,7 @@ public class GameRoomService {
             }
             room.removeUser(session);
             log.info("Player {} was LEAVED ROOM", session.getAttributes().get("userEmail"));
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.WAITING_USER_LEAVED.toString(),
                     "msg", "Lobby 로 돌아갑니다.",
                     "reason", forced ? "KICKED" : "LEAVED"
@@ -193,18 +192,18 @@ public class GameRoomService {
                 if (remainSession != null) break;
                 remainSession = s;
             }
-            messageSenderManager.sendMessageBroadCast(remainSession, roomId, null, Map.of(
+            onlinePlayerManager.broadCastMessageToRoomUser(remainSession, roomId, null, Map.of(
                     "type", MessageDto.Type.WAITING_USER_REMOVED.toString(),
                     "msg", leaveUser.getUserNickname() + "님이 나갔습니다.",
                     "room", room.mappingRoomInfo()
             ));
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ROOM_LIST.toString(),
                     "roomList", gameServerService.existingRoomList()
             ));
         } catch(IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -222,14 +221,14 @@ public class GameRoomService {
             log.info("TEAM CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), teamChangeRequest.getUser().getUserEmail());
             if(!teamChangeRequest.changeTeam(room)) throw new IllegalArgumentException("팀 변경 중 오류가 발생하였습니다.");
             log.info("{} team changed in {}", teamChangeRequest.getUser().getUserEmail(), room.getRoomId());
-            messageSenderManager.sendMessageBroadCast(session, teamChangeRequest.getRoomId(), null, Map.of(
+            onlinePlayerManager.broadCastMessageToRoomUser(session, teamChangeRequest.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_TEAM_CHANGED.toString(),
                     "msg", teamChangeRequest.getUser().getUserNickname()+"님이 팀을 변경하였습니다.",
                     "room", room.mappingRoomInfo()
             ));
         } catch(IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -247,13 +246,13 @@ public class GameRoomService {
             log.info("USER STATUE CHANGE REQUEST : ROOM {} FROM {}", room.getRoomTitle(), request.getUser().getUserEmail());
             if (!request.changeStatus(room)) throw new IllegalArgumentException("준비상태 변경 중 문제가 발생하였습니다.");
             log.info("{} status changed in {}", request.getUser().getUserEmail(), room.getRoomId());
-            messageSenderManager.sendMessageBroadCast(session, request.getRoomId(), null, Map.of(
+            onlinePlayerManager.broadCastMessageToRoomUser(session, request.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_READY_CHANGED.toString(),
                     "room", room.mappingRoomInfo()
             ));
         } catch (IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -275,7 +274,7 @@ public class GameRoomService {
 
         } catch(IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -295,7 +294,7 @@ public class GameRoomService {
             room.setGameType(gameTypeChangeRequest.getRequestGameType());
             log.info("Room {} was changed {}", room.getRoomId(), room.getGameType().toString());
 
-            messageSenderManager.sendMessageBroadCast(gameTypeChangeRequest.getRoomMaster().getSession(), gameTypeChangeRequest.getRoomId(), null, Map.of(
+            onlinePlayerManager.broadCastMessageToRoomUser(gameTypeChangeRequest.getRoomMaster().getSession(), gameTypeChangeRequest.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.WAITING_GAMETYPE_CHANGED.toString(),
                     "msg", "게임이 변경되었습니다.",
                     "room", room.mappingRoomInfo()
@@ -303,7 +302,7 @@ public class GameRoomService {
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
         } catch(IllegalArgumentException e) {
             log.error("reason : {}", e.getMessage());
-            messageSenderManager.sendMessageToUser(gameTypeChangeRequest.getRoomMaster().getSession(), Map.of(
+            onlinePlayerManager.sendToMessageUser(gameTypeChangeRequest.getRoomMaster().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
@@ -316,32 +315,31 @@ public class GameRoomService {
 
     // Sending Message
     // 방이 생성되었을 때, GAME 중이 아닌, Lobby 에 있는 상태의 player 들에게 정보 업데이트
-    public void broadCastCreateRoomEvent(RoomStateDto room) {
+    public void broadCastCreateRoomEvent(RoomStateDto room) throws IOException {
         onlinePlayerManager.getLobby().values().stream().forEach((user) -> {
             if(user.getStatus() == LobbyUserDto.Status.ON) {
                 try {
-                    messageSenderManager.sendMessageToUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
+                    onlinePlayerManager.sendToMessageUser(user.getUser().getSession(), room.mappingSimpleRoomInfo(MessageDto.Type.ROOM_CREATED));
                 } catch (Exception e) {
                     log.error("{}", e.getMessage());
-                    throw e;
                 }
             }
         });
     }
     // 최신의 방 상태를 전달
-    public void handleWaitingRoomUpdate(RoomUpdateRequestDto request) {
+    public void handleWaitingRoomUpdate(RoomUpdateRequestDto request) throws IOException {
         log.info("WAITING_ROOM_UPDATE REQUEST : ROOM {} FROM {}", request.getRoomId(), request.getUser().getUserNickname());
         RoomStateDto room = onlinePlayerManager.getRooms().get(request.getRoomId());
         try {
             if(room == null) throw new IllegalArgumentException("존재하지 않는 방입니다.");
-            messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.WAITING_ROOM_UPDATED.toString(),
                     "room", room.mappingRoomInfo()
 
             ));
             log.info("WAITING_ROOM_UPDATE REQUEST SUCCESS");
         } catch (IllegalArgumentException e) {
-            messageSenderManager.sendMessageToUser(request.getUser().getSession(), Map.of(
+            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));

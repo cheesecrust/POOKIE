@@ -28,7 +28,7 @@ public class RoomStateDto {
 
     public enum Status {WAITING, READY, START, END};
     public enum Turn {RED, BLUE, NONE};
-    public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY};
+    public enum GameType {SAMEPOSE, SILENTSCREAM, SKETCHRELAY, MINIGAME};
 
     // 타이머
     private GameTimerDto timer;
@@ -131,8 +131,8 @@ public class RoomStateDto {
     public void turnChange() {
         if(this.getTurn() == Turn.RED) this.setTurn(Turn.BLUE);
         else this.setTurn(Turn.RED);
-
-        if(timer != null) this.timer.stop();
+        // 실행 중인 타이머가 있다면 종료
+        if(timer!=null) this.timer.stop();
     }
 
     private String win;
@@ -155,7 +155,7 @@ public class RoomStateDto {
             this.teamScores.merge(Turn.BLUE.toString(), 1, Integer::sum);
             win = "DRAW";
         }
-        if(timer != null) this.timer.stop();
+        if(timer!=null) this.timer.stop();
     }
 
     public Map<String, Object> gameOver() {

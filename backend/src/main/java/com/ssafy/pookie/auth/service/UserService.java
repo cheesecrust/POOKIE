@@ -93,7 +93,7 @@ public class UserService {
             UserAccounts userAccount = user.getUserAccount();
 
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                throw new CustomException(ErrorCode.INVALID_LOGIN);
+                throw new CustomException(ErrorCode.INVALID_PASSWORD);
             }
 
             // JWT 토큰 생성
@@ -109,7 +109,7 @@ public class UserService {
                     .build();
         } catch (Exception e) {
             log.error("로그인 실패: {}", e.getMessage());
-            throw new CustomException(ErrorCode.INVALID_LOGIN);
+            throw e;
         }
     }
 
