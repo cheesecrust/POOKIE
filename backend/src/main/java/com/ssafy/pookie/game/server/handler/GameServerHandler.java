@@ -70,7 +70,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             TurnDto gameResult;
             if(!(msg.getType().equals(MessageDto.Type.GAME_DRAW) || msg.getType().equals(MessageDto.Type.GAME_DRAW_EVENT))) {
                 log.info("REQUEST TYPE : {}", msg.getType());
-                log.info("payload\nSession : {}\n{}", session.getAttributes().get("userEmail"), msg.getPayload());
+                log.info("payload\nSession : {}\n{}", session.getAttributes().get("userNickname"), msg.getPayload());
             }
             socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
@@ -208,7 +208,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     // web socket 연결하는 순간 user를 만든다.
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("[WebSocket] Conncted : "+ session.getId());
+        log.info("[WebSocket] Conncted : {} - {}", session.getId(), session.getAttributes().get("userNickname"));
 
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
@@ -226,7 +226,7 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        log.info("[WebSocket] Disconnected : "+ session.getId());
+        log.info("[WebSocket] Disconnected :  {} - {}", session.getId(), session.getAttributes().get("userNickname"));
         socketMetrics.recordConnectionClosed(session.getId());
         onlinePlayerManager.removeFromLobby(session);
         onlinePlayerManager.removeMiniGameRoom((Long) session.getAttributes().get("userAccountId"));
