@@ -98,7 +98,7 @@ public class FriendService {
 
     // 거절은 요청을 받은 사람이 거절
     // 따라서 friend가 거절
-    public void rejectFriendRequest(Long requestId, Long userAccountId) {
+    public void rejectFriendRequest(Long requestId, Long userAccountId) throws IOException {
         FriendRequests friendRequest = friendRequestsRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Friend request not found"));
 
@@ -112,6 +112,9 @@ public class FriendService {
 
         friendRequest.updateStatus(RequestStatus.REJECTED);
         friendRequestsRepository.save(friendRequest);
+
+        UserDto user = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
+        notificationService.readEvent(user);
     }
 
     /**
