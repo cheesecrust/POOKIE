@@ -50,7 +50,7 @@ public class FriendService {
         UserAccounts friendAccount = userAccountsRepository.findById(addresseeId)
                 .orElseThrow(() -> new Exception("User not found"));
 
-        if (friendRequestsRepository.existsByUserAndFriend(userAccount, friendAccount)) {
+        if (friendRequestsRepository.existsByUserAndFriendAndStatus(userAccount, friendAccount, RequestStatus.PENDING)) {
             throw new CustomException(ErrorCode.ALREADY_SENT);
         }
 

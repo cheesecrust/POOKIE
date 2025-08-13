@@ -54,6 +54,7 @@ public class FriendController {
             notificationService.sendRequestEvent(requestDto.getAddresseeId());
             return ResponseEntity.ok(ApiResponse.success("친구 요청을 전송했습니다.", result));
         } catch (IllegalArgumentException e) {
+            log.error("illegal argument", e);
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IOException e) {
@@ -61,6 +62,7 @@ public class FriendController {
           return ResponseEntity.badRequest()
                   .body(ApiResponse.error(e.getMessage()));  
         } catch (CustomException e) {
+            log.error("custom exception", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
