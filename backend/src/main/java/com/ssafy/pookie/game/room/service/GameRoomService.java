@@ -89,7 +89,6 @@ public class GameRoomService {
             room.getSessions().add(session);
             onlinePlayerManager.getLobby().get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
             log.info("User {} joined room {} ({})", joinDto.getUser().getUserNickname(), room.getRoomTitle(), joinDto.getUser().getGrant());
-
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
                     Map.of(
@@ -98,14 +97,17 @@ public class GameRoomService {
                             "room", room.mappingRoomInfo()
                     ));
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
+            log.info("JOIN REQUEST SUCCESS : ROOM {}", room.getRoomId());
         } catch(IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("JOIN REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("JOIN REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -183,7 +185,9 @@ public class GameRoomService {
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
                 log.info("REGRANT Master");
+                log.info("before : {}", room.getRoomMaster().getUserNickname());
                 onlinePlayerManager.regrantRoomMaster(room);
+                log.info("after : {}", room.getRoomMaster().getUserNickname());
             }
             leaveUser.setGrant(UserDto.Grant.NONE);
             // 현재 사용자가 나가서 그대로 보내면 안됨
@@ -201,14 +205,17 @@ public class GameRoomService {
                     "type", MessageDto.Type.ROOM_LIST.toString(),
                     "roomList", gameServerService.existingRoomList()
             ));
+            log.error("LEAVE REQUEST SUCCESS : {} FROM ROOM {}", session.getAttributes().get("nickname"), room.getRoomId());
         } catch(IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("LEAVE REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("LEAVE REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }

@@ -28,8 +28,8 @@ public class JwtTokenProvider {
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
 
-        log.info("JwtTokenProvider 초기화 완료 - AccessToken: {}ms, RefreshToken: {}ms",
-                accessTokenExpiration, refreshTokenExpiration);
+//        log.info("JwtTokenProvider 초기화 완료 - AccessToken: {}ms, RefreshToken: {}ms",
+//                accessTokenExpiration, refreshTokenExpiration);
     }
 
     /**
@@ -51,8 +51,8 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
-                userAccountId, email, expiration);
+//        log.debug("Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
+//                userAccountId, email, expiration);
 
         return token;
     }
@@ -76,8 +76,8 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
 
-        log.debug("Social Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
-                userAccountId, email, expiration);
+//        log.debug("Social Access Token 생성 - UserAccountId: {}, Email: {}, Expiration: {}",
+//                userAccountId, email, expiration);
 
         return token;
     }
@@ -99,7 +99,7 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
+//        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
@@ -121,7 +121,7 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS256) // 서명
                 .compact();
 
-        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
+//        log.debug("Refresh Token 생성 - UserAccountId: {}, Expiration: {}", userAccountId, expiration);
 
         return token;
     }
