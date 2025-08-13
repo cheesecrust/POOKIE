@@ -70,7 +70,7 @@ public class GameServerHandler extends TextWebSocketHandler {
             TurnDto gameResult;
             if(!(msg.getType().equals(MessageDto.Type.GAME_DRAW) || msg.getType().equals(MessageDto.Type.GAME_DRAW_EVENT))) {
                 log.info("REQUEST TYPE : {}", msg.getType());
-                log.info("payload\nSession : {}\n{}", session.getAttributes().get("userNickname"), msg.getPayload());
+                log.info("payload\nSession : {}\n{}", session.getAttributes().get("nickname"), msg.getPayload());
             }
             socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
@@ -226,7 +226,7 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        log.info("[WebSocket] Disconnected :  {} - {}", session.getId(), session.getAttributes().get("userNickname"));
+        log.info("[WebSocket] Disconnected :  {} - {}", session.getId(), session.getAttributes().get("nickname"));
         socketMetrics.recordConnectionClosed(session.getId());
         onlinePlayerManager.removeFromLobby(session);
         onlinePlayerManager.removeMiniGameRoom((Long) session.getAttributes().get("userAccountId"));
