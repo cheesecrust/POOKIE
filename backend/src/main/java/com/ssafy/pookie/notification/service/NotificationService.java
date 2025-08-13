@@ -64,8 +64,8 @@ public class NotificationService {
      */
     public void sendNotification(UserDto user, long notificationCnt) throws IOException {
         onlinePlayerManager.sendToMessageUser(user.getSession(), Map.of(
+                "type", "NOTIFICATION",
                 "data", Map.of(
-                        "type", "NOTIFICATION",
                         "notificationCnt", notificationCnt
                 )
         ));
