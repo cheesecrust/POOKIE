@@ -527,7 +527,7 @@ export default function FallingFoodPage() {
       {/* 게임오버 */}
       {!running && timeLeft === 0 && (
         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-20">
-          <div className="text-3xl font-bold mb-2">GAME OVER</div>
+          <div className="text-5xl font-bold mb-2">GAME OVER</div>
           <div
             className={`text-xl mb-6 font-bold ${
               (finalScore ?? score) >= 600 ? "text-green-400" : "text-rose-400"

@@ -59,7 +59,7 @@ const StoreCard = ({ item, onBuySuccess }) => {
   };
 
   return (
-    <div className="relative w-[250px] bg-white p-4 flex flex-col items-center hover:shadow-rose-300 shadow-md hover:scale-105 transition-transform">
+    <div className="relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center hover:shadow-rose-300 shadow-md hover:scale-105 transition-transform">
       <img
         src={itemimage[item.image]}
         alt={item.name}

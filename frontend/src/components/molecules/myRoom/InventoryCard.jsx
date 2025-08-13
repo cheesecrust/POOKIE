@@ -63,7 +63,7 @@ const InventoryCard = ({ item, onUseSuccess }) => {
 
   return (
     <div
-      className={`relative w-[250px] bg-rose-50 p-4 flex flex-col items-center shadow-rose-300 shadow-md hover:scale-105 transition-transform`}
+      className={`relative w-[250px] bg-white rounded-lg p-4 flex flex-col items-center hover:shadow-rose-300 shadow-md hover:scale-105 transition-transform`}
     >
       <img
         src={itemimage[item.image]}
