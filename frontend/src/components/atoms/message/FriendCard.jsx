@@ -22,6 +22,7 @@ const FriendCard = ({ characterName, nickname, status,isOnline, friendId, onRemo
   const handleModalClose = () => {
     setIsModalOpen(false)
   }
+  
 
   return (
     <div className="flex items-center justify-between bg-white p-4 rounded-2xl w-full h-[95px] gap-4">

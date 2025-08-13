@@ -21,22 +21,27 @@ const CharacterDex = ({ onAfterChange }) => {
   const [modalMsg, setModalMsg] = useState("");
 
   // 해금/대표
-  const unlockedSet = useMemo(() => new Set(dex.map(d => d.characterName)), [dex]);
+  const unlockedSet = useMemo(
+    () => new Set(dex.map((d) => d.characterName)),
+    [dex]
+  );
   const representName = useMemo(
-    () => dex.find(d => d.represent)?.characterName || null,
+    () => dex.find((d) => d.represent)?.characterName || null,
     [dex]
   );
 
   // 도감에서 바로 꺼내 쓰기: 이름 → 정보
   const nameToInfo = useMemo(() => {
     const m = new Map();
-    dex.forEach(d => m.set(d.characterName, d)); // { id, characterId, ... }
+    dex.forEach((d) => m.set(d.characterName, d)); // { id, characterId, ... }
     return m;
   }, [dex]);
 
   // 버튼 활성: 모든 캐릭터가 성장 종료일 때만
   useEffect(() => {
-    setIsPookieButtonActive(dex.length > 0 && dex.every(d => d.growing === false));
+    setIsPookieButtonActive(
+      dex.length > 0 && dex.every((d) => d.growing === false)
+    );
   }, [dex]);
 
   // 도감 조회
@@ -56,8 +61,8 @@ const CharacterDex = ({ onAfterChange }) => {
     try {
       setIsPookieButtonActive(false);
       await axiosInstance.post("/characters/new-pookie");
-      await fetchDex();      // 도감 새로고침
-      onAfterChange?.();     // 좌측 정보 갱신
+      await fetchDex(); // 도감 새로고침
+      onAfterChange?.(); // 좌측 정보 갱신
       setModalMsg("새 푸키푸키를 발급했어요!\n도감에서 확인해보세요.");
       setModalOpen(true);
     } catch (e) {
@@ -74,47 +79,52 @@ const CharacterDex = ({ onAfterChange }) => {
   // 대표 캐릭터 변경
   const setRepresent = async (id, characterId) => {
     try {
-      const res = await axiosInstance.put("/characters/representative", { id, characterId });
-      setDex(prev => prev.map(d => ({ ...d, represent: d.id === id })));
-      console.log("대표 변경",res);
+      const res = await axiosInstance.put("/characters/representative", {
+        id,
+        characterId,
+      });
+      setDex((prev) => prev.map((d) => ({ ...d, represent: d.id === id })));
+      // console.log("대표 변경",res);
       onAfterChange?.();
     } catch (e) {
       console.log("대표 변경 실패:", e);
     }
   };
 
-  useEffect(() => { fetchDex(); }, []);
+  useEffect(() => {
+    fetchDex();
+  }, []);
 
   // 좌표
   const pos = {
-    strawberrypudding: { x: 40,  y: 20 },
-    blueberrypudding:  { x: 130, y: 20 },
-    buldakpudding:     { x: 220, y: 20 },
-    greenteapudding:   { x: 365, y: 20 },
-    melonpudding:      { x: 455, y: 20 },
-    chocopudding:      { x: 545, y: 20 },
-    milkpudding:       { x: 690, y: 20 },
-    creampudding:      { x: 780, y: 20 },
-    caramelpudding:    { x: 870, y: 20 },
-    redpookie:    { x: 130, y: 130 },
-    greenpookie:  { x: 455, y: 130 },
+    strawberrypudding: { x: 40, y: 20 },
+    blueberrypudding: { x: 130, y: 20 },
+    buldakpudding: { x: 220, y: 20 },
+    greenteapudding: { x: 365, y: 20 },
+    melonpudding: { x: 455, y: 20 },
+    chocopudding: { x: 545, y: 20 },
+    milkpudding: { x: 690, y: 20 },
+    creampudding: { x: 780, y: 20 },
+    caramelpudding: { x: 870, y: 20 },
+    redpookie: { x: 130, y: 130 },
+    greenpookie: { x: 455, y: 130 },
     yellowpookie: { x: 780, y: 130 },
     pookiepookie: { x: 455, y: 260 },
   };
 
   const edges = [
     ["strawberrypudding", "redpookie"],
-    ["blueberrypudding",  "redpookie"],
-    ["buldakpudding",     "redpookie"],
-    ["greenteapudding",   "greenpookie"],
-    ["melonpudding",      "greenpookie"],
-    ["chocopudding",      "greenpookie"],
-    ["milkpudding",       "yellowpookie"],
-    ["creampudding",      "yellowpookie"],
-    ["caramelpudding",    "yellowpookie"],
-    ["redpookie",   "pookiepookie"],
+    ["blueberrypudding", "redpookie"],
+    ["buldakpudding", "redpookie"],
+    ["greenteapudding", "greenpookie"],
+    ["melonpudding", "greenpookie"],
+    ["chocopudding", "greenpookie"],
+    ["milkpudding", "yellowpookie"],
+    ["creampudding", "yellowpookie"],
+    ["caramelpudding", "yellowpookie"],
+    ["redpookie", "pookiepookie"],
     ["greenpookie", "pookiepookie"],
-    ["yellowpookie","pookiepookie"],
+    ["yellowpookie", "pookiepookie"],
   ];
 
   // 선 (SVG)
@@ -126,11 +136,24 @@ const CharacterDex = ({ onAfterChange }) => {
       style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}
     >
       {edges.map(([from, to], i) => {
-        const a = pos[from], b = pos[to];
+        const a = pos[from],
+          b = pos[to];
         if (!a || !b) return null;
-        const ax = a.x + 42, ay = a.y + 84; // 카드(84x84) 기준 하단/상단 중앙
-        const bx = b.x + 42, by = b.y;
-        return <line key={i} x1={ax} y1={ay} x2={bx} y2={by} stroke="#000" strokeWidth="2" />;
+        const ax = a.x + 42,
+          ay = a.y + 84; // 카드(84x84) 기준 하단/상단 중앙
+        const bx = b.x + 42,
+          by = b.y;
+        return (
+          <line
+            key={i}
+            x1={ax}
+            y1={ay}
+            x2={bx}
+            y2={by}
+            stroke="#000"
+            strokeWidth="2"
+          />
+        );
       })}
     </svg>
   );
@@ -162,26 +185,35 @@ const CharacterDex = ({ onAfterChange }) => {
   );
 
   // 현재 대표/성장 문자열
-  const rep = dex.find(d => d.represent) || null;
-  const growingNames = dex.filter(d => d.growing).map(d => d.characterName);
+  const rep = dex.find((d) => d.represent) || null;
+  const growingNames = dex.filter((d) => d.growing).map((d) => d.characterName);
   const canGetNewPookie = isPookieButtonActive && !newPookieLoading;
-  console.log("growingNames", growingNames);
-  console.log("rep", rep);
   return (
     <div className="w-full">
       {/* 상단 안내 + 버튼 */}
       <div className="mb-3 flex flex-col items-center gap-2">
         <p className="text-sm text-gray-700">
-          <span className="font-semibold">푸키 LV3</span>되면 <span className="font-semibold">새로운 푸키푸키</span>를 발급받아요.
-          더블클릭하면 대표 푸키를 바꿀 수 있어요!
+          <span className="font-semibold">푸키 LV3</span>되면{" "}
+          <span className="font-semibold text-rose-400 text-lg">
+            새로운 푸키푸키
+          </span>
+          를 발급받아요.
+          <span className="font-semibold text-amber-400"> 더블클릭</span>하면
+          대표 푸키를 바꿀 수 있어요!
         </p>
 
         <div className="flex items-center gap-2 flex-wrap w-full justify-center">
-          <span className="px-2 py-1 text-xs bg-white/80 border border-black/10 rounded-full">
-            대표: <span className="font-semibold">{rep?.characterName ?? "없음"}</span>
+          <span className="px-2 py-1 text-xs text-rose-500 bg-white/80 border border-black/10 rounded-full">
+            대표:{" "}
+            <span className="font-semibold">
+              {rep?.characterName ?? "없음"}
+            </span>
           </span>
           <span className="px-2 py-1 text-xs bg-white/80 border border-black/10 rounded-full">
-            성장 중: <span className="font-semibold">{growingNames.length ? growingNames.join(", ") : "없음"}</span>
+            성장 중:{" "}
+            <span className="font-semibold">
+              {growingNames.length ? growingNames.join(", ") : "없음"}
+            </span>
           </span>
 
           {canGetNewPookie ? (
@@ -193,7 +225,9 @@ const CharacterDex = ({ onAfterChange }) => {
               {newPookieLoading ? "발급 중..." : "새 푸키푸키 받기"}
             </RightButton>
           ) : (
-            <span className="text-xs text-gray-500">아직 푸키 재발급 버튼이 활성화되지않았어요!</span>
+            <span className="text-xs text-gray-500">
+              아직 푸키 재발급 버튼이 활성화되지않았어요!
+            </span>
           )}
         </div>
       </div>
@@ -226,8 +260,6 @@ const CharacterDex = ({ onAfterChange }) => {
           <Node name="pookiepookie" />
         </div>
       </div>
-
-
     </div>
   );
 };

@@ -345,6 +345,8 @@ const SketchRelayPage = () => {
       const timeout = setTimeout(() => {
         sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 7000);
 
       return () => clearTimeout(timeout);
@@ -628,6 +630,9 @@ const SketchRelayPage = () => {
     }
   }, [isWinModalOpen, playSound]);
 
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 배경 이미지 */}
@@ -861,6 +866,8 @@ const SketchRelayPage = () => {
       {isWinModalOpen && (
         <GameResultModal
           win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
           redTeam={redTeamFallback}
           blueTeam={blueTeamFallback}
           onClose={() => setIsWinModalOpen(false)}
