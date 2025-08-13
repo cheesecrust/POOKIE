@@ -103,7 +103,9 @@ const handleWaitingMessage = (data, handlers = {}) => {
             resetIsSamePoseTimerEnd()
             resetIsSilentScreamTimerEnd()
 
-            navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
+            setTimeout(() => {
+                navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
+            }, 3000);
             break;
         }
 

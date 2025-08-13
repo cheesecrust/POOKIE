@@ -50,7 +50,7 @@ const useGameStore = create((set, get) => ({
     isNormalEnd: true,
     isAbnormalPerson: null,
     setIsNormalEnd: (isNormalEnd) => set({ isNormalEnd }),
-    setISAbnormalPerson: (isAbnormalPerson) => set({ isAbnormalPerson }),
+    setIsAbnormalPerson: (isAbnormalPerson) => set({ isAbnormalPerson }),
 
     win: 0,
 
