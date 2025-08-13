@@ -50,6 +50,10 @@ public class FriendService {
         UserAccounts friendAccount = userAccountsRepository.findById(addresseeId)
                 .orElseThrow(() -> new Exception("User not found"));
 
+        if (friendsRepository.findFriendship(id, addresseeId).isPresent()) {
+            throw new CustomException(ErrorCode.ALREADY_SENT);
+        }
+
         if (friendRequestsRepository.existsByUserAndFriendAndStatus(userAccount, friendAccount, RequestStatus.PENDING)) {
             throw new CustomException(ErrorCode.ALREADY_SENT);
         }
@@ -77,6 +81,10 @@ public class FriendService {
         // 2. 요청 상태가 acceptance가 true 인지
         if (!friendRequest.getStatus().equals(RequestStatus.PENDING)) {
             throw new RuntimeException("Friend request is not pending");
+        }
+
+        if (friendsRepository.findFriendship(requestId, userAccountId).isPresent()) {
+            throw new RuntimeException("이미 친구입니다.");
         }
 
         // 3. 친구 요청 상태를 ACCEPTED로 변경
