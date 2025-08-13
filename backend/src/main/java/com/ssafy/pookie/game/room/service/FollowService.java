@@ -15,7 +15,14 @@ public class FollowService {
     private OnlinePlayerManager onlinePlayerManager;
 
     public void handleFollow(FollowRequestDto request) {
+        log.info("Follow Request : {}", request.getUser().getUserNickname());
+        try {
 
+        } catch (IllegalArgumentException e) {
+            log.info("Follow Request : {}", request.getUser().getUserNickname());
+        } catch (Exception e) {
+            log.info("Follow Request : {}", request.getUser().getUserNickname());
+        }
     }
 
     private LobbyUserDto findUser(String userId) {
