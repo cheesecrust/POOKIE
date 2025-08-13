@@ -49,6 +49,12 @@ export const connectSocket = ({
     try {
       const msg = JSON.parse(e.data)
       console.log("[WebSocket MESSAGE]", msg);
+      // 미니게임 메시지면 FallingFoodPage로 바로 전달
+      if (msg?.type?.startsWith("MINIGAME_")) {
+        const mergedHandlers = { ...handlers, ...currentHandlers };
+        mergedHandlers.onMiniGameMessage?.(msg);
+        return; // 여기서 끝내면 handleSocketMessage는 안 탐
+      }
       // 일반 메시지 처리
       const mergedHandlers = { ...handlers, ...currentHandlers };
       await handleSocketMessage(msg, mergedHandlers);

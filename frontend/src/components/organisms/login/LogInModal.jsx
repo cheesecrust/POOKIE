@@ -36,12 +36,7 @@ const LogInModal = ({ isOpen, onClose, onOpenSignUp, onOpenFindPassword }) => {
             onClose();
             navigate('/home'); // 홈으로 리디렉션
         } else {
-            // 메시지 내용에 따라 alert 분기
-            if (res.message?.includes("비밀번호")) {
-                alert("비밀번호가 틀렸습니다.")
-            } else {
-                alert(`로그인 실패: ${res.message}`)
-            }
+            alert("등록되지 않은 이메일 또는 비밀번호가 틀렸습니다.")
         }
     }
     
