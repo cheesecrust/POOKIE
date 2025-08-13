@@ -90,6 +90,16 @@ export const handleSocketMessage = (msg, handlers) => {
         return;
     }
 
+    // 알림 메시지 -> Home 쪽으로 
+    if (msg.type === "NOTIFICATION") {
+        import("./home/handleHomeMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] NOTIFICATION 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     // 타이머 게임쪽으로 
@@ -101,7 +111,7 @@ export const handleSocketMessage = (msg, handlers) => {
             });
         return;
     }
-
+    
 
 
     const routeMap = { // 접두사로 구분
