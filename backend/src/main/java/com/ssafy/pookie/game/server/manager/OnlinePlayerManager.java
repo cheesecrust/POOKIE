@@ -166,7 +166,8 @@ public class OnlinePlayerManager {
                                 try {
                                     sendToMessageUser(s, Map.of(
                                             "type", "INTERRUPT",
-                                            "msg", session.getAttributes().get("nickname") + "님이 게임을 나갔습니다.\n 게임이 종료됩니다."
+                                            "msg", session.getAttributes().get("nickname") + "님이 게임을 나갔습니다.\n 게임이 종료됩니다.",
+                                            "nickname", session.getAttributes().get("nickname")
                                     ));
                                     sendToMessageUser(s, Map.of(
                                             "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
