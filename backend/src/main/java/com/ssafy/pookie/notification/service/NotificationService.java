@@ -49,6 +49,9 @@ public class NotificationService {
      */
     public void readEvent(UserDto user) throws IOException {
         readNotification(user);
+        if (onlinePlayerManager.getMemberInLobby(user.getUserAccountId()) == null) {
+            return;
+        }
         sendNotification(user, notificationManager.getNotification(user.getUserAccountId()));
     }
 

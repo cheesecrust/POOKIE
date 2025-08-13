@@ -78,9 +78,9 @@ const FriendFindModal = ({ onClose }) => {
         addresseeId: userId, 
         addresseeNickname: nickname, 
       });
-      // console.log(userId)
-      // console.log(nickname)
-      // console.log("친구 요청 완료!");
+      console.log(userId)
+      console.log(nickname)
+      console.log("친구 요청 완료!");
       openConfirm(`${nickname}님에게 친구 요청을 보냈습니다!`);
     } catch (err) {
       console.log("친구 요청 실패...");

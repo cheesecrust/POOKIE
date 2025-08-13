@@ -66,7 +66,7 @@ public class LetterController {
     @DeleteMapping("/{letterId}")
     public ResponseEntity<ApiResponse<?>> deleteLetter(
             @PathVariable Long letterId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception {
         Long userAccountId = userDetails.getUserAccountId();
         boolean result = letterService.deleteLetters(userAccountId, letterId);
         if (result) {
