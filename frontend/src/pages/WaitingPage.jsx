@@ -23,6 +23,8 @@ import useAuthStore from "../store/useAuthStore";
 import useGameStore from "../store/useGameStore";
 import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
 
+import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
+
 import {
   emitTeamChange,
   emitReadyChange,
@@ -365,6 +367,8 @@ const WaitingPage = () => {
   // UI
   return (
     <div className="flex flex-row h-screen">
+      {/* 친구 버튼 */}
+      <FriendMessageWrapper />
       {/* 유저와 설정 관련 */}
       <section
         className="basis-3/4 flex flex-col"

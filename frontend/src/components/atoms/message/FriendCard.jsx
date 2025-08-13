@@ -38,8 +38,8 @@ const FriendCard = ({ characterName, nickname, status,isOnline, friendId, onRemo
 
       {/* 가운데: 온라인 표시 (줄어들지 않음) */}
       <div className="flex items-center gap-2 text-base shrink-0">
-        <span className={`w-4 h-4 rounded-full ${status==="ACTIVE" ? 'bg-green-400' : 'bg-gray-300'}`} />
-        <span className="font-bold">{status==="ACTIVE" ? 'Online' : 'Offline'}</span>
+        <span className={`w-4 h-4 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-300'}`} />
+        <span className="font-bold">{isOnline ? 'Online' : 'Offline'}</span>
       </div>
 
       {/* 오른쪽 버튼들 (줄어들지 않음) */}

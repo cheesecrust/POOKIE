@@ -67,7 +67,7 @@ const FriendMessageModal = ({onClose}) => {
       setFriends(content);
       setTotalPages(totalPages);
       // console.log("친구 목록:",content);
-      // console.log("친구api",res.data.data);
+      console.log("친구api",res.data.data);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
@@ -89,7 +89,7 @@ const FriendMessageModal = ({onClose}) => {
       const totalPages = res.data.data.totalPages;
       setReceivedMessages(receivedMessage);
       setTotalPages(totalPages);
-      // console.log("받은 쪽지:",receivedMessage);
+      console.log("받은 쪽지:",receivedMessage);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
       } catch (err) {
@@ -110,7 +110,7 @@ const FriendMessageModal = ({onClose}) => {
       const totalPages = res.data.data.totalPages;
       setSentMessages(sentMessage);
       setTotalPages(totalPages);
-      // console.log("보낸 쪽지:",sentMessage);
+      console.log("보낸 쪽지:",sentMessage);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
@@ -146,24 +146,21 @@ const FriendMessageModal = ({onClose}) => {
     }
   }
 
-  // 친구 수락 api 요청 ( 수락 + 쪽지 삭제)
+  // 친구 수락 api 요청 ( 수락 )
   const handleAcceptFriend = async (requestId) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/accept`);
-      const res1 = await axiosInstance.delete(`/letter/${requestId}`);
       // console.log("친구 수락:",res.data.data);
-      // console.log("쪽지 삭제:",res1.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
     } catch (err) {
       console.log("친구 수락 실패:",err);
     }
   }
 
-  // 친구 거절 api 요청 ( 거절 + 쪽지 삭제)
+  // 친구 거절 api 요청 ( 거절 )
   const handleRejectFriend = async (requestId) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/reject`);
-      const res1 = await axiosInstance.delete(`/letter/${requestId}`);
       // console.log("친구 거절:",res.data.data);
       // console.log("쪽지 삭제:",res1.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
