@@ -579,23 +579,6 @@ const SketchRelayPage = () => {
   useEffect(() => {
     const gameHandlers = {
       onDrawEvent: handleRemoteDrawEvent,
-      onGameTimerEnd: (data) => {
-        console.log("🎯 SketchRelayPage에서 GAME_TIMER_END 직접 수신:", data);
-        // useGameStore의 setGameTimerEnd 호출
-        useGameStore.getState().setGameTimerEnd(data);
-      },
-      onTimer: (data) => {
-        console.log("⏰ 타이머 업데이트:", data);
-        useGameStore.getState().setTime(data);
-      },
-      onGameTimerStart: (data) => {
-        console.log("▶️ 게임 타이머 시작:", data);
-        useGameStore.getState().setGameTimerStart();
-      },
-      onGameAnswerSubmitted: (data) => {
-        console.log("✅ 정답 제출 응답:", data);
-        useGameStore.getState().setGameAnswerSubmitted(data);
-      },
     };
 
     updateHandlers(gameHandlers);
