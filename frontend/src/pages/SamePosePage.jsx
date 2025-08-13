@@ -277,9 +277,7 @@ const SamePosePage = () => {
           ? res.data
           : typeof res.data === "string"
             ? res.data.toLowerCase() === "true"
-            : Boolean(
-                res.data?.all_pass ?? false
-              );
+            : Boolean(res.data?.all_pass ?? false);
 
       setServerVerdict(verdict);
       setPendingAnswer(true); // 이후 타이머 타이밍 맞춰 제출
@@ -482,6 +480,8 @@ const SamePosePage = () => {
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 4000);
 
       return () => {
@@ -552,7 +552,7 @@ const SamePosePage = () => {
   const enemyTeam = turn === "RED" ? "BLUE" : "RED"; // 반대 팀 계산
   const repGroup = participants.filter((p) => p.role === "REP");
   const enemyGroup = participants.filter(
-    (p) => p.role === null && p.team === enemyTeam
+    (p) => p.team === enemyTeam && p.role !== "REP"
   );
 
   // 모달 사운드
@@ -573,6 +573,10 @@ const SamePosePage = () => {
       playSound("game_over");
     }
   }, [isResultOpen, playSound]);
+
+  // 게임 정상 종료 여부
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
 
   return (
     <>
@@ -708,6 +712,8 @@ const SamePosePage = () => {
       {isResultOpen && (
         <GameResultModal
           win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
           redTeam={redTeam}
           blueTeam={blueTeam}
           onClose={() => setIsResultOpen(false)}

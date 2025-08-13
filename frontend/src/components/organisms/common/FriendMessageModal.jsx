@@ -66,8 +66,8 @@ const FriendMessageModal = ({onClose}) => {
       const { content, totalPages } = res.data.data;
       setFriends(content);
       setTotalPages(totalPages);
-      console.log("친구 목록:",content);
-      console.log("친구api",res.data.data);
+      // console.log("친구 목록:",content);
+      // console.log("친구api",res.data.data);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
@@ -84,12 +84,12 @@ const FriendMessageModal = ({onClose}) => {
           page: page
         }
       });
-      console.log("받은 쪽지 api",res.data);
+      // console.log("받은 쪽지 api",res.data);
       const receivedMessage = res.data.data.content;
       const totalPages = res.data.data.totalPages;
       setReceivedMessages(receivedMessage);
       setTotalPages(totalPages);
-      console.log("받은 쪽지:",receivedMessage);
+      // console.log("받은 쪽지:",receivedMessage);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
       } catch (err) {
@@ -110,7 +110,7 @@ const FriendMessageModal = ({onClose}) => {
       const totalPages = res.data.data.totalPages;
       setSentMessages(sentMessage);
       setTotalPages(totalPages);
-      console.log("보낸 쪽지:",sentMessage);
+      // console.log("보낸 쪽지:",sentMessage);
       // 현재 페이지 > 총 페이지면 보정
       if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
@@ -127,16 +127,13 @@ const FriendMessageModal = ({onClose}) => {
       }else{
         setSentMessages(prev => prev.filter(m=>m.requestId!==requestId))
       }
-      console.log(requestId)
-      console.log("쪽지 삭제:",res.data);
+      // console.log(requestId)
+      // console.log("쪽지 삭제:",res.data);
     } catch (err) {
       console.log("쪽지 삭제 실패:",err);
     }
   }
 
-  // 받은 쪽지 신고 api 요청
-  const handleReportMessage = (messageId) => {
-  }
 
   // 친구 삭제 버튼 클릭 시 api 요청
   const handleRemoveFriend = async(friendId) => {
@@ -154,8 +151,8 @@ const FriendMessageModal = ({onClose}) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/accept`);
       const res1 = await axiosInstance.delete(`/letter/${requestId}`);
-      console.log("친구 수락:",res.data.data);
-      console.log("쪽지 삭제:",res1.data.data);
+      // console.log("친구 수락:",res.data.data);
+      // console.log("쪽지 삭제:",res1.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
     } catch (err) {
       console.log("친구 수락 실패:",err);
@@ -167,8 +164,8 @@ const FriendMessageModal = ({onClose}) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/reject`);
       const res1 = await axiosInstance.delete(`/letter/${requestId}`);
-      console.log("친구 거절:",res.data.data);
-      console.log("쪽지 삭제:",res1.data.data);
+      // console.log("친구 거절:",res.data.data);
+      // console.log("쪽지 삭제:",res1.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
     } catch (err) {
       console.log("친구 거절 실패:",err);
@@ -206,7 +203,6 @@ const FriendMessageModal = ({onClose}) => {
             <MessageList messageType="received" 
             messages={receivedMessages} 
             onDelete={handleDeleteMessage}
-            onReport={handleReportMessage}
             onAccept={handleAcceptFriend}
             onReject={handleRejectFriend}
             />

@@ -55,7 +55,6 @@ const MyRoomPage = () => {
     try {
       const res = await axiosInstance.get("/characters/catalog");
       const list = res.data || [];
-      console.log("도감",list);
       const rep = list.find(d => d.represent)?.characterName ?? null;
       const growing = list.find(d => d.growing)?.characterName ?? null;
       setDexSummary({ repName: rep, growingName: growing });
@@ -64,11 +63,10 @@ const MyRoomPage = () => {
     }
   };
 
-  // auth/info
+  // auth/info 유저정보확인인
   const fetchAuthInfo = async () => {
     try {
       const res = await axiosInstance.get("/auth/info");
-      console.log("auth/info",res.data.data);
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
@@ -101,7 +99,6 @@ const MyRoomPage = () => {
     try {
       const res = await axiosInstance.get("/characters/my-pookie");
       setGrowingPookie(res.data);
-      console.log("my-pookie",res.data);
     } catch (err) {
       console.log("my-pookie 에러", err);
     }
