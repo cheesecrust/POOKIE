@@ -18,6 +18,7 @@ import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
 import com.ssafy.pookie.game.mini.dto.MiniGameScoreUpdateRequestDto;
 import com.ssafy.pookie.game.mini.service.MiniGameService;
 import com.ssafy.pookie.game.room.dto.*;
+import com.ssafy.pookie.game.room.service.FollowService;
 import com.ssafy.pookie.game.room.service.GameRoomService;
 import com.ssafy.pookie.game.room.service.InviteService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
@@ -51,6 +52,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final InGameService inGameService;
     private final MiniGameService miniGameService;
     private final InviteService inviteService;
+    private final FollowService followService;
     private final SocketMetrics socketMetrics;
     private final MessageSenderManager messageSenderManager;
 
@@ -189,7 +191,7 @@ public class GameServerHandler extends TextWebSocketHandler {
                 case FOLLOW:
                     FollowRequestDto followRequestDto = objectMapper.convertValue(msg.getPayload(), FollowRequestDto.class);
                     followRequestDto.setUser(user);
-
+                    followService.handleFollow(followRequestDto);
                     break;
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
