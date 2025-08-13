@@ -96,7 +96,7 @@ public interface CombinedRepository extends JpaRepository<Letters, Long> {
     FROM friend_requests fr
     JOIN user_accounts u_receiver ON fr.friend_id = u_receiver.id
     JOIN user_accounts u_sender ON fr.user_id = u_sender.id
-    WHERE fr.user_id = :userId)
+    WHERE fr.user_id = :userId AND fr.status = 'PENDING')
     
     ORDER BY createdAt DESC
     LIMIT :limit OFFSET :offset
