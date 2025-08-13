@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import useInViewMotion from "../utils/useInViewMotion";
 import ModalButton from "../components/atoms/button/ModalButton";
 import backgroundOutro from "../assets/background/background_login.png"
+import toggleRight from "../assets/icon/toggle_left.png"
+import toggleLeft from "../assets/icon/toggle_right.png"
 
 const OutroSection = ({ onStart, started }) => {
     const { ref, inView } = useInViewMotion();
@@ -31,7 +33,7 @@ const OutroSection = ({ onStart, started }) => {
         {/* 기존 START 버튼 재사용 */}
         {!started && (
           <motion.div
-            className="absolute top-100 left-1/2 transform -translate-x-1/2"
+            className="absolute top-110 left-1/2 transform -translate-x-1/2 transition-transform duration-300 hover:scale-110 hover:drop-shadow-2xl"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={inView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -51,6 +53,17 @@ const OutroSection = ({ onStart, started }) => {
           ※ 원활한 진행을 위해 <b>F11</b>을 눌러 전체화면 사용을 권장합니다.
           <br />※ 본 게임은 사용자의 캠 화면을 이용하여 초상권을 침해할 수 있습니다.
         </motion.p>
+
+        {/* Intro 이동 버튼 */}
+        <a href="#intro" className="absolute flex flex-row items-center gap-2 bottom-55 left-1/2 transform -translate-x-1/2 transition-transform duration-300 hover:scale-110 hover:drop-shadow-2xl">
+          <span>
+            <img src={toggleRight} className="w-8" />
+          </span>
+          <p className="text-5xl">UP</p>
+          <span>
+            <img src={toggleLeft} className="w-8" />
+          </span>
+        </a>
       </section>
   );
 };

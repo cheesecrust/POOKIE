@@ -21,6 +21,7 @@ const FindPasswordModal = ({ isOpen, onClose }) => {
             onClose={onClose}
             className="w-[550px] h-[250px]"
             closeBackdropClick={false}
+            backgroundPoacity="opacity-90"
         >
             <h2 className="text-center text-2xl font-bold mt-4 mb-8">비밀번호 찾기</h2>
     
