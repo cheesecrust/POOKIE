@@ -45,12 +45,15 @@ const OutroSection = ({ onStart, started }) => {
         )}
   
         <motion.p
-          className="absolute bottom-30 left-1/2 transform -translate-x-1/2 text-md md:text-base text-black leading-tight"
+          className="absolute bottom-30 left-1/2 transform -translate-x-1/2 text-xl text-black leading-relaxed"
+          style={{ animation: 'pulse 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          ※ 원활한 진행을 위해 <b>F11</b>을 눌러 전체화면 사용을 권장합니다.
+          ※ 원활한 진행을 위해{" "}
+          <span className="bg-white text-3xl text-black px-1 rounded">F11</span>
+          {" "}을 눌러 전체화면 사용을 권장합니다.
           <br />※ 본 게임은 사용자의 캠 화면을 이용하여 초상권을 침해할 수 있습니다.
         </motion.p>
 
