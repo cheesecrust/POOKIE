@@ -7,6 +7,10 @@ const UserReady = ({ team }) => {
       className={`absolute bottom-0 w-full h-1/5 ${bgColor} text-black flex items-center justify-center text-xl z-10`}
     >
       READY
+      <div
+        className="absolute top-0 left-0 w-full h-1/2 rounded-b-full
+        bg-gradient-to-b from-white/60 to-transparent pointer-events-none"
+      ></div>
     </div>
   );
 };
