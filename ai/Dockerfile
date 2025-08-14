@@ -23,5 +23,5 @@ RUN pip install --upgrade pip setuptools wheel \
 # 앱 소스 복사
 COPY . .
 
-# FastAPI 실행 (개발 모드)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+# 운영 모드: reload 제거 + 워커 2개 이상
+CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8001","--workers","2","--timeout-keep-alive","75"]
