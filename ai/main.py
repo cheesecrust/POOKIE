@@ -89,6 +89,8 @@ POSE_DIMS = len(POSE_INDEX_LIST) * 2
 HAND_POINTS_PER_HAND = 21
 HAND_DIMS = HAND_POINTS_PER_HAND * 2 * 2  # 84 (좌/우 2손 × 21포인트 × xy)
 
+POSE_LOCAL = {g_idx: i for i, g_idx in enumerate(POSE_INDEX_LIST)}
+
 # ================== 손 판정/ROI 튜닝 파라미터 ==================
 HAND_VIS_TH  = 0.45
 ROI_ALPHA    = 0.45
@@ -315,12 +317,13 @@ def kabsch_3d(P: np.ndarray, Q: np.ndarray):
 
 # ---------- 3D 뼈대 각도 유사도 ----------
 def _bone_dirs_3d(P):
-    LSH = mp_pose.PoseLandmark.LEFT_SHOULDER.value
-    RSH = mp_pose.PoseLandmark.RIGHT_SHOULDER.value
-    LE  = mp_pose.PoseLandmark.LEFT_ELBOW.value
-    RE  = mp_pose.PoseLandmark.RIGHT_ELBOW.value
-    LW  = mp_pose.PoseLandmark.LEFT_WRIST.value
-    RW  = mp_pose.PoseLandmark.RIGHT_WRIST.value
+    g = mp_pose.PoseLandmark
+    LSH = POSE_LOCAL[g.LEFT_SHOULDER.value]
+    RSH = POSE_LOCAL[g.RIGHT_SHOULDER.value]
+    LE  = POSE_LOCAL[g.LEFT_ELBOW.value]
+    RE  = POSE_LOCAL[g.RIGHT_ELBOW.value]
+    LW  = POSE_LOCAL[g.LEFT_WRIST.value]
+    RW  = POSE_LOCAL[g.RIGHT_WRIST.value]
     def u(a,b):
         v = b - a; n = np.linalg.norm(v) + 1e-6
         return v / n
@@ -812,20 +815,19 @@ async def upload_images(
         if not use_3d_pair:
             return s2d
 
-        bi = confs[i][:len(POSE_INDEX_LIST)]
-        bj = confs[j][:len(POSE_INDEX_LIST)]
-        s3d_cd  = confidence_distance_cd3d_aligned(
-            vecs_xyz[i], vecs_xyz[j], bi, bj,
-            scheme="CD_max", allow_mirror=True, align_idx=ALIGN_IDX
-        )
-        if not np.isfinite(s3d_cd):
-            s3d_cd = 0.0
-        s3d_ang = bone_angle_similarity_3d(vecs_xyz[i], vecs_xyz[j], align_idx=ALIGN_IDX)
-        if not np.isfinite(s3d_ang):
-            s3d_ang = 0.0
+        try:
+            bi = confs[i][:len(POSE_INDEX_LIST)]
+            bj = confs[j][:len(POSE_INDEX_LIST)]
+            s3d_cd  = confidence_distance_cd3d_aligned(vecs_xyz[i], vecs_xyz[j], bi, bj,
+                                                    scheme="CD_max", allow_mirror=True, align_idx=ALIGN_IDX)
+            s3d_ang = bone_angle_similarity_3d(vecs_xyz[i], vecs_xyz[j], align_idx=ALIGN_IDX)
+        except Exception as e:
+            # 로그 찍고 2D로 폴백
+            print(f"[pair_score][3D-fallback] {e}")
+            return s2d
+        s3d_cd = 0.0 if not np.isfinite(s3d_cd) else s3d_cd
+        s3d_ang = 0.0 if not np.isfinite(s3d_ang) else s3d_ang
         s3d = 0.5 * s3d_cd + 0.5 * s3d_ang
-
-        # 원근 강하면 3D 비중↑
         db = _pair_depth_blend(hand_metas[i], hand_metas[j], base=DEPTH_BLEND)
         return (1 - db) * s2d + db * s3d
 
