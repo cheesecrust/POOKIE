@@ -26,8 +26,10 @@ import {
   emitPainterChange,
 } from "../sockets/game/emit.js";
 import { updateHandlers } from "../sockets/websocket";
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 
 const SketchRelayPage = () => {
+  useRefreshExit({ redirect: true });
   const navigate = useNavigate();
   const { playSound } = useSound();
 
@@ -833,7 +835,7 @@ const SketchRelayPage = () => {
           <div className="mt-2 text-2xl font-extrabold leading-tight break-keep text-gray-900">
             {keyword || "정답!"}
           </div>
-        </div>      
+        </div>
       )}
 
       {/* 정답 모달 */}

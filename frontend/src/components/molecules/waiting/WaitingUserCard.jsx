@@ -37,7 +37,7 @@ const WaitingUserCard = ({
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-52 h-64 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
+        className={`relative w-56 h-66 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
       >
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
