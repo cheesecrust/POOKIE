@@ -17,8 +17,6 @@ services:
       - /var/lib/jenkins/data/ai-results:/app/results_debug
     networks:
       - ai-network
-    command: >
-      sh -c "uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
 
 networks:
   ai-network:
