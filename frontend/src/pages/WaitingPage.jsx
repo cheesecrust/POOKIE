@@ -24,6 +24,7 @@ import useGameStore from "../store/useGameStore";
 import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
 
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
+import FriendInviteButton from "../components/organisms/invite/FriendInviteButton";
 
 import {
   emitTeamChange,
@@ -395,9 +396,14 @@ const WaitingPage = () => {
               onToggle={handleGameTypeChange}
               isHost={isHost}
             />
+
+
           </div>
 
           <div className="basis-2/5 flex flex-row gap-4 p-2 items-center justify-end">
+            {/* 친구 초대 버튼 */}
+            <FriendInviteButton roomId={room.id}/>
+            {/* 팀 버튼 */}
             <TeamToggleButton
               currentTeam={team}
               onClick={handleTeamToggle}

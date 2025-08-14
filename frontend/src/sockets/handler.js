@@ -100,6 +100,25 @@ export const handleSocketMessage = (msg, handlers) => {
         return;
     }
 
+    // 초대 받았을때 
+    if (msg.type === "INVITED") {
+        console.log("INVITED 메시지 수신:", msg);
+        import("./waiting/handleWaitingMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] INVITE 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
+    if (msg.type === "ERROR") {
+        console.error("❌ 서버 오류:", msg.msg);
+        if(msg.msg === "인원이 가득 차 있습니다"){
+            window.alert("인원이 가득 차 있습니다");
+        }
+        return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     // 타이머 게임쪽으로 

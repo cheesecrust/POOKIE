@@ -67,3 +67,11 @@ export const emitRoomUpdate = ({ roomId }) => {
 		roomId,
 	});
 };
+
+// 친구 초대 emit
+export const emitInvite = ({ invitedUserId,roomId}) => {
+	sendMessage('INVITE',{
+		invitedUserId,
+		roomId,
+	})
+}

@@ -7,6 +7,11 @@ import BGMProvider from "./components/audio/BGMProvider";
 import SoundWrapper from "./components/organisms/common/SoundWrapper";
 import useClickSfx from "./utils/useClickSfx";
 
+// 초대
+import InviteGateWatcher from "./components/organisms/invite/InvtieGateWatcher";
+import InviteModal from "./components/organisms/invite/InviteModal";
+
+
 function AppContent() {
   const navigate = useNavigate();
   const loadUserFromStorage = useAuthStore((state) => state.loadUserFromStorage);
@@ -22,6 +27,8 @@ function AppContent() {
     <>
       <BGMProvider isPlaying={true} />
       <SoundWrapper showOnRoutes={["/", "/login", "/home"]} />
+      <InviteGateWatcher />
+      <InviteModal />
       <Router />
     </>
   );
