@@ -17,6 +17,7 @@ import useGameStore from "../store/useGameStore";
 import { Room, RoomEvent, createLocalVideoTrack } from "livekit-client";
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo";
 import connectLiveKit from "../utils/connectLiveKit";
+import cleanupLiveKit from "../utils/cleanupLiveKit";
 
 import {
   emitAnswerSubmit,
@@ -513,6 +514,7 @@ const SamePosePage = () => {
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, sizeStyles) => {
     return roleGroup.map((p, idx) => {
+      // console.log(participants);
       const userAccountId = Number(p.identity);
       const isMe = userAccountId === user.userAccountId;
 

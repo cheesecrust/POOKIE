@@ -275,6 +275,7 @@ const SilentScreamPage = () => {
   // 역할 부여
   useEffect(() => {
     // 내가 받지 못한 유저일 경우 역할 수동 부여
+    console.log(participants)
     const hasRole = participants.some((p) => p.role);
     const hasEnoughData = repIdxList.length > 0 && norIdxList.length > 0;
 
@@ -286,6 +287,7 @@ const SilentScreamPage = () => {
 
   // livekit 렌더 + 말풍선 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
+    console.log(roleGroup)
     return roleGroup.map((p, idx) => {
       return (
         <div

@@ -51,6 +51,7 @@ const connectLiveKit = async (user) => {
     roomId,
     addParticipant,
     updateParticipant,
+    removeParticipant,
     setRoomInstance,
   } = useGameStore.getState();
 
@@ -93,6 +94,22 @@ const connectLiveKit = async (user) => {
     roomInstance.on(RoomEvent.ParticipantConnected, (participant) => {
       const participantId = participant.identity;
       console.log("🧍 참가자 연결됨:", participantId);
+      console.log(participant)
+
+      // 새로운 참가자를 store에 추가 (기존에 없는 경우)
+      const currentState = useGameStore.getState();
+      const existing = currentState.participants.find(p => p.identity === String(participantId));
+
+      if (!existing) {
+        addParticipant({
+          identity: participantId,
+          track: null,
+          userAccountId: parseInt(participantId) || participantId,
+          nickname: `User_${participantId}`, // 임시 닉네임
+          team: currentState.red.includes(participantId) ? 'RED' : 'BLUE',
+          isLocal: false,
+        });
+      }
 
       // 해당 participant의 트랙 구독 처리
       participant.on(RoomEvent.TrackSubscribed, (track) => {
@@ -100,11 +117,27 @@ const connectLiveKit = async (user) => {
         handleTrackSubscribed({
           participantId,
           track,
-          red,
-          blue,
           updateParticipant,
         });
       });
+    });
+
+    // 참가자 퇴장 처리
+    roomInstance.on(RoomEvent.ParticipantDisconnected, (participant) => {
+      const participantId = participant.identity;
+      console.log("🚪 참가자 퇴장:", participantId);
+
+      // store에서 해당 participant 제거
+      removeParticipant(participantId);
+    });
+
+    // 트랙 구독 취소 처리
+    roomInstance.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+      const participantId = participant.identity;
+      console.log("❌ 트랙 구독 취소:", participantId);
+
+      // participant의 트랙을 null로 업데이트
+      updateParticipant(participantId, { track: null });
     });
 
     // 4. roomInstance 연결
