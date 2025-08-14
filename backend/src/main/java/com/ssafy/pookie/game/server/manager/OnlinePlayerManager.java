@@ -189,23 +189,6 @@ public class OnlinePlayerManager {
         });
     }
 
-    public void removeUserFromRoom(WebSocketSession session) {
-        this.rooms.keySet().forEach((roomId) -> {
-            this.rooms.get(roomId).getUsers().keySet().forEach((team) -> {
-                this.rooms.get(roomId).getUsers().get(team).forEach((user) -> {
-                    if(user.getUserAccountId().equals(session.getAttributes().get("userAccountId"))) {
-                        this.rooms.get(roomId).removeUser(user.getSession());
-                        try {
-                            user.getSession().close(CloseStatus.POLICY_VIOLATION);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-            });
-        });
-    }
-
     // 방 삭제
     public void removeRoomFromServer(String getRoomId) {
         RoomStateDto room = this.rooms.get(getRoomId);
@@ -279,5 +262,25 @@ public class OnlinePlayerManager {
     public boolean isInvalid(WebSocketSession session) {
 //        return this.lobby.contains(session.getAttributes().get("userAccountId"));
         return session.isOpen();
+    }
+
+    //  Duplicated User
+    public void findDuplicatedUser(UserDto user) {
+        try {
+            // 로비 처리 -> 로비에서 세션을 끊어버림
+            // 연쇄적으로 방 내부에도 전달
+            if (!duplicatedUserLobby(user)) return;
+        } catch (Exception e) {
+            log.error("Find Duplicated User Error : {}", user.getUserNickname());
+        }
+    }
+
+    private Boolean duplicatedUserLobby(UserDto user) throws IOException {
+        LobbyUserDto lobbyExist = isExistLobby(user);
+        if(lobbyExist == null) return false;
+        this.lobby.remove(user.getUserAccountId());
+        log.error("Duplicated Connected : USER({})", user.getUserNickname());
+        lobbyExist.getUser().getSession().close(CloseStatus.POLICY_VIOLATION);
+        return true;
     }
 }
