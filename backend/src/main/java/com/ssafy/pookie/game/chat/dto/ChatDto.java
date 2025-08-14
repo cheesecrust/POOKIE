@@ -28,7 +28,7 @@ public class ChatDto {
         // 전체 채팅
         if(this.getTeam() == null || this.getTeam().toString().isEmpty() || this.getTeam() == UserDto.Team.NONE) {
             for(WebSocketSession s : room.getSessions()) {      // 자기 자신을 포함하여 전송
-                manager.sendMessageToUser(s, mappingMessage());
+                manager.sendMessageToUser(s, this.roomId, mappingMessage());
             }
         } else {
             manager.sendMessageBroadCast(session, this.roomId, this.team, mappingMessage());

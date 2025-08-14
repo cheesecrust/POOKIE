@@ -31,7 +31,7 @@ public class GameChatService {
             chatDto.sendChat(session, room, messageSenderManager);
         } catch(IllegalArgumentException e) {
             log.error("{}",e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            messageSenderManager.sendMessageToUser(session, chatDto.getRoomId(), Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));
