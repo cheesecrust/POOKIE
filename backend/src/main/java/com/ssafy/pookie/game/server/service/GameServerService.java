@@ -31,8 +31,8 @@ public class GameServerService {
      */
     public void handleOn(WebSocketSession session, UserDto userDto) throws IOException {
         log.info("ON REQUEST : {}", userDto.getUserEmail());
-        // 현재 사용자가 다른 방에 있다면, 기존 방에서 제서
-        onlinePlayerManager.removeSessionFromRooms(session);
+        // 현재 사용자가 다른 방에 있다면, 기존 방에서 제거
+        onlinePlayerManager.removeUserFromRoom(session);
 
         // 기존에 접속되어 있는 사용자인지 확인 ( 중복 접속 )
         // 접속해있지 않다면 null 반환

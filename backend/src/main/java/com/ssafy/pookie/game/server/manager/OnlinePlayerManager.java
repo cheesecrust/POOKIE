@@ -189,6 +189,23 @@ public class OnlinePlayerManager {
         });
     }
 
+    public void removeUserFromRoom(WebSocketSession session) {
+        this.rooms.keySet().forEach((roomId) -> {
+            this.rooms.get(roomId).getUsers().keySet().forEach((team) -> {
+                this.rooms.get(roomId).getUsers().get(team).forEach((user) -> {
+                    if(user.getUserAccountId().equals(session.getAttributes().get("userAccountId"))) {
+                        this.rooms.get(roomId).removeUser(user.getSession());
+                        try {
+                            user.getSession().close(CloseStatus.POLICY_VIOLATION);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+            });
+        });
+    }
+
     // 방 삭제
     public void removeRoomFromServer(String getRoomId) {
         RoomStateDto room = this.rooms.get(getRoomId);
