@@ -95,9 +95,12 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
-
             // 검사 로직
             room.findInvalidUser();
+            messageSenderManager.sendMessageToUser(session, room.getRoomId(), Map.of(
+                    "type", MessageDto.Type.ERROR.toString(),
+                    "msg", "다시 시도해주세요"
+            ));
         }
     }
 
@@ -197,8 +200,6 @@ public class InGameService {
             }
             // 턴 바꿔주기
             room.turnChange();
-            // 지연이 느껴진다면 clear 실행
-//            messageSenderManager.clearRoomMessageQueue(room.getRoomId());
             // Client response msg
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, Map.of(
                     "type", MessageDto.Type.GAME_TURN_OVERED.toString(),
@@ -219,7 +220,6 @@ public class InGameService {
         } catch (Exception e) {
             log.error("TURN OVER REQUEST FAIL : ROOM {}", gameResult.getRoomId());
             log.error("REASON : {}", e.getMessage());
-            throw e;
         }
     }
 
@@ -265,8 +265,6 @@ public class InGameService {
                 gameResult.setScore(room.getTempTeamScores().get(room.getTurn().toString()));
             }
             room.roundOver();
-            // 지연이 생긴다면 clear 실행
-//            messageSenderManager.clearRoomMessageQueue(room.getRoomId());
             messageSenderManager.sendMessageBroadCast(session, room.getRoomId(), null, room.roundResult());
             // 라운드별 점수 초기화
             room.resetTempTeamScore();
@@ -275,7 +273,6 @@ public class InGameService {
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
-//                exceptionService.handleMoveToNewRoom(room);
                 return;
             }
             // client response message
@@ -298,7 +295,6 @@ public class InGameService {
         } catch (Exception e) {
             log.error("ROUND OVER REQUEST FAIL : ROOM {}", gameResult.getRoomId());
             log.error("REASON : {}", e.getMessage());
-            throw e;
         }
     }
     // Submit Answer ( 정답 제출 )
@@ -341,7 +337,6 @@ public class InGameService {
         } catch (Exception e) {
             log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
             log.error("REASON : {}", e.getMessage());
-            throw e;
         }
     }
 
@@ -378,7 +373,6 @@ public class InGameService {
         } catch (Exception e) {
             log.error("SUBMIT ANSWER REQUEST FAIL : ROOM {}", request.getRoomId());
             log.error("REASON : {}", e.getMessage());
-            throw e;
         }
     }
 
@@ -404,7 +398,6 @@ public class InGameService {
         } catch (Exception e) {
             log.error("PASS REQUEST REQUEST FAIL : ROOM {}", request.getRoomId());
             log.error("REASON : {}", e.getMessage());
-            throw e;
         }
     }
 }
