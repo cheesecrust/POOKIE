@@ -1,6 +1,7 @@
 package com.ssafy.pookie.game.ingame.service;
 
 import com.ssafy.pookie.game.data.repository.GameKeywordsRepository;
+import com.ssafy.pookie.game.exception.ExceptionService;
 import com.ssafy.pookie.game.info.dto.GameStartDto;
 import com.ssafy.pookie.game.ingame.dto.PainterChangeRequest;
 import com.ssafy.pookie.game.ingame.dto.PassRequestDto;
@@ -39,6 +40,7 @@ public class InGameService {
     private final RtcService rtcService;
     private final MessageSenderManager messageSenderManager;
     private final RewardService rewardService;
+    private final ExceptionService exceptionService;
 
     // 게임 시작 -> 방장이 버튼을 눌렀을 때
     public void handleGameStart(WebSocketSession session, GameStartDto request) throws IOException {
@@ -270,6 +272,7 @@ public class InGameService {
             if (!increaseRound(session, room)) {
                 room.resetUserTeamInfo();
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(gameResult.getRoomId(), gameResult.getUser()), true, LobbyUserDto.Status.WAITING);
+//                exceptionService.handleMoveToNewRoom(room);
                 return;
             }
             // client response message
