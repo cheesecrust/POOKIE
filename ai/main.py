@@ -43,25 +43,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/ai/healthz")
+def healthz(): return {"ok": True}
+
 # ================== MediaPipe 초기화 ==================
 mp_pose = mp.solutions.pose
 mp_hands = mp.solutions.hands
 
-# Pose를 조금 더 관용적으로 (팔/관절 잡힘 개선)
-pose = mp_pose.Pose(
-    static_image_mode=True,
-    model_complexity=2,             # 1→2로 올리면 팔/관절 검출 안정성↑
-    enable_segmentation=False,
-    min_detection_confidence=0.35,  # 화질/가림에 좀 더 관대
-    min_tracking_confidence=0.30
-)
+_pose = None
+_hands = None
 
-hands = mp_hands.Hands(
-    static_image_mode=True,
-    max_num_hands=2,
-    min_detection_confidence=0.50,
-    min_tracking_confidence=0.30
-)
+# Pose를 조금 더 관용적으로 (팔/관절 잡힘 개선)
+def get_pose():
+    global _pose
+    if _pose is None: 
+        _pose = mp_pose.Pose(static_image_mode=True, model_complexity=2,
+                             enable_segmentation=False, min_detection_confidence=0.35,
+                             min_tracking_confidence=0.30)
+    return _pose
+
+def get_hands():
+    global _hands
+    if _hands is None:
+        _hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2,
+                                 min_detection_confidence=0.50, min_tracking_confidence=0.30)
+    return _hands
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -82,6 +88,8 @@ POSE_INDEX_LIST = sorted(ALLOWED_POSE_IDX)  # 순서 고정
 POSE_DIMS = len(POSE_INDEX_LIST) * 2
 HAND_POINTS_PER_HAND = 21
 HAND_DIMS = HAND_POINTS_PER_HAND * 2 * 2  # 84 (좌/우 2손 × 21포인트 × xy)
+
+POSE_LOCAL = {g_idx: i for i, g_idx in enumerate(POSE_INDEX_LIST)}
 
 # ================== 손 판정/ROI 튜닝 파라미터 ==================
 HAND_VIS_TH  = 0.45
@@ -168,7 +176,7 @@ def _hand_points_and_conf(image_bgr, w, h, wrists=None, elbows=None, vis=None):
     - 손 신뢰도는 최소 0.5로 clip (2D 손 점수의 영향력 확보)
     """
     pts, confs = [], []
-    result = hands.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
+    result = get_hands().process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
 
     detected = []
     if getattr(result, "multi_hand_landmarks", None):
@@ -309,12 +317,13 @@ def kabsch_3d(P: np.ndarray, Q: np.ndarray):
 
 # ---------- 3D 뼈대 각도 유사도 ----------
 def _bone_dirs_3d(P):
-    LSH = mp_pose.PoseLandmark.LEFT_SHOULDER.value
-    RSH = mp_pose.PoseLandmark.RIGHT_SHOULDER.value
-    LE  = mp_pose.PoseLandmark.LEFT_ELBOW.value
-    RE  = mp_pose.PoseLandmark.RIGHT_ELBOW.value
-    LW  = mp_pose.PoseLandmark.LEFT_WRIST.value
-    RW  = mp_pose.PoseLandmark.RIGHT_WRIST.value
+    g = mp_pose.PoseLandmark
+    LSH = POSE_LOCAL[g.LEFT_SHOULDER.value]
+    RSH = POSE_LOCAL[g.RIGHT_SHOULDER.value]
+    LE  = POSE_LOCAL[g.LEFT_ELBOW.value]
+    RE  = POSE_LOCAL[g.RIGHT_ELBOW.value]
+    LW  = POSE_LOCAL[g.LEFT_WRIST.value]
+    RW  = POSE_LOCAL[g.RIGHT_WRIST.value]
     def u(a,b):
         v = b - a; n = np.linalg.norm(v) + 1e-6
         return v / n
@@ -532,7 +541,7 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str,
     image = preprocess_image(image)
     h, w = image.shape[:2]
 
-    pres = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    pres = get_pose().process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     if not pres.pose_landmarks:
         return None
 
@@ -732,6 +741,12 @@ async def upload_images(
                 atomic_write(img, team_round_latest)
                 atomic_write(img, overall_latest)
 
+        # 클라이언트 안내 메시지
+        client_msg = (
+            "손 제스처가 충분히 보이지 않아 판정에 실패했습니다. "
+            f"(감지 {imgs_with_any_hand}/{need}) 3명 모두 화면에 손을 보여주세요."
+        )
+
         return {
             "ok": True,
             "all_pass": False,
@@ -744,6 +759,7 @@ async def upload_images(
             "hand_status": [{"L": m["status"]["L"], "R": m["status"]["R"]} for m in hand_metas],
             "idle_per_image": idle_flags,
             "reason": f"negative_filter:no_enough_hands ({imgs_with_any_hand}/{need})",
+            "client_message": client_msg,
         }
 
     # ── 규칙 #1: 모두 idle이면 탈락(손이 전혀 안 보임) ──
@@ -799,20 +815,19 @@ async def upload_images(
         if not use_3d_pair:
             return s2d
 
-        bi = confs[i][:len(POSE_INDEX_LIST)]
-        bj = confs[j][:len(POSE_INDEX_LIST)]
-        s3d_cd  = confidence_distance_cd3d_aligned(
-            vecs_xyz[i], vecs_xyz[j], bi, bj,
-            scheme="CD_max", allow_mirror=True, align_idx=ALIGN_IDX
-        )
-        if not np.isfinite(s3d_cd):
-            s3d_cd = 0.0
-        s3d_ang = bone_angle_similarity_3d(vecs_xyz[i], vecs_xyz[j], align_idx=ALIGN_IDX)
-        if not np.isfinite(s3d_ang):
-            s3d_ang = 0.0
+        try:
+            bi = confs[i][:len(POSE_INDEX_LIST)]
+            bj = confs[j][:len(POSE_INDEX_LIST)]
+            s3d_cd  = confidence_distance_cd3d_aligned(vecs_xyz[i], vecs_xyz[j], bi, bj,
+                                                    scheme="CD_max", allow_mirror=True, align_idx=ALIGN_IDX)
+            s3d_ang = bone_angle_similarity_3d(vecs_xyz[i], vecs_xyz[j], align_idx=ALIGN_IDX)
+        except Exception as e:
+            # 로그 찍고 2D로 폴백
+            print(f"[pair_score][3D-fallback] {e}")
+            return s2d
+        s3d_cd = 0.0 if not np.isfinite(s3d_cd) else s3d_cd
+        s3d_ang = 0.0 if not np.isfinite(s3d_ang) else s3d_ang
         s3d = 0.5 * s3d_cd + 0.5 * s3d_ang
-
-        # 원근 강하면 3D 비중↑
         db = _pair_depth_blend(hand_metas[i], hand_metas[j], base=DEPTH_BLEND)
         return (1 - db) * s2d + db * s3d
 

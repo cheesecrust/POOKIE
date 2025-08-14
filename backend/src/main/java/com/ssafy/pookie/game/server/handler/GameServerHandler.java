@@ -207,7 +207,6 @@ public class GameServerHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[WebSocket] Conncted : {} - {}", session.getId(), session.getAttributes().get("nickname"));
-
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
         try {

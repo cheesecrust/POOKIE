@@ -14,6 +14,7 @@ import lombok.*;
 import org.apache.catalina.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.*;
@@ -300,11 +301,10 @@ public class RoomStateDto {
     public boolean isPreparedStart() throws IllegalArgumentException {
         if(this.sessions.size() < 6) throw new IllegalArgumentException("6명 이상 모여야 시작 가능합니다.");
         if(this.users.get("RED").size() != this.users.get("BLUE").size()) throw new IllegalArgumentException("팀원 수가 맞지 않습니다.");
-        if(!this.status.equals(Status.WAITING)) {
-            throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
-        }
+        if(!this.status.equals(Status.WAITING)) throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
         this.users.keySet().forEach((team) -> {
             this.users.get(team).forEach((user) -> {
+                if(!user.getSession().isOpen()) throw new IllegalArgumentException("대기방에 부적절한 유저가 있습니다.");
                 if(user.getStatus() != UserDto.Status.READY) throw new IllegalArgumentException("준비완료가 되지 않았습니다.");
             });
         });
@@ -318,9 +318,14 @@ public class RoomStateDto {
 
     // 방에서 이상한 유저 찾기
     public void findInvalidUser() {
-        for(String team : this.users.keySet()) {
-            this.users.get(team).removeIf((user) -> !user.getSession().isOpen());
+        for (String team : this.users.keySet()) {
+            this.users.get(team).removeIf(u -> {
+                boolean invalid = (u.getSession() == null) || !u.getSession().isOpen();
+                if (invalid) this.sessions.remove(u.getSession());
+                return invalid;
+            });
         }
         this.status = Status.WAITING;
     }
+
 }
