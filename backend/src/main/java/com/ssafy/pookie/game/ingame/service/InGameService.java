@@ -345,6 +345,7 @@ public class InGameService {
             if (!onlinePlayerManager.isAuthorized(request.getUser().getSession(), room) && room.getStatus() != RoomStateDto.Status.START) throw new IllegalArgumentException("잘못된 요청입니다.");
             if(!request.getCurRepIdx().equals(room.getGameInfo().getRepIdx())) throw new IllegalArgumentException("잘못된 요청입니다.");
             log.info("PAINTER CHANGE REQUEST : Room {}", room.getRoomId());
+            room.killTimer();
             if (!room.getGameInfo().changePainter()) {
                 log.warn("다음 차례가 없습니다.");
                 throw new IllegalArgumentException("다음 차례가 없습니다.");
