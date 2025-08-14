@@ -873,3 +873,6 @@ async def upload_images(
 # 정적 서빙 (시각화 이미지 접근용)
 app.mount("/results", StaticFiles(directory=RESULTS_ROOT, check_dir=False), name="results")
 # 예: http://<host>:<port>/results/2025-08-11/<gameId>/
+
+@app.get("/ai/healthz")
+def healthz(): return {"ok": True}
