@@ -21,7 +21,7 @@ public class GameChatService {
     private final MessageSenderManager messageSenderManager;
     // Chat
     public void handleChat(WebSocketSession session, ChatDto chatDto) throws IOException {
-        log.info("CHAT REQUEST : ROOM {}", chatDto.getRoomId());
+        log.info("CHAT REQUEST : \nROOM {}\nPAYLOAD {}", chatDto.getRoomId(), chatDto.getMessage());
         try {
             RoomStateDto room = onlinePlayerManager.getRooms().get(chatDto.getRoomId());
             if(!onlinePlayerManager.isAuthorized(session, room)) {
@@ -31,7 +31,7 @@ public class GameChatService {
             chatDto.sendChat(session, room, messageSenderManager);
         } catch(IllegalArgumentException e) {
             log.error("{}",e.getMessage());
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            messageSenderManager.sendMessageToUser(session, chatDto.getRoomId(), Map.of(
                     "type", MessageDto.Type.ERROR,
                     "msg", e.getMessage()
             ));

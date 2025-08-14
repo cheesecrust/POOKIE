@@ -25,8 +25,8 @@ public class GameRoomService {
     private final OnlinePlayerManager onlinePlayerManager;
     private final GameServerService gameServerService;
     private final SocketMetrics socketMetrics;
-    private final MessageSenderManager messageSenderManager;
     private final CharacterService characterService;
+    private final MessageSenderManager messageSenderManager;
     /*
         유저가 게임 대기방으로 접속시
      */
@@ -53,6 +53,8 @@ public class GameRoomService {
 
                 joinDto.setRoomId(tempUUID);
                 create = true;
+                // Room 전용 MQ 생성
+                messageSenderManager.createRoomMessageQueue(tempUUID);
             } else if(!onlinePlayerManager.getRooms().containsKey(joinDto.getRoomId())) throw new IllegalArgumentException("존재하지 않는 방입니다.");
 
             // 기존에 있던 방이라면 입장, 없던 방이라면 생성
@@ -89,7 +91,6 @@ public class GameRoomService {
             room.getSessions().add(session);
             onlinePlayerManager.getLobby().get(joinDto.getUser().getUserAccountId()).setStatus(LobbyUserDto.Status.WAITING);
             log.info("User {} joined room {} ({})", joinDto.getUser().getUserNickname(), room.getRoomTitle(), joinDto.getUser().getGrant());
-
             // Client response msg
             onlinePlayerManager.broadCastMessageToRoomUser(session, room.getRoomId(), null,
                     Map.of(
@@ -98,14 +99,17 @@ public class GameRoomService {
                             "room", room.mappingRoomInfo()
                     ));
             onlinePlayerManager.sendUpdateRoomStateToUserOn(room);
+            log.info("JOIN REQUEST SUCCESS : ROOM {}", room.getRoomId());
         } catch(IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("JOIN REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("JOIN REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }
@@ -170,12 +174,14 @@ public class GameRoomService {
                 socketMetrics.recordRoomDestroyed(room.getGameType().toString());
                 log.info("REMOVED ROOM {}", room.getRoomId());
                 onlinePlayerManager.removeRoomFromServer(roomId);
-                messageSenderManager.sendMessageToUser(session, Map.of(
+                onlinePlayerManager.sendToMessageUser(session, Map.of(
                         "type", MessageDto.Type.ROOM_LIST.toString(),
                         "roomList", gameServerService.existingRoomList()
                 ));
                 onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
                 leaveUser.setGrant(UserDto.Grant.NONE);
+                // Room MQ 삭제
+                messageSenderManager.removeRoomMessageQueue(roomId);
                 return;
             }
             onlinePlayerManager.updateLobbyUserStatus(new LobbyUserStateDto(roomId, leaveUser), false, LobbyUserDto.Status.ON);
@@ -183,7 +189,9 @@ public class GameRoomService {
             // 2-3. 나간 사람이 방장이라면, 방장 권한을 넘겨준다.
             if(leaveUser.getGrant().equals(UserDto.Grant.MASTER)) {
                 log.info("REGRANT Master");
+                log.info("before : {}", room.getRoomMaster().getUserNickname());
                 onlinePlayerManager.regrantRoomMaster(room);
+                log.info("after : {}", room.getRoomMaster().getUserNickname());
             }
             leaveUser.setGrant(UserDto.Grant.NONE);
             // 현재 사용자가 나가서 그대로 보내면 안됨
@@ -201,14 +209,17 @@ public class GameRoomService {
                     "type", MessageDto.Type.ROOM_LIST.toString(),
                     "roomList", gameServerService.existingRoomList()
             ));
+            log.error("LEAVE REQUEST SUCCESS : {} FROM ROOM {}", session.getAttributes().get("nickname"), room.getRoomId());
         } catch(IllegalArgumentException e) {
-            log.error("reason : {}", e.getMessage());
+            log.error("LEAVE REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
         } catch (Exception e) {
-            log.error("{}", e.getMessage());
+            log.error("LEAVE REQUEST FAIL : {}", session.getAttributes().get("nickname"));
+            log.error("REASON : {}", e.getMessage());
             throw e;
         }
     }

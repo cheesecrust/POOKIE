@@ -40,7 +40,7 @@ public class MessageDto {
 
         MINIGAME_JOINED, MINIGAME_SCORE_UPDATED, MINIGAME_OVERED, MINIGAME_LEAVED, MINIGAME_RESET,
         // FRIEND
-        INVITE,
+        INVITE, FOLLOW,
 
         INVITED,
         // ERROR
