@@ -95,6 +95,9 @@ public class InGameService {
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", e.getMessage()
             ));
+
+            // 검사 로직
+            room.findInvalidUser();
         }
     }
 
