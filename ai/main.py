@@ -43,25 +43,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/ai/healthz")
+def healthz(): return {"ok": True}
+
 # ================== MediaPipe 초기화 ==================
 mp_pose = mp.solutions.pose
 mp_hands = mp.solutions.hands
 
-# Pose를 조금 더 관용적으로 (팔/관절 잡힘 개선)
-pose = mp_pose.Pose(
-    static_image_mode=True,
-    model_complexity=2,             # 1→2로 올리면 팔/관절 검출 안정성↑
-    enable_segmentation=False,
-    min_detection_confidence=0.35,  # 화질/가림에 좀 더 관대
-    min_tracking_confidence=0.30
-)
+_pose = None
+_hands = None
 
-hands = mp_hands.Hands(
-    static_image_mode=True,
-    max_num_hands=2,
-    min_detection_confidence=0.50,
-    min_tracking_confidence=0.30
-)
+# Pose를 조금 더 관용적으로 (팔/관절 잡힘 개선)
+def get_pose():
+    global _pose
+    if _pose is None: 
+        _pose = mp_pose.Pose(static_image_mode=True, model_complexity=2,
+                             enable_segmentation=False, min_detection_confidence=0.35,
+                             min_tracking_confidence=0.30)
+    return _pose
+
+def get_hands():
+    global _hands
+    if _hands is None:
+        _hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2,
+                                 min_detection_confidence=0.50, min_tracking_confidence=0.30)
+    return _hands
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -168,7 +174,7 @@ def _hand_points_and_conf(image_bgr, w, h, wrists=None, elbows=None, vis=None):
     - 손 신뢰도는 최소 0.5로 clip (2D 손 점수의 영향력 확보)
     """
     pts, confs = [], []
-    result = hands.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
+    result = get_hands().process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
 
     detected = []
     if getattr(result, "multi_hand_landmarks", None):
@@ -532,7 +538,7 @@ def extract_upper_body_vectors(image_bytes: bytes, filename: str, save_dir: str,
     image = preprocess_image(image)
     h, w = image.shape[:2]
 
-    pres = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    pres = get_pose().process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     if not pres.pose_landmarks:
         return None
 
@@ -873,6 +879,3 @@ async def upload_images(
 # 정적 서빙 (시각화 이미지 접근용)
 app.mount("/results", StaticFiles(directory=RESULTS_ROOT, check_dir=False), name="results")
 # 예: http://<host>:<port>/results/2025-08-11/<gameId>/
-
-@app.get("/ai/healthz")
-def healthz(): return {"ok": True}
