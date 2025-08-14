@@ -16,6 +16,7 @@ import game_start from "../assets/audio/effect/game_start.mp3";
 import turn_change from "../assets/audio/effect/turn_change.mp3";
 import round_over from "../assets/audio/effect/round_over.mp3";
 import game_over from "../assets/audio/effect/game_over.mp3";
+import camera_shutter from "../assets/audio/effect/camera_shutter.mp3";
 
 // 사운드 파일 경로 관리
 const soundMap = {
@@ -39,6 +40,7 @@ const soundMap = {
     correct,
     incorrect,
     grow,
+    camera_shutter,
 }
 
 // useSound
@@ -47,7 +49,7 @@ const useSound = () => {
         const src = soundMap[key];
         if (!src) return;
 
-        const sound = new Howl({ 
+        const sound = new Howl({
             src: [src],
             volume: 0.6,
             html5: true,
