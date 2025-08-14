@@ -94,7 +94,7 @@ NEAR_TH_MULT = 0.8
 USE_3D = True                  # 3D world가 있을 때 3D 점수 블렌딩
 DEPTH_BLEND = 0.35             # 원근 감지되면 동적 상향
 
-PASS_THRESHOLD = 0.55          # 0.52~0.60 튜닝
+PASS_THRESHOLD = 0.60         # 0.52~0.60 튜닝
 PASS_POLICY    = "all"         # all | majority | ref
 
 # 2D 기본 가중 (동적 모드에서 덮어씌움)
@@ -396,59 +396,88 @@ def confidence_distance_cd2d(
     scheme_body="CD_max", scheme_hand="CD_max",
     allow_mirror=True, w_body=0.6, w_hand=0.4, use_hand=True
 ):
+    """
+    2D 유사도(몸+손).
+    - 몸: 기존과 동일 (원본/미러 모두 계산 후 최댓값)
+    - 손: '존재하는 손'끼리 우선 같은 손 매핑(LL, RR), 없으면 교차 매핑(LR, RL)
+          미러 분기에서도 동일 규칙 적용 → 좌/우가 반대여도 같은 제스처면 높은 점수.
+    """
+    # --- 분해 ---
     pb, ph = _split_xy(p_xy); qb, qh = _split_xy(q_xy)
-    pc_body = p_conf[:len(POSE_INDEX_LIST)]; qc_body = q_conf[:len(POSE_INDEX_LIST)]
-    pc_hand = p_conf[len(POSE_INDEX_LIST):]; qc_hand = q_conf[len(POSE_INDEX_LIST):]
+    n_body = len(POSE_INDEX_LIST)
+    pc_body = p_conf[:n_body];     qc_body = q_conf[:n_body]
+    pc_hand = p_conf[n_body:];     qc_hand = q_conf[n_body:]
 
-    # 몸 점수
-    pb_n = _l2_normalize_per_point(pb, 2); qb_n = _l2_normalize_per_point(qb, 2)
+    # ---------- 몸 점수(원본) ----------
+    pb_n = _l2_normalize_per_point(pb, 2)
+    qb_n = _l2_normalize_per_point(qb, 2)
     cos_body = (pb_n.reshape(-1,2) * qb_n.reshape(-1,2)).sum(axis=1)
     w_b = _cd_weight(pc_body, qc_body, scheme_body)
     s_body = float((w_b * cos_body).sum() / (float(w_b.sum()) + 1e-6))
 
-    # 손 점수 (Procrustes 정렬 포함)
-    s_hand = None
-    if use_hand:
-        def hand_block(pf, qf, ps, qs):
-            P = pf.reshape(-1,2); Q = qf.reshape(-1,2)
-            mask = (np.minimum(ps, qs) >= CONF_TH)
-            if np.sum(mask) >= 5:
-                Q = _procrustes_align_2d(P, Q, mask)
-            p_n = _l2_normalize_per_point(P.reshape(-1), 2)
-            q_n = _l2_normalize_per_point(Q.reshape(-1), 2)
-            cos = (p_n.reshape(-1,2) * q_n.reshape(-1,2)).sum(axis=1)
-            w = _cd_weight(ps, qs, scheme_hand); ws = float(w.sum())
-            return ((float((w*cos).sum()/(ws+1e-6)), ws) if ws>1e-6 else (None, 0.0))
+    # ---------- 손 점수(매핑 로직 + Procrustes) ----------
+    def hand_block(pf, qf, ps, qs):
+        P = pf.reshape(-1,2); Q = qf.reshape(-1,2)
+        mask = (np.minimum(ps, qs) >= CONF_TH)
+        if np.sum(mask) >= 5:                 # 충분히 겹치는 포인트가 있을 때만 Procrustes
+            Q = _procrustes_align_2d(P, Q, mask)
+        p_n = _l2_normalize_per_point(P.reshape(-1), 2)
+        q_n = _l2_normalize_per_point(Q.reshape(-1), 2)
+        cos = (p_n.reshape(-1,2) * q_n.reshape(-1,2)).sum(axis=1)
+        w   = _cd_weight(ps, qs, scheme_hand); ws = float(w.sum())
+        return ((float((w*cos).sum()/(ws+1e-6)), ws) if ws>1e-6 else (None, 0.0))
 
-        pL, pR = ph[:42], ph[42:84]; qL, qR = qh[:42], qh[42:84]
-        sL, wL = hand_block(pL, qL, pc_hand[:21], qc_hand[:21])
-        sR, wR = hand_block(pR, qR, pc_hand[21:42], qc_hand[21:42])
-        bag = [(sL,wL),(sR,wR)]
-        bag = [(s,w) for s,w in bag if s is not None]
-        if bag:
-            s_hand = float(np.average([s for s,_ in bag], weights=[w for _,w in bag]))
+    # 손 파트 분할
+    pL, pR = ph[:42], ph[42:84];  qL, qR = qh[:42], qh[42:84]
+    pcL, pcR = pc_hand[:21], pc_hand[21:42]
+    qcL, qcR = qc_hand[:21], qc_hand[21:42]
+
+    def active(ps):   # 해당 손이 "실존"하는가 (신뢰도 기반)
+        return np.any(ps >= CONF_TH)
+
+    p_hasL, p_hasR = active(pcL), active(pcR)
+    q_hasL, q_hasR = active(qcL), active(qcR)
+
+    def hand_score_for(qL_, qR_):
+        """q의 (원본/미러) 블록을 받아 동일 규칙으로 손 점수 계산"""
+        pairs = []
+        # 1) 같은 손끼리 우선 매핑
+        if p_hasL and q_hasL: pairs.append((pL, qL_, pcL, qcL))
+        if p_hasR and q_hasR: pairs.append((pR, qR_, pcR, qcR))
+        # 2) 같은 손 매핑이 하나도 없을 때만 교차 매핑
+        if not pairs:
+            if p_hasL and q_hasR: pairs.append((pL, qR_, pcL, qcR))
+            if p_hasR and q_hasL: pairs.append((pR, qL_, pcR, qcL))
+        # 집계
+        if not use_hand or not pairs:
+            return None
+        scores, weights = [], []
+        for pf, qf, ps, qs in pairs:
+            s, w = hand_block(pf, qf, ps, qs)
+            if s is not None and w > 0:
+                scores.append(s); weights.append(w)
+        return (float(np.average(scores, weights=weights)) if scores else None)
+
+    # 원본 손 점수
+    s_hand = hand_score_for(qL, qR)
 
     if not allow_mirror:
-        return s_body if s_hand is None else (w_body*s_body + w_hand*s_hand)/(w_body + w_hand + 1e-6)
+        # 손 점수가 없으면 몸만, 있으면 가중 평균
+        return s_body if s_hand is None else (w_body*s_body + w_hand*s_hand)/(w_body+w_hand+1e-6)
 
-    # 미러 비교
+    # ---------- 몸 점수(미러) ----------
     qb_m = _mirror_xy(qb); qh_m = _mirror_xy(qh)
     qb_n_m = _l2_normalize_per_point(qb_m, 2)
     cos_body_m = (pb_n.reshape(-1,2) * qb_n_m.reshape(-1,2)).sum(axis=1)
     s_body_m = float((w_b * cos_body_m).sum() / (float(w_b.sum()) + 1e-6))
 
-    s_hand_m = None
-    if use_hand:
-        qLm, qRm = qh_m[:42], qh_m[42:84]
-        sL_m, wL_m = hand_block(pL, qLm, pc_hand[:21], qc_hand[:21])
-        sR_m, wR_m = hand_block(pR, qRm, pc_hand[21:42], qc_hand[21:42])
-        bagm = [(sL_m,wL_m),(sR_m,wR_m)]
-        bagm = [(s,w) for s,w in bagm if s is not None]
-        if bagm:
-            s_hand_m = float(np.average([s for s,_ in bagm], weights=[w for _,w in bagm]))
+    # ---------- 손 점수(미러: q 좌우 반전 후 동일 규칙 적용) ----------
+    qLm, qRm = qh_m[:42], qh_m[42:84]
+    s_hand_m = hand_score_for(qLm, qRm)
 
-    mix0 = s_body if s_hand is None else (w_body*s_body + w_hand*s_hand)/(w_body + w_hand + 1e-6)
-    mix1 = s_body_m if s_hand_m is None else (w_body*s_body_m + w_hand*s_hand_m)/(w_body + w_hand + 1e-6)
+    # 최종 혼합(원본/미러 각각에서 손/몸 가중합 → 더 큰 쪽 선택)
+    mix0 = s_body if s_hand is None else (w_body*s_body + w_hand*s_hand)/(w_body+w_hand+1e-6)
+    mix1 = s_body_m if s_hand_m is None else (w_body*s_body_m + w_hand*s_hand_m)/(w_body+w_hand+1e-6)
     return max(mix0, mix1)
 
 # ---------- 3D 정렬 + 가중 코사인 ----------
