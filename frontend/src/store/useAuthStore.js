@@ -95,6 +95,9 @@ const useAuthStore = create(
             onNotification: (data) => {
               useHomeStore.getState().setNotification(data);
             },
+            onInvited: (data) => {
+              useHomeStore.getState().setInviteFromServer(data);
+            },
           }
         });
       },
