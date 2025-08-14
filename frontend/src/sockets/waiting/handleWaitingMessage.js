@@ -1,5 +1,6 @@
 // src/sockets/waiting/handleWaitingMessage.js
 import useGameStore from "../../store/useGameStore";
+import useHomeStore from "../../store/useHomeStore";
 
 const handleWaitingMessage = (data, handlers = {}) => {
     const {
@@ -106,6 +107,11 @@ const handleWaitingMessage = (data, handlers = {}) => {
             setTimeout(() => {
                 navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
             }, 3000);
+            break;
+        }
+
+        case "INVITED": {
+            handlers?.onInvited(data);
             break;
         }
 

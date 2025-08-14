@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import background_myroom from "../assets/background/background_myroom.png";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
-import useAuthStore from "../store/useAuthStore";
 import characterImageMap from "../utils/characterImageMap";
 import RightButton from "../components/atoms/button/RightButton";
 import UserExp from "../components/atoms/user/UserExp";
@@ -24,7 +23,7 @@ const MyRoomPage = () => {
   const evolveTimeRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("도감");
-  const { setUser } = useAuthStore();
+  // const { setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
   const [coin, setCoin] = useState(null);
@@ -70,7 +69,7 @@ const MyRoomPage = () => {
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
-      setUser(res.data.data);
+      // setUser(res.data.data);
       setExp(res.data.data.repCharacter.exp);
     } catch (err) {
       console.log("AuthInfo 에러", err);
