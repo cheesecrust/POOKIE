@@ -575,6 +575,17 @@ const SamePosePage = () => {
     }
   }, [isResultOpen, playSound]);
 
+  useEffect(() => {
+    if (time === 5) {
+      playSound("camera_shutter");
+    }
+  }, [time, playSound]);
+  useEffect(() => {
+    if (time === 8) {
+      playSound("countdown");
+    }
+  }, [time, playSound]);
+
   // 게임 정상 종료 여부
   const isNormalEnd = useGameStore((state) => state.isNormalEnd);
   const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);

@@ -73,18 +73,17 @@ const WaitingUserCard = ({
             <img src={crown} alt="방장" className="w-16 h-16" />
           </div>
         )}
+        {/* 닉네임 */}
+        <div
+          className={`mt-2 truncate w-[180px] text-sm font-bold ${
+            isMe ? "text-amber-500" : "text-black"
+          } ${isMe ? "bg-amber-100" : "bg-red-50"} rounded px-2 py-1 text-center`}
+        >
+          {user.userNickname}
+        </div>
 
         {/* Ready 뱃지 */}
         {user.isReady && <UserReady team={user.team} />}
-      </div>
-
-      {/* 닉네임 */}
-      <div
-        className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-violet-300/90" : "bg-red-50"
-        } rounded px-2 py-1 text-center`}
-      >
-        {user.userNickname}
       </div>
     </div>
   );
