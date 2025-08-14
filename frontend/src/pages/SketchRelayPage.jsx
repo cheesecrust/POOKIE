@@ -281,27 +281,6 @@ const SketchRelayPage = () => {
     repIdx,
   ]);
 
-  // // +) 내 역할 차례 결정
-  // useEffect(() => {
-  //   if (!myTeam || !turn) return;
-
-  //   if (myTeam !== turn) {
-  //     setUserRole("spectator");
-  //     setIsMyTurn(false);
-  //     return;
-  //   }
-
-  //   console.log(currentDrawer)
-  //   // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
-  //   if (currentDrawer?.idx === myIdx) {
-  //     setUserRole("drawer");
-  //     setIsMyTurn(true);
-  //   } else {
-  //     setUserRole("guesser");
-  //     setIsMyTurn(false);
-  //   }
-  // }, [myTeam, turn, currentDrawer?.idx, myIdx]);
-
   // 6️⃣ 첫 로딩 상태 관리
   useEffect(() => {
     if (turn && isFirstLoad) {
