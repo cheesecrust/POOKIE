@@ -30,7 +30,7 @@ public class GameTimerService {
     public void gameStartTimer(RoomStateDto room, TimerRequestDto timerRequest) throws IOException {
         log.info("TIMER START REQUEST : ROOM {}", room.getRoomId());
         if(!onlinePlayerManager.isAuthorized(timerRequest.getUser().getSession(), room) || !onlinePlayerManager.isMaster(timerRequest.getUser().getSession(), room)) {
-            onlinePlayerManager.sendToMessageUser(timerRequest.getUser().getSession(), Map.of(
+            messageSenderManager.sendMessageToUser(timerRequest.getUser().getSession(), timerRequest.getRoomId(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", "잘못된 요청입니다."
             ));
@@ -44,14 +44,6 @@ public class GameTimerService {
                 timeLeft -> {
                 // 매 초마다 Room 에 타이머 전송 ( ALL )
                     try {
-//                        onlinePlayerManager.broadCastMessageToRoomUser(
-//                                timerRequest.getUser().getSession(),
-//                                timerRequest.getRoomId(),
-//                                null,
-//                                Map.of(
-//                                        "type", "TIMER",
-//                                        "time", timeLeft  // 시간 보정
-//                                ));
                         messageSenderManager.sendMessageBroadCast(
                                 timerRequest.getUser().getSession(),
                                 timerRequest.getRoomId(),
@@ -61,25 +53,13 @@ public class GameTimerService {
                                         "time", timeLeft  // 시간 보정
                                 ));
                     }
-//                    catch (IOException e) {
-//                        log.error("{}", e.getMessage());
-//                    }
                     catch (Exception e) {
-                        log.error("{}", e.getMessage());
+                        log.error("TIMER PROCESSING ERROR : {}", e.getMessage());
                     }
                 },
                 () -> {
                   // 타이머 종료 시 Room 에 종료 알림 ( ALL )
                     try {
-//                        onlinePlayerManager.broadCastMessageToRoomUser(
-//                                timerRequest.getUser().getSession(),
-//                                timerRequest.getRoomId(),
-//                                null,
-//                                Map.of(
-//                                        "type", "GAME_TIMER_END",
-//                                        "msg", "시간이 종료되었습니다."
-//                                )
-//                        );
                         messageSenderManager.sendMessageBroadCast(
                                 timerRequest.getUser().getSession(),
                                 timerRequest.getRoomId(),
@@ -91,10 +71,6 @@ public class GameTimerService {
                         );
                         log.info("TIMER END SUCCESS : ROOM {}", room.getRoomId());
                     }
-//                    catch (IOException e) {
-//                        log.error("TIMER START FAIL : ROOM {}", room.getRoomId());
-//                        log.error("REASON : {}", e.getMessage());
-//                    }
                     catch (Exception e) {
                         log.error("TIMER START FAIL : ROOM {}", room.getRoomId());
                         log.error("REASON : {}", e.getMessage());
@@ -104,7 +80,7 @@ public class GameTimerService {
                     }
                 }
         );
-        onlinePlayerManager.broadCastMessageToRoomUser(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
+        messageSenderManager.sendMessageBroadCast(timerRequest.getUser().getSession(), room.getRoomId(), null, Map.of(
                 "type", "GAME_TIMER_START"
         ));
         // Room 에 타이머 설정

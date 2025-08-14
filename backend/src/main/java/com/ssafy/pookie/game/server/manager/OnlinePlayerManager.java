@@ -15,6 +15,7 @@ import com.ssafy.pookie.metrics.SocketMetrics;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Getter
 @Slf4j
+@Async
 public class OnlinePlayerManager {
     private final UserAccountsRepository userAccountsRepository;
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
@@ -70,8 +72,6 @@ public class OnlinePlayerManager {
         권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
-        log.info("Request Session : {}", session.getAttributes().get("userEmail"));
-        log.info("Request Room : {}", room.mappingSimpleRoomInfo(MessageDto.Type.LOG));
         return room != null && room.isIncluded(session);
     }
 
@@ -260,6 +260,7 @@ public class OnlinePlayerManager {
     }
 
     public boolean isInvalid(WebSocketSession session) {
-        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+//        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+        return session.isOpen();
     }
 }
