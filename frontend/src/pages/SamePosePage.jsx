@@ -500,16 +500,28 @@ const SamePosePage = () => {
     connectLiveKit(user);
   }, [user, roomId]);
 
-  // 역할 부여 (SilentScreamPage fallback)
+  // 역할 부여 (fallback)
   useEffect(() => {
-    const hasRole = participants.some((p) => p.role);
-    const hasEnoughData = repIdxList.length > 0;
+    if (!Array.isArray(participants) || participants.length === 0) return;
+    if (repIdxList.length === 0) return;
 
-    if (!hasRole && hasEnoughData) {
+    // null 역할 카운트
+    const nullCount = participants.filter((p) => p.role == null).length;
+
+    // console.log("🔍 현재 participants 상태:");
+    // participants.forEach((p, idx) => {
+    //   console.log(
+    //     `#${idx} identity=${p.identity}, nickname=${p.nickname}, role=${p.role || "없음"} track=${p.track} team=${p.team}`
+    //   );
+    // });
+    // console.log(`📊 null 역할 개수: ${nullCount}`);
+
+    // null이 4명 이상이면 무조건 보정
+    if (nullCount >= 4) {
+      console.log("📍nullCount >= 4 → setGameRoles2 실행", repIdxList);
       useGameStore.getState().setGameRoles2({ repIdxList });
-      console.log("🛠 역할 수동 설정 완료: SamePosePage fallback");
     }
-  }, [repIdxList, participants]);
+  }, [participants, repIdxList]);
 
   // livekit 렌더 함수
   const renderVideoByRole = (roleGroup, sizeStyles) => {

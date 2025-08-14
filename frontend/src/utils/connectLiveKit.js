@@ -99,14 +99,22 @@ const connectLiveKit = async (user) => {
       // 새로운 참가자를 store에 추가 (기존에 없는 경우)
       const currentState = useGameStore.getState();
       const existing = currentState.participants.find(p => p.identity === String(participantId));
-
+      // console.log("📍currentState", currentState)
+      // console.log("📍currentState.red", currentState.red)
+      // console.log("📍currentState.blue", currentState.blue)
       if (!existing) {
+
+        // nickname 찾기
+        const rosterUser =
+          (currentState.red  || []).find(p => Number(p.id) === Number(participantId)) ||
+          (currentState.blue || []).find(p => Number(p.id) === Number(participantId));
+
         addParticipant({
           identity: participantId,
           track: null,
           userAccountId: parseInt(participantId) || participantId,
-          nickname: `User_${participantId}`, // 임시 닉네임
-          team: currentState.red.includes(participantId) ? 'RED' : 'BLUE',
+          nickname: rosterUser?.nickname || `User_${participantId}`, // 임시 닉네임
+          team: currentState.red.some(p => Number(p.id) === Number(participantId)) ? 'RED' : 'BLUE',
           isLocal: false,
         });
       }
