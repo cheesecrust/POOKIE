@@ -46,6 +46,12 @@ const useGameStore = create((set, get) => ({
     roundResult: null,
     finalScore: { RED: 0, BLUE: 0 },
 
+    // 게임 정상적인 종료 여부
+    isNormalEnd: true,
+    isAbnormalPerson: null,
+    setIsNormalEnd: (isNormalEnd) => set({ isNormalEnd }),
+    setIsAbnormalPerson: (isAbnormalPerson) => set({ isAbnormalPerson }),
+
     win: 0,
 
     roomInstance: null,
@@ -143,10 +149,39 @@ const useGameStore = create((set, get) => ({
     // 타이머 SET 함수
     setGameTimerStart: () => set({ gameTimerStarted: true }),
     setGameTimerEnd: (data) => {
-        set({ isSilentScreamTimerEnd: true, isSamePoseTimerEnd: true });
+        set({ gameTimerStarted: false, isSilentScreamTimerEnd: true, isSamePoseTimerEnd: true });
 
         if (get().gameType == "SKETCHRELAY") {
             get().handleSketchRelayTimerEnd(data);
+        }
+    },
+
+    // SKETCHRELAY 정답 처리기
+    handleSketchRelayCorrect: () => {
+        // 1) UI 타이머 즉시 OFF (늦게 오는 TIMER 틱 무시)
+        set({ gameTimerStarted: false });
+
+        const wasFirstDrawer = get().currentDrawTurn === 0; // 첫 주자였는지
+        // 2) 첫 소모
+        const r1 = get().nextDrawTurn();
+
+        // 3) 첫 주자가 맞췄다면 같은 팀 두 번째 주자도 즉시 소모(총 2번)
+        const finalResult = wasFirstDrawer ? get().nextDrawTurn() : r1;
+
+        // 4) UI에 종료 신호
+        set({ isTimerEnd: true, lastTurnResult: finalResult });
+
+        // 5) 방장만 서버 알림 (다음 타이머 자동 시작 금지 — 여기선 emit만)
+        const { roomId, master, score } = get();
+        const myIdx = useAuthStore.getState().user?.userAccountId;
+
+        if (roomId && myIdx === master) {
+            if (finalResult?.roundComplete) {
+            emitRoundOver({ roomId, team: "BLUE", score: score || 0 });
+            } else if (finalResult?.teamChanged && finalResult?.newTeam === "BLUE") {
+            emitTurnOver({ roomId, team: "RED", score: score || 0 });
+            }
+            // ⚠️ 여기서는 autoStartNextTimer 호출하지 않음
         }
     },
 
@@ -232,7 +267,10 @@ const useGameStore = create((set, get) => ({
     setParticipants: (participants) => set({ participants }),
 
     // 타이머 set
-    setTime: (data) => set({ time: data.time }),
+    setTime: (data) => {
+        if (!get().gameTimerStarted) return; // 종료/미시작 상태면 틱 무시 (겹침 차단)
+        set({ time: data.time });
+    },
 
     setRoomInfo: (data) => set({ roomInfo: data }),
 
@@ -250,11 +288,36 @@ const useGameStore = create((set, get) => ({
             keywordIdx: data.nowInfo.keywordIdx,
             repIdx: data.nowInfo.repIdx,
             score: data.answer ? state.score + 1 : state.score,
+            inputAnswer: data.inputAnswer,
         }));
 
         // 고요속의 외침 
         if (get().gameType === "SILENTSCREAM") {
             // 모달 처리 따로
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 1000);
+            }
+        }
+
+        // 이어그리기
+        if (get().gameType === "SKETCHRELAY") {
+            // 모달 처리 따로
+            if (data.answer) {
+                set({ isCorrectModalOpen: true });
+                get().handleSketchRelayCorrect();
+                setTimeout(() => set({ isCorrectModalOpen: false }), 300);
+            } else {
+                set({ isWrongModalOpen: true });
+                setTimeout(() => set({ isWrongModalOpen: false }), 500);
+            }
+        }
+
+        // 일심동체 (SamePose)
+        if (get().gameType === "SAMEPOSE") {
             if (data.answer) {
                 set({ isCorrectModalOpen: true });
                 setTimeout(() => set({ isCorrectModalOpen: false }), 1000);
@@ -362,11 +425,13 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
+            // console.log("user : "+p)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
-                : norIdxList.includes(p.userAccountId)
+                : norIdxList.map(e=>e.idx).includes(p.userAccountId)
                     ? "NOR"
                     : null;
+            // console.log("role : "+role)
             return { ...p, role };
         });
 
@@ -381,7 +446,7 @@ const useGameStore = create((set, get) => ({
         const participants = get().participants;
 
         const updatedParticipants = participants.map((p) => {
-            const role = repIdxList.includes(p.userAccountId)
+            const role = repIdxList.map(e=>e.idx).includes(p.userAccountId)
                 ? "REP"
                 : null;
             return { ...p, role };
@@ -409,6 +474,12 @@ const useGameStore = create((set, get) => ({
         score: data.game_init?.score || 0,
         win: data.game_init?.win || 0,
         currentDrawTurn: 0 // 게임 시작 시 초기화
+    }),
+
+    // 게임 정상 종료 여부 (Interrupt 발생하면 정상적인 종료가 아님)
+    setInterrupt: (data) => set({
+        isNormalEnd: false,
+        isAbnormalPerson: data.nickname,
     }),
 
     // 다음 그리기 턴으로 이동

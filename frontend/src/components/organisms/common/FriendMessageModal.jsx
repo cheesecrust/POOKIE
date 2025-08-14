@@ -1,17 +1,8 @@
 // 경로: src/components/organisms/common/FriendMessageModal.jsx
 // atom-푸키푸키버튼이랑 연동헀음 organism/common/FriendMessageWrapper
-// 기능 구현
-// 1. 친구리스트
-// 2. 메시지리스트
-// 3. 페이지네이션
-// 4. 친구찾기
-// 5. 모달닫기 아직 구현 못함
-// 미완성
 
 // 친구 리스트 / 쪽지 리스트 API 호출 , 상태저장
 // 해당 organism에서 필요한 함수 : 쪽지, 친구 삭제 / 신고 처리 (상태 변화)
-// 페이지네이션 상태 관리 
-// 친구 찾기 모달 
 
 import { useState, useEffect } from 'react'
 import axiosInstance from '../../../lib/axiosInstance'
@@ -27,10 +18,9 @@ import BasicModal from '../../atoms/modal/BasicModal'
 const FriendMessageModal = ({onClose}) => {
   // 탭 상태 관리
   const [activeTab, setActiveTab] = useState('friend')
-  // 전체 페이지 상태 관리
-  const [totalPages, setTotalPages] = useState(1)
-  // 현재 페이지 상태 관리
-  const [currentPage, setCurrentPage] = useState(1)
+  // 공용 페이지 상태 (탭 하나만 사용하도록 제어)
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   // 친구 찾기 모달 상태 관리
   const [isFindModalOpen, setIsFindModalOpen] = useState(false)
 
@@ -41,34 +31,26 @@ const FriendMessageModal = ({onClose}) => {
   // 유저 보낸 쪽지함 상태 관리 
   const [sentMessages, setSentMessages] = useState([]) // nickname, date, messageContent, isRead
 
-  // 모달 첫 로딩 데이터 요청
+  // 첫 로딩: 기본 탭(friend)만 요청
   useEffect(() => {
-    fetchFriends();
-    fetchReceivedMessages();
-    fetchSentMessages();
+    fetchFriends(0);
   }, []);
 
-  // 탭 변경 시 데이터 갱신
+  // 탭 변경 시: 페이지 1로 리셋하고 해당 탭만 요청
   useEffect(() => {
-    if(activeTab === 'received'){
-      fetchReceivedMessages();
-    }else if(activeTab === 'sent'){
-      fetchSentMessages()
-    }else{
-      fetchFriends()
-    }
+    setCurrentPage(1);
+    if (activeTab === 'friend') fetchFriends(0);
+    if (activeTab === 'received') fetchReceivedMessages(0);
+    if (activeTab === 'sent') fetchSentMessages(0);
   }, [activeTab]);
 
-  // currentPage 바뀔 때마다 다시 FriendList 요청
+  // currentPage 변경 시: 현재 탭만 페치
   useEffect(() => {
-    fetchFriends(currentPage-1);
-  }, [currentPage]);
-  useEffect(() => {
-    fetchReceivedMessages(currentPage-1);
-  }, [currentPage]);
-  useEffect(() => {
-    fetchSentMessages(currentPage-1);
-  }, [currentPage]);
+    const page0 = currentPage - 1;
+    if (activeTab === 'friend') fetchFriends(page0);
+    if (activeTab === 'received') fetchReceivedMessages(page0);
+    if (activeTab === 'sent') fetchSentMessages(page0);
+  }, [currentPage, activeTab]);
 
   // 친구 목록 api 요청    
   const fetchFriends = async (page = 0) => {
@@ -84,47 +66,53 @@ const FriendMessageModal = ({onClose}) => {
       const { content, totalPages } = res.data.data;
       setFriends(content);
       setTotalPages(totalPages);
-      console.log("친구 목록:",content);
+      // console.log("친구 목록:",content);
       console.log("친구api",res.data.data);
+      // 현재 페이지 > 총 페이지면 보정
+      if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
       console.log("친구 목록 불러오기 실패:",err);
     }
   }
 
   // 받은 쪽지 api 요청
-  const fetchReceivedMessages = async () => {
+  const fetchReceivedMessages = async (page = 0) => {
     try {
       const res = await axiosInstance.get('/letter/received', {
         params: {
           size: 4,
-          page: currentPage
+          page: page
         }
       });
-      console.log("받은 쪽지 api",res.data);
+      // console.log("받은 쪽지 api",res.data);
       const receivedMessage = res.data.data.content;
-      const totalPage = res.data.data.totalPages;
+      const totalPages = res.data.data.totalPages;
       setReceivedMessages(receivedMessage);
-      setTotalPages(totalPage);
+      setTotalPages(totalPages);
       console.log("받은 쪽지:",receivedMessage);
-    } catch (err) {
+      // 현재 페이지 > 총 페이지면 보정
+      if (currentPage > totalPages) setCurrentPage(totalPages || 1);
+      } catch (err) {
       console.log("받은 쪽지 불러오기 실패:",err);
     }
   };
 
   // 보낸 쪽지 api 요청
-  const fetchSentMessages = async () => {
+  const fetchSentMessages = async (page=0) => {
     try {
       const res = await axiosInstance.get('/letter/sent', {
         params: {
           size: 4,
-          page: currentPage,
+          page: page,
         }
       });
       const sentMessage = res.data.data.content;
-      const totalPage = res.data.data.totalPages;
+      const totalPages = res.data.data.totalPages;
       setSentMessages(sentMessage);
-      setTotalPages(totalPage);
+      setTotalPages(totalPages);
       console.log("보낸 쪽지:",sentMessage);
+      // 현재 페이지 > 총 페이지면 보정
+      if (currentPage > totalPages) setCurrentPage(totalPages || 1);
     } catch (err) {
       console.log("보낸 쪽지 불러오기 실패:",err);
     }
@@ -139,17 +127,13 @@ const FriendMessageModal = ({onClose}) => {
       }else{
         setSentMessages(prev => prev.filter(m=>m.requestId!==requestId))
       }
-      console.log(requestId)
-      console.log("쪽지 삭제:",res.data);
+      // console.log(requestId)
+      // console.log("쪽지 삭제:",res.data);
     } catch (err) {
       console.log("쪽지 삭제 실패:",err);
     }
   }
 
-
-  // 받은 쪽지 신고 api 요청
-  const handleReportMessage = (messageId) => {
-  }
 
   // 친구 삭제 버튼 클릭 시 api 요청
   const handleRemoveFriend = async(friendId) => {
@@ -162,26 +146,23 @@ const FriendMessageModal = ({onClose}) => {
     }
   }
 
-  // 친구 수락 api 요청 ( 수락 + 쪽지 삭제)
+  // 친구 수락 api 요청 ( 수락 )
   const handleAcceptFriend = async (requestId) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/accept`);
-      const res1 = await axiosInstance.delete(`/letter/${requestId}`);
-      console.log("친구 수락:",res.data.data);
-      console.log("쪽지 삭제:",res1.data.data);
+      // console.log("친구 수락:",res.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
     } catch (err) {
       console.log("친구 수락 실패:",err);
     }
   }
 
-  // 친구 거절 api 요청 ( 거절 + 쪽지 삭제)
+  // 친구 거절 api 요청 ( 거절 )
   const handleRejectFriend = async (requestId) => {
     try {
       const res = await axiosInstance.post(`/friends/requests/${requestId}/reject`);
-      const res1 = await axiosInstance.delete(`/letter/${requestId}`);
-      console.log("친구 거절:",res.data.data);
-      console.log("쪽지 삭제:",res1.data.data);
+      // console.log("친구 거절:",res.data.data);
+      // console.log("쪽지 삭제:",res1.data.data);
       setReceivedMessages((prev) => prev.filter(message => message.requestId !== requestId))
     } catch (err) {
       console.log("친구 거절 실패:",err);
@@ -219,7 +200,6 @@ const FriendMessageModal = ({onClose}) => {
             <MessageList messageType="received" 
             messages={receivedMessages} 
             onDelete={handleDeleteMessage}
-            onReport={handleReportMessage}
             onAccept={handleAcceptFriend}
             onReject={handleRejectFriend}
             />

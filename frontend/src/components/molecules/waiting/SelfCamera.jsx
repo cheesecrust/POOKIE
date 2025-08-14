@@ -25,8 +25,8 @@ const SelfCamera = () => {
 
   return (
     <>
-      <p> ㅇ.ㅇ 외모 check</p>
-      <div className="w-64 h-48 border-2 m-2 border-pink-400 bg-black rounded-lg overflow-hidden">
+      <p> 외모 췍크 ↗️ </p>
+      <div className="w-80 h-52 border-2 m-4 border-pink-400 rounded-lg overflow-hidden">
         <video
           ref={videoRef}
           autoPlay

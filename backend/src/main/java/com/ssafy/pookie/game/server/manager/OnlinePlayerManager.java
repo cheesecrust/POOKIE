@@ -5,6 +5,7 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
 import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
 import com.ssafy.pookie.game.user.dto.LobbyUserDto;
@@ -14,6 +15,7 @@ import com.ssafy.pookie.metrics.SocketMetrics;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -29,10 +31,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Getter
 @Slf4j
+@Async
 public class OnlinePlayerManager {
     private final UserAccountsRepository userAccountsRepository;
     private final ConcurrentHashMap<String, RoomStateDto> rooms = new ConcurrentHashMap<>();    // <roomId, RoomStateDto>
     private final ConcurrentHashMap<Long, LobbyUserDto> lobby = new ConcurrentHashMap<>();    // <userAccountId, LobbyUserDto>
+    private final ConcurrentHashMap<Long, MiniGameRoomDto> miniGameRooms = new ConcurrentHashMap<>();     // <userAccountId, MiniGameRoomDto>
     private final SocketMetrics socketMetrics;
     private final RewardService rewardService;
 
@@ -68,8 +72,6 @@ public class OnlinePlayerManager {
         권한 없음 : false
      */
     public Boolean isAuthorized(WebSocketSession session, RoomStateDto room) {
-        log.info("Request Session : {}", session.getAttributes().get("userEmail"));
-        log.info("Request Room : {}", room.mappingSimpleRoomInfo(MessageDto.Type.LOG));
         return room != null && room.isIncluded(session);
     }
 
@@ -164,7 +166,8 @@ public class OnlinePlayerManager {
                                 try {
                                     sendToMessageUser(s, Map.of(
                                             "type", "INTERRUPT",
-                                            "msg", session.getAttributes().get("nickname") + "가 게임을 나갔습니다.\n 게임이 종료됩니다."
+                                            "msg", session.getAttributes().get("nickname") + "님이 게임을 나갔습니다.\n 게임이 종료됩니다.",
+                                            "nickname", session.getAttributes().get("nickname")
                                     ));
                                     sendToMessageUser(s, Map.of(
                                             "type", MessageDto.Type.WAITING_GAME_OVER.toString(),
@@ -234,7 +237,30 @@ public class OnlinePlayerManager {
         room.setRoomMaster(user.get(team[teamIdx]).get(playerIdx));
     }
 
+    public void broadCastMessageToOtherRoomUser(WebSocketSession session, String roomId, String team, Map<String, Object> msg) throws IOException {
+        RoomStateDto room = this.rooms.get(roomId);
+        if(!isAuthorized(session, room)) return;
+
+        // 1. 팀원들에게만 전달
+        if(team != null) {
+            for(UserDto user : room.getUsers().get(team)) {
+                if (user.getSession().equals(session)) continue;
+                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        } else {    // 2. BroadCast 전달
+            for(WebSocketSession user : room.getSessions()) {
+                if (user.equals(session)) continue;
+                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+            }
+        }
+    }
+
+    public void removeMiniGameRoom(Long userAccountId) {
+        this.miniGameRooms.remove(userAccountId);
+    }
+
     public boolean isInvalid(WebSocketSession session) {
-        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+//        return this.lobby.contains(session.getAttributes().get("userAccountId"));
+        return session.isOpen();
     }
 }

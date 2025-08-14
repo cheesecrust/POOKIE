@@ -14,7 +14,12 @@ import characterImageMap from "../utils/characterImageMap";
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getSocket, updateHandlers, isSocketConnected, getSocketState } from "../sockets/websocket";
+import {
+  getSocket,
+  updateHandlers,
+  isSocketConnected,
+  getSocketState,
+} from "../sockets/websocket";
 import handleHomeMessage from "../sockets/home/handleHomeMessage";
 
 const HomePage = () => {
@@ -24,7 +29,7 @@ const HomePage = () => {
   const { logout, loadUserFromStorage } = useAuthStore();
   const { isLoggedIn } = useAuthStore((state) => state);
   const roomList = useRoomStore((state) => state.roomList);
-  
+
   // roomList 변경 디버깅
   useEffect(() => {
     console.log("🏠 HomePage roomList 변경됨:", roomList?.length || 0, "개 방");
@@ -56,12 +61,12 @@ const HomePage = () => {
   useEffect(() => {
     if (location.state?.kicked) {
       setIsKicked(true);
-      
+
       // 1초 후 자동 닫기
       const timer = setTimeout(() => {
         setIsKicked(false);
       }, 1000);
-      
+
       return () => clearTimeout(timer); // 클린업
     }
   }, [location.state]);
@@ -74,9 +79,9 @@ const HomePage = () => {
     const setRoomListFunc = () => useRoomStore.getState().setRoomList;
     console.log("🏠 HomePage 핸들러 등록:", {
       setRoomList: typeof setRoomListFunc(),
-      navigate: typeof navigate
+      navigate: typeof navigate,
     });
-    
+
     updateHandlers({
       setRoomList: (roomList) => {
         console.log("🏠 HomePage에서 setRoomList 래퍼 호출됨");
@@ -93,7 +98,7 @@ const HomePage = () => {
       });
     };
   }, [user, navigate]);
-  
+
   // 🔍 검색 함수 (백엔드 연동 시 수정 예정)
   const handleSearch = (keyword) => {
     setKeyword(keyword);
@@ -113,7 +118,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#FCDDDD] text-black">
       <FriendMessageWrapper />
-      
+
       {/* 상단 고정 헤더 */}
       <Header />
 
@@ -137,7 +142,7 @@ const HomePage = () => {
                 방 생성하기
               </ModalButton>
               <ModalButton
-                onClick={() => alert("서비스 준비 중입니다🤍")}
+                onClick={() => navigate("/fallingfood")}
                 className="px-6 py-2 rounded-full shadow-md hover:brightness-95"
               >
                 혼자 하기
@@ -150,7 +155,10 @@ const HomePage = () => {
             {/* 왼쪽: 대표 캐릭터 이미지 */}
             <div className="flex-shrink-0">
               <img
-                src={characterImageMap[user?.repCharacter?.characterName] || defaultCharacter}
+                src={
+                  characterImageMap[user?.repCharacter?.characterName] ||
+                  defaultCharacter
+                }
                 alt="대표캐릭터"
                 className="w-40 h-40 object-contain"
               />

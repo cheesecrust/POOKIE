@@ -1,5 +1,6 @@
 package com.ssafy.pookie.friend.repository;
 
+import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.friend.model.FriendRequests;
 import com.ssafy.pookie.friend.model.RequestStatus;
 import org.springframework.data.domain.Page;
@@ -29,4 +30,8 @@ public interface FriendRequestsRepository extends JpaRepository<FriendRequests, 
     @Transactional
     @Query("DELETE FROM FriendRequests l WHERE l.id = :friendRequestId AND (l.user.id = :accountId)")
     int deleteByLetterIdAndUserInvolved(@Param("friendRequestId") Long friendRequestId, @Param("accountId") Long accountId);
+
+    boolean existsByUserAndFriend(UserAccounts user, UserAccounts friend);
+
+    boolean existsByUserAndFriendAndStatus(UserAccounts user, UserAccounts friend, RequestStatus status);
 }

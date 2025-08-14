@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 public class GameTimerDto {
     private final Map<RoomStateDto.GameType, Integer> runTime = Map.of(
             RoomStateDto.GameType.SILENTSCREAM, 30,
-            RoomStateDto.GameType.SAMEPOSE, 5,
+            RoomStateDto.GameType.SAMEPOSE, 8,
             RoomStateDto.GameType.SKETCHRELAY, 10
     );
 
@@ -46,7 +46,7 @@ public class GameTimerDto {
     }
 
     public void stop() {    // 현재 실행중인 타이머가 있다면 중지
-        if(scheduledTask != null && !scheduledTask.isCancelled()) scheduledTask.cancel(false);
+        if(isRunning()) scheduledTask.cancel(false);
     }
 
     public boolean isRunning() { return scheduledTask != null && !scheduledTask.isCancelled(); }

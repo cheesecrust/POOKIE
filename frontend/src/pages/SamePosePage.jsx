@@ -8,6 +8,8 @@ import GameResultModal from "../components/organisms/games/GameResultModal";
 import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import useSound from "../utils/useSound";
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 import axios from "axios";
 
 import useAuthStore from "../store/useAuthStore.js";
@@ -24,14 +26,19 @@ import {
 } from "../sockets/game/emit.js";
 
 const SamePosePage = () => {
+  // 요구사항: F5/뒤로가기 → 소켓만 끊기
+  useRefreshExit({ redirect: true });
+
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { playSound } = useSound();
 
   // 방정보
   const master = useGameStore((state) => state.master);
   const myIdx = user?.userAccountId;
   const roomId = useGameStore((state) => state.roomId);
   const roomInfo = useGameStore((state) => state.roomInfo);
+  const isHost = user?.userAccountId === master; //방장 id
 
   // 턴 라운드 키워드
   const turn = useGameStore((state) => state.turn);
@@ -73,6 +80,10 @@ const SamePosePage = () => {
   const norIdxList = useGameStore((state) => state.norIdxList) || [];
   const repIdxList = useGameStore((state) => state.repIdxList);
 
+  // 캡쳐
+  const lastShotKeyRef = useRef("");
+  const isCapturingRef = useRef(false); // 중복 방지용
+
   // livekit
   const participants = useGameStore((state) => state.participants);
   const roomInstance = useGameStore((state) => state.roomInstance);
@@ -102,87 +113,222 @@ const SamePosePage = () => {
     (state) => state.showTurnChangeModal
   ); // 턴 바뀔때 모달
 
+  // 정답 오답 모달
+  const isCorrectModalOpen = useGameStore((state) => state.isCorrectModalOpen);
+  const closeCorrectModal = useGameStore((state) => state.closeCorrectModal);
+  const isWrongModalOpen = useGameStore((state) => state.isWrongModalOpen);
+  const closeWrongModal = useGameStore((state) => state.closeWrongModal);
+
+  // 처리중..
+  const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
+  const [pendingAnswer, setPendingAnswer] = useState(false);
+  const [serverVerdict, setServerVerdict] = useState(null);
+  const didSubmitRef = useRef(false); // 중복 방지
+
+  // 유저에게 찍힌 사진 보여주기
+  const [capturePreviews, setCapturePreviews] = useState([]);
+
   // 첫시작 모달
   const handleTimerPrepareSequence = useGameStore(
     (state) => state.handleTimerPrepareSequence
   );
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 첫 시작인지를 판단
 
-  // 팀끼리 사진 캡쳐
+  // 팀끼리 사진 캡쳐 (participants + role 기반) → FastAPI 업로드
   const handleCapture = async () => {
+    if (!participants?.length) return; // (옵션) 트랙 준비 전엔 스킵
     console.log("📸 사진 촬영 시작");
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-
     const formData = new FormData();
 
+    // 단일 트랙 캡처
     const captureTrack = (trackObj, nickname) => {
       return new Promise((resolve) => {
-        if (!trackObj?.mediaStreamTrack) {
-          console.warn(`⚠️ ${nickname}의 track 없음`);
-          return resolve();
-        }
+        if (!trackObj?.mediaStreamTrack) return resolve(null);
 
         const videoEl = document.createElement("video");
         videoEl.srcObject = new MediaStream([trackObj.mediaStreamTrack]);
         videoEl.muted = true;
         videoEl.playsInline = true;
 
-        videoEl.addEventListener("loadeddata", async () => {
+        videoEl.addEventListener("loadedmetadata", async () => {
           try {
-            await videoEl.play();
-            console.log("videoEl", videoEl);
+            await videoEl.play().catch(() => {});
+
             const doCapture = () => {
-              canvas.width = videoEl.videoWidth;
-              canvas.height = videoEl.videoHeight;
-              ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-              console.log("canvas", canvas);
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  formData.append("images", blob, `${nickname}.png`);
-                }
-                videoEl.remove();
-                resolve();
-              }, "image/png");
+              const w = videoEl.videoWidth || 640;
+              const h = videoEl.videoHeight || 480;
+              canvas.width = w;
+              canvas.height = h;
+              ctx.drawImage(videoEl, 0, 0, w, h);
+
+              // JPEG로 용량 ↓ (413 방지)
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) {
+                    // 1) 업로드용
+                    formData.append("images", blob, `${nickname}.jpg`);
+                    // 2) 모달 표시용 미리보기 URL
+                    const url = URL.createObjectURL(blob);
+                    resolve({ url });
+                  } else {
+                    resolve(null);
+                  }
+                  videoEl.remove();
+                },
+                "image/jpeg",
+                0.9
+              );
             };
 
-            if (videoEl.requestVideoFrameCallback) {
+            if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
               videoEl.requestVideoFrameCallback(() => doCapture());
             } else {
-              setTimeout(doCapture, 100); // fallback
+              requestAnimationFrame(() => setTimeout(doCapture, 50));
             }
           } catch (err) {
             console.error("❌ 비디오 캡처 실패:", err);
-            resolve();
+            resolve(null);
           }
         });
       });
     };
 
-    // ✅ 안전하게 track 존재 여부 필터링
-    const captureTasks = [
-      ...(publisherTrack
-        ? [captureTrack(publisherTrack.track, myNickname)]
-        : []),
-      ...redTeam.map((user) => captureTrack(user.track, user.nickname)),
-      ...blueTeam.map((user) => captureTrack(user.track, user.nickname)),
-    ];
-
-    await Promise.all(captureTasks);
-
-    // ✅ 여기까지 오면 캡처는 끝
-    console.log("✅ 캡처 완료. 업로드 준비됨");
-    console.log(formData);
-    for (let [key, value] of formData.entries()) {
-      const blobURL = URL.createObjectURL(value);
-      console.log(blobURL);
-      const a = document.createElement("a");
-      a.href = blobURL;
-      a.download = key; // 파일명은 key (ex: "images")
-      a.click();
-      URL.revokeObjectURL(blobURL); // 메모리 해제
+    // 1) 현재 턴 팀 + REP 우선, 부족하면 같은 팀에서 보충 → 최대 3명
+    let targets = participants.filter(
+      (p) => p.team === turn && p.role === "REP" && p.track?.mediaStreamTrack
+    );
+    if (targets.length < 3) {
+      const fillers = participants
+        .filter(
+          (p) =>
+            p.team === turn &&
+            p.track?.mediaStreamTrack &&
+            !targets.some((t) => t.identity === p.identity)
+        )
+        .slice(0, 3 - targets.length);
+      targets = [...targets, ...fillers];
     }
+    targets = targets.slice(0, 3);
+
+    if (targets.length === 0) {
+      console.warn("⚠️ 캡처 가능한 대상이 없습니다. (현재 턴 팀에 트랙 없음)");
+      return;
+    }
+
+    console.log(
+      "🎯 업로드 캡처 대상:",
+      targets.map((t) => `${t.nickname}(${t.role ?? "NOR"})`)
+    );
+
+    // 병렬 캡처
+    const results = await Promise.all(
+      targets.map((p) => captureTrack(p.track, p.nickname))
+    );
+    const previews = results.filter(Boolean).map((r) => r.url);
+
+    // 기존 URL revoke 후 교체
+    capturePreviews.forEach((u) => URL.revokeObjectURL(u));
+    setCapturePreviews(previews);
+
+    // 메타데이터 추가 (원하면 확장)
+    formData.append(
+      "meta",
+      JSON.stringify({
+        roomId,
+        round,
+        turn,
+        keyword: keywordList?.[keywordIdx] ?? null,
+        capturedAt: new Date().toISOString(),
+      })
+    );
+
+    if (!isHost) return; // ✅ 방장만 캡쳐/업로드
+    // 업로드
+    console.log("🚀 업로드 시작:", import.meta.env.VITE_FASTAPI_URL);
+
+    try {
+      const base = import.meta.env.VITE_FASTAPI_URL; // 도메인 또는 최종 엔드포인트
+      // 절대 URL이 아니면 현재 오리진 기준으로 보정
+      const u = /^https?:\/\//.test(base)
+        ? new URL(base)
+        : new URL(base, window.location.origin);
+
+      // /ai/upload_images가 없으면 붙이기
+      if (!/\/ai\/upload_images\/?$/.test(u.pathname)) {
+        u.pathname = `${u.pathname.replace(/\/$/, "")}/ai/upload_images`;
+      }
+
+      // 쿼리 파라미터
+      u.searchParams.set("gameId", String(roomId));
+      u.searchParams.set("team", String(turn).toLowerCase()); // 서버가 소문자 받는다면 OK
+      u.searchParams.set("round", String(round));
+
+      const uploadUrl = u.toString();
+      console.log("🧭 최종 업로드 URL:", uploadUrl);
+
+      // 헤더 지정 X (브라우저가 boundary 자동 설정)
+      const res = await axios.post(
+        uploadUrl,
+        formData /* , { withCredentials: true } 쿠키 필요 시 */
+      );
+      console.log("✅ 업로드 성공:", res.data);
+      const verdict =
+        typeof res.data === "boolean"
+          ? res.data
+          : typeof res.data === "string"
+            ? res.data.toLowerCase() === "true"
+            : Boolean(res.data?.all_pass ?? false);
+
+      setServerVerdict(verdict);
+      setPendingAnswer(true); // 이후 타이머 타이밍 맞춰 제출
+    } catch (err) {
+      const msg =
+        err.response?.data ||
+        err.response?.statusText ||
+        err.message ||
+        "unknown error";
+      console.error("❌ 업로드 실패:", msg);
+      setServerVerdict(false);
+      setPendingAnswer(true);
+    }
+  };
+
+  // 정답제출
+  const submitGameAnswer = (isCorrect) => {
+    const state = useGameStore.getState();
+    const { roomId, round, keywordList, keywordIdx, participants, turn } =
+      state;
+
+    // ✅ 방장만 제출
+    if (!isHost) {
+      console.warn("⚠️ 방장이 아니므로 정답 제출 안 함");
+      return;
+    }
+
+    // 현재 턴 팀의 NOR 중 한 명 선택 (없으면 방장 본인)
+    const nors = participants.filter(
+      (p) => p.team === turn && (p.role === null || p.role === "NOR")
+    );
+    const norId = nors[0] ? Number(nors[0].identity) : myIdx;
+
+    emitAnswerSubmit({
+      roomId,
+      round,
+      norId,
+      keywordIdx,
+      inputAnswer: isCorrect ? (keywordList?.[keywordIdx] ?? "") : "",
+    });
+
+    console.log("📝 GAME_ANSWER_SUBMIT(방장)", {
+      roomId,
+      round,
+      norId,
+      keywordIdx,
+      inputAnswer: isCorrect ? keywordList?.[keywordIdx] : "",
+    });
   };
 
   // 첫 페이지 로딩
@@ -204,20 +350,20 @@ const SamePosePage = () => {
 
   // 타이머 모달 => hide모달로 유저 가리기
   useEffect(() => {
-    if (time === 5) {
+    if (time === 8) {
       setCountdown(3);
       setShowModal(true);
     }
 
-    if (time === 4) {
+    if (time === 7) {
       setCountdown(2);
     }
 
-    if (time === 3) {
+    if (time === 6) {
       setCountdown(1);
     }
 
-    if (time === 2) {
+    if (time === 5) {
       setCountdown("찰 칵 !");
       setTimeout(() => {
         setShowModal(false);
@@ -225,50 +371,109 @@ const SamePosePage = () => {
     }
   }, [time]);
 
+  // 처리중 모달
+  useEffect(() => {
+    if (time === 3 || time === 2) {
+      setIsProcessingModalOpen(true);
+    } else {
+      setIsProcessingModalOpen(false);
+    }
+  }, [time]);
+
+  // 일치 모달 - 일부러 pending
+  useEffect(() => {
+    if (!pendingAnswer) return;
+    if (!isHost) return; // 방장만 제출
+    if (didSubmitRef.current) return; // 중복 방지
+    if (serverVerdict === null) return;
+
+    // 처리중 모달 로직: time === 3 || time === 2 에서 열림 → 그 이후(<=1)면 닫힘
+    if (time <= 1) {
+      didSubmitRef.current = true;
+      submitGameAnswer(serverVerdict);
+      setPendingAnswer(false);
+      setServerVerdict(null);
+      // 다음 턴/라운드에서 다시 쓸 수 있게 약간의 딜레이 후 리셋
+      setTimeout(() => {
+        didSubmitRef.current = false;
+      }, 500);
+    }
+  }, [pendingAnswer, serverVerdict, time, isHost]);
+
   // turn 변환 (레드팀 -> 블루팀), 라운드 변환 (블루 -> 레드)
   useEffect(() => {
-    if (isSamePoseTimerEnd) {
-      if (turn === "RED") {
-        emitTurnOver({ roomId, team: turn, score });
-        if (myIdx === master) {
-          setTimeout(() => {
-            emitTimerStart({ roomId });
-          }, 2000);
-        }
-      } else if (turn === "BLUE") {
-        emitRoundOver({ roomId, team: turn, score });
-        if (round < 3 && myIdx === master) {
-          setTimeout(() => {
-            emitTimerStart({ roomId });
-          }, 2000);
-        }
+    if (!isSamePoseTimerEnd) return;
+    if (myIdx !== master) return;
+
+    if (turn === "RED") {
+      emitTurnOver({ roomId, team: turn, score });
+      setTimeout(() => {
+        emitTimerStart({ roomId });
+      }, 2000);
+    } else if (turn === "BLUE") {
+      emitRoundOver({ roomId, team: turn, score });
+      if (round < 3) {
+        setTimeout(() => {
+          emitTimerStart({ roomId });
+        }, 2000);
       }
-      resetSamePoseTimerEnd();
     }
+    resetSamePoseTimerEnd();
   }, [isSamePoseTimerEnd, master, myIdx, round, roomId, score, turn]);
 
   // hideModal 대상 계산 => 나중에 수정
   useEffect(() => {
     if (!myIdx) return;
 
-    const isMyTeamRed = redTeam.some((p) => p.id === myIdx);
-    const isMyTurn =
-      (isMyTeamRed && turn === "RED") || (!isMyTeamRed && turn === "BLUE");
+    // 내 정보/팀
+    const me = participants.find((p) => Number(p.identity) === Number(myIdx));
+    const myTeamName =
+      me?.team ??
+      (redTeam.some((p) => p.userAccountId === myIdx) ? "RED" : "BLUE");
+    const isMyTurn = myTeamName === turn;
 
+    // 이번 턴의 REP만 뽑아 ID 통일(Number(identity))
+    const repIdsThisTurn = participants
+      .filter((p) => p.role === "REP" && p.team === turn)
+      .map((p) => Number(p.identity));
     if (isMyTurn) {
-      // ✅ 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
-      setHideTargetIds(norIdxList.filter((id) => id !== myIdx));
+      // 내 턴일 때 → 같은 팀 NOR 멤버 중 나 제외하고만 보여줌
+      setHideTargetIds(repIdsThisTurn.filter((id) => id !== Number(myIdx)));
     } else {
-      // ✅ 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
-      const enemyTeam = isMyTeamRed ? blueTeam : redTeam;
-      const repIds = repIdxList; // 이미 서버에서 받은 REP 리스트
-      const repUserIds = enemyTeam
-        .filter((p) => repIds.includes(p.id)) // 실제 팀원 중 rep에 해당하는 사람만
-        .map((p) => p.id);
-
-      setHideTargetIds(repUserIds);
+      // 내 턴 아닐 때 → 상대팀 REP 전부 보여줌
+      setHideTargetIds(repIdsThisTurn);
     }
-  }, [turn, redTeam, blueTeam, norIdxList, repIdxList, myIdx]);
+  }, [turn, participants, redTeam, blueTeam, myIdx]);
+
+  useEffect(() => {
+    // "찰 칵 !" 순간 자동 촬영 (방장만)
+    if (!showModal || countdown !== "찰 칵 !") return;
+
+    const shotKey = `${round}-${turn}`;
+    if (lastShotKeyRef.current === shotKey) return; // 같은 턴/라운드 중복 방지
+    if (isCapturingRef.current) return;
+
+    isCapturingRef.current = true;
+    lastShotKeyRef.current = shotKey;
+
+    (async () => {
+      try {
+        await handleCapture(); // ← 네가 이미 만든 함수 (다운로드까지 수행)
+      } finally {
+        // 살짝 딜레이 후 락 해제 (렌더/타이밍 안정화)
+        setTimeout(() => {
+          isCapturingRef.current = false;
+        }, 300);
+      }
+    })();
+  }, [isHost, showModal, countdown, round, turn]);
+
+  // 메모리 누수 방지: URL revoke
+  useEffect(() => {
+    return () => {
+      capturePreviews.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, []);
 
   // 최종 누가 이겼는지
   useEffect(() => {
@@ -277,7 +482,10 @@ const SamePosePage = () => {
 
       const modalTimeout = setTimeout(() => {
         setIsResultOpen(false);
+        sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 4000);
 
       return () => {
@@ -348,8 +556,42 @@ const SamePosePage = () => {
   const enemyTeam = turn === "RED" ? "BLUE" : "RED"; // 반대 팀 계산
   const repGroup = participants.filter((p) => p.role === "REP");
   const enemyGroup = participants.filter(
-    (p) => p.role === null && p.team === enemyTeam
+    (p) => p.team === enemyTeam && p.role !== "REP"
   );
+
+  // 모달 사운드
+  useEffect(() => {
+    if (isGameStartModalOpen) {
+      playSound("game_start");
+    }
+  }, [isGameStartModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isTurnModalOpen) {
+      playSound("turn_change");
+    }
+  }, [isTurnModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isResultOpen) {
+      playSound("game_over");
+    }
+  }, [isResultOpen, playSound]);
+
+  useEffect(() => {
+    if (time === 5) {
+      playSound("camera_shutter");
+    }
+  }, [time, playSound]);
+  useEffect(() => {
+    if (time === 8) {
+      playSound("countdown");
+    }
+  }, [time, playSound]);
+
+  // 게임 정상 종료 여부
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
 
   return (
     <>
@@ -360,24 +602,23 @@ const SamePosePage = () => {
         style={{ backgroundImage: `url(${background_same_pose})` }}
       >
         <section className="basis-3/9 flex flex-col p-4">
-          <div className="flex flex-row flex-1 items-center justify-around px-6">
-            <div className="flex flex-col text-sm text-gray-700 leading-tight w-[160px]">
-              <span className="mb-2">제시어에 맞게 동작을 취하세요</span>
-              <span className="text-xs">
-                최대한 <b className="text-pink-500">정자세</b>에서 정확한 동작을
-                취해주세요.
-              </span>
-              <button
-                onClick={handleCapture}
-                className="w-40 h-20 bg-yellow-400 rounded hover:bg-yellow-500"
-              >
-                📸 사진 찰칵{" "}
-              </button>
+          <div className="grid grid-cols-3 items-center gap-6 px-6">
+            <div className="col-span-1 flex justify-start">
+              <div className="text-md text-gray-800 leading-tight w-full max-w-[300px]">
+                <span className="mb-2 block">제시어에 맞게</span>
+                <span className="mb-2 block">
+                  최대한 <b className="text-pink-500">정자세</b>에서 동작을
+                  취해주세요.
+                </span>
+                <span className="block">
+                  <b className="text-cyan-700">손</b>을 정확히 보여야
+                </span>
+                <span>정확한 판정이 가능합니다 !</span>
+              </div>
             </div>
 
-            {/* 턴에 반영해서 red 팀은 red색 글씨, blue 팀은 blue색 글씨 */}
-            <div>
-              <div className="relative text-center text-2xl">
+            <div className="col-span-1 flex flex-col items-center">
+              <div className="relative text-center text-3xl mb-3">
                 <span
                   className={turn === "RED" ? "text-red-500" : "text-blue-700"}
                 >
@@ -385,23 +626,25 @@ const SamePosePage = () => {
                 </span>{" "}
                 <span className="text-black">TEAM TURN</span>
               </div>
-              {/* 제시어 */}
-              <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-[400px] h-[170px] gap-5 ">
+              <div className="flex flex-col items-center justify-center bg-[#FFDBF7] rounded-xl shadow-lg w-full max-w-[400px] h-[170px] gap-5">
                 <div className="text-2xl text-pink-500 font-bold flex flex-row items-center">
                   <img src={toggle_left} alt="icon" className="w-5 h-5 mr-2" />
                   <p>제시어</p>
                 </div>
-                <p className="text-2xl font-semibold text-black mt-2">
+                <p className="text-2xl font-semibold text-black mt-2 text-center">
                   {keywordList?.[keywordIdx] ?? "제시어를 가져오는 중..."}
                 </p>
               </div>
             </div>
 
-            <RoundInfo
-              round={round}
-              redScore={teamScore?.RED}
-              blueScore={teamScore?.BLUE}
-            />
+            {/* 라운드, 점수 */}
+            <div className="col-span-1 flex justify-end">
+              <RoundInfo
+                round={round}
+                redScore={teamScore?.RED}
+                blueScore={teamScore?.BLUE}
+              />
+            </div>
           </div>
         </section>
 
@@ -446,10 +689,46 @@ const SamePosePage = () => {
         </PopUpModal>
       </div>
 
+      {/* 정답 모달 */}
+      <PopUpModal isOpen={isCorrectModalOpen} onClose={closeCorrectModal}>
+        <p className="text-6xl font-bold font-pixel text-cyan-600">일 치 !</p>
+      </PopUpModal>
+
+      {/* 오답 모달 */}
+      <PopUpModal isOpen={isWrongModalOpen} onClose={closeWrongModal}>
+        <p className="text-6xl font-bold font-pixel text-pink-600">
+          불 일 치 !
+        </p>
+      </PopUpModal>
+
+      {/* 처리중 모달 */}
+      <PopUpModal
+        isOpen={isProcessingModalOpen}
+        onClose={() => setIsProcessingModalOpen(false)}
+      >
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-4xl font-bold font-pixel">처 리 중...</p>
+          {capturePreviews?.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 bg-pink-500 p-4">
+              {capturePreviews.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`capture-${i}`}
+                  className="w-45 h-45 object-cover rounded-lg shadow transform -scale-x-100"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </PopUpModal>
+
       {/* 최종 승자 모달 */}
       {isResultOpen && (
         <GameResultModal
           win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
           redTeam={redTeam}
           blueTeam={blueTeam}
           onClose={() => setIsResultOpen(false)}

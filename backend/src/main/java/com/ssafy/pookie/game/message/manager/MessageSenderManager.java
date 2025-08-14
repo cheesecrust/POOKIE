@@ -10,46 +10,53 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.Map;
 
 @RequiredArgsConstructor
 @Component
 @Slf4j
 public class MessageSenderManager {
-    private ArrayDeque<SendMessageDto> sendMessage = new ArrayDeque<>();
+//    private ArrayDeque<SendMessageDto> sendMessage = new ArrayDeque<>();
+    private Map<String, ArrayDeque<SendMessageDto>> sendMessage = new HashMap<>();
     private final OnlinePlayerManager onlinePlayerManager;
 
-    @Scheduled(fixedDelay = 10)
+    @Scheduled(fixedRate = 5)
     private void sendMessageSchedule() {
         if(sendMessage.isEmpty()) return;
-        log.info("Message Flush");
-        SendMessageDto message = sendMessage.poll();
-        try {
-            if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST)) {
-                onlinePlayerManager.broadCastMessageToRoomUser(message.getSession(), message.getRoomId(),
-                        message.getTeam() == null ? null : message.getTeam().toString(), message.getPayload());
-            } else {
-                onlinePlayerManager.sendToMessageUser(message.getSession(), message.getPayload());
+        sendMessage.entrySet().forEach((messageSet) -> {
+            if(!messageSet.getValue().isEmpty()) {  // Exception 방지
+                SendMessageDto message = messageSet.getValue().pollFirst();
+                try {
+                    if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST)) {
+                        onlinePlayerManager.broadCastMessageToRoomUser(message.getSession(), message.getRoomId(),
+                                message.getTeam() == null ? null : message.getTeam().toString(), message.getPayload());
+                    } else if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST_OTHER)) {
+                        onlinePlayerManager.broadCastMessageToOtherRoomUser(message.getSession(), message.getRoomId(),
+                                message.getTeam() == null ? null : message.getTeam().toString(), message.getPayload());
+                    } else {
+                        onlinePlayerManager.sendToMessageUser(message.getSession(), message.getPayload());
+                    }
+                } catch (Exception e) { // 전송 실패 -> 가장 우선순위로 실행
+                    if (!onlinePlayerManager.isInvalid(message.getSession())) {
+                        log.error("Invalid Message : \n{}\n{}", message.getSession(), message.getPayload());
+                        return;
+                    }
+                    log.error("Message 전송 실패 : \n{}\n{}", e.getMessage(), message.getPayload());
+                    log.info("재시도합니다.");
+                    messageSet.getValue().offerFirst(message);
+                }
             }
-            log.info("Message 전송 완료 : \n{}", message.getPayload());
-        } catch (Exception e) { // 전송 실패 -> 가장 우선순위로 실행
-            if(!onlinePlayerManager.isInvalid(message.getSession())) {
-                log.error("Invalid Message : \n{}\n{}", message.getSession(), message.getPayload());
-                return;
-            }
-            log.error("Message 전송 실패 : \n{}\n{}", e.getMessage(), message.getPayload());
-            log.info("재시도합니다.");
-            sendMessage.offerFirst(message);
-        }
+        });
     }
 
-    public void sendMessageToUser(WebSocketSession session, Map<String, Object> payload) {
+    public void sendMessageToUser(WebSocketSession session, String roomId,Map<String, Object> payload) {
         SendMessageDto sendMessageReq = SendMessageDto.builder()
                 .session(session)
                 .msgType(SendMessageDto.sendType.USER)
                 .payload(payload).build();
 
-        this.sendMessage.offerLast(sendMessageReq);
+        this.sendMessage.get(roomId).offerLast(sendMessageReq);
     }
 
     public void sendMessageBroadCast(WebSocketSession session, String roomId, UserDto.Team team, Map<String, Object> payload) {
@@ -60,6 +67,32 @@ public class MessageSenderManager {
                 .team(team)
                 .payload(payload).build();
 
-        this.sendMessage.offerLast(sendMessageReq);
+        this.sendMessage.get(roomId).offerLast(sendMessageReq);
+    }
+
+    public void sendMessageBroadCastOther(WebSocketSession session, String roomId, UserDto.Team team, Map<String, Object> payload) {
+        SendMessageDto sendMessageReq = SendMessageDto.builder()
+                .session(session)
+                .msgType(SendMessageDto.sendType.BROADCAST_OTHER)
+                .roomId(roomId)
+                .team(team)
+                .payload(payload).build();
+
+        this.sendMessage.get(roomId).offerLast(sendMessageReq);
+    }
+
+    public void createRoomMessageQueue(String roomId) {
+        // 기존 메시지 큐는 강제로 삭제 -> 삭제가 안되어있는 경우
+        sendMessage.put(roomId, new ArrayDeque<>());
+    }
+
+    public void clearRoomMessageQueue(String roomId) {
+        // 채팅이 전송되지 않을 위험이 있음
+        sendMessage.get(roomId).clear();
+    }
+
+    public void removeRoomMessageQueue(String roomId) {
+        clearRoomMessageQueue(roomId);
+        sendMessage.remove(roomId);
     }
 }

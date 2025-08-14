@@ -18,35 +18,44 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@Table(
+        name = "user_characters",
+        indexes = {
+                @Index(name = "idx_uc_user", columnList = "user_account_id"),
+                @Index(name = "idx_uc_user_character", columnList = "user_account_id,character_id")
+        }
+)
 public class UserCharacters {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_account_id", nullable = false)
     private UserAccounts userAccount;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "character_id", nullable = false)
     private Characters character;
 
+    @Column(nullable = false)
     private int exp;
 
+    @Column(nullable = false)
     private boolean isDrop;
 
-    @CreatedDate
-    @Column(updatable = false)
+    @CreatedDate @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    public void upExp(int addedExp) {
-        if (addedExp < 0) return;
-        this.exp += addedExp;
-    }
+    @Version
+    private Long version;
 
-    public void setMaxExpForLevelUp(int maxExp) {
-        this.exp = maxExp;
-    }
+    // 도메인 메서드
+    public void upExp(int addedExp) { if (addedExp > 0) this.exp += addedExp; }
+    public void setMaxExpForLevelUp(int maxExp) { this.exp = maxExp; }
+    public void resetExp() { this.exp = 0; }
+    public void setDrop(boolean drop) { this.isDrop = drop; } // 복구/드랍 토글용
 }

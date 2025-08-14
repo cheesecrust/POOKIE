@@ -3,8 +3,9 @@
 import LiveKitVideo from "../components/organisms/common/LiveKitVideo.jsx";
 import connectLiveKit from "../utils/connectLiveKit";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif";
 import RoundInfo from "../components/molecules/games/RoundInfo";
@@ -17,6 +18,7 @@ import Timer from "../components/molecules/games/Timer";
 import KeywordCard from "../components/atoms/modal/KeywordCard";
 import InputBubble from "../components/atoms/modal/InputBubble";
 import GameResultModal from "../components/organisms/games/GameResultModal";
+import useSound from "../utils/useSound";
 
 import useAuthStore from "../store/useAuthStore.js";
 import useGameStore from "../store/useGameStore";
@@ -29,7 +31,9 @@ import {
 } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
+  useRefreshExit({ redirect: true });
   const navigate = useNavigate();
+  const { playSound } = useSound();
 
   // 방 정보 선언
   const master = useGameStore((state) => state.master);
@@ -46,10 +50,6 @@ const SilentScreamPage = () => {
   // 턴,라운드
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
-
-  // 팀 추출
-  const myParticipant = participants.find((p) => p.userAccountId === myIdx);
-  const myTeam = myParticipant?.team || null;
 
   // 타이머
   const time = useGameStore((state) => state.time);
@@ -82,9 +82,26 @@ const SilentScreamPage = () => {
   // 최종 승자
   const win = useGameStore((state) => state.win);
 
-  // 팀정보 
+  // 팀정보
   const redTeam = useGameStore((state) => state.red) || [];
   const blueTeam = useGameStore((state) => state.blue) || [];
+
+  // 내 팀 추출
+  const getId = (u) => Number(u?.userAccountId ?? u?.id ?? u?.identity ?? NaN);
+
+  const redIds = useMemo(() => new Set((redTeam ?? []).map(getId)), [redTeam]);
+  const blueIds = useMemo(
+    () => new Set((blueTeam ?? []).map(getId)),
+    [blueTeam]
+  );
+
+  const myIdNum = useMemo(() => Number(myIdx ?? NaN), [myIdx]);
+
+  const myTeam = useMemo(() => {
+    if (redIds.has(myIdNum)) return "RED";
+    if (blueIds.has(myIdNum)) return "BLUE";
+    return null; // 아직 팀 데이터가 안 들어온 초기 타이밍 대비
+  }, [redIds, blueIds, myIdNum]);
 
   // 모달
   const isGameStartModalOpen = useGameStore(
@@ -95,8 +112,10 @@ const SilentScreamPage = () => {
     (state) => state.closeGamestartModal
   );
   const closeTurnModal = useGameStore((state) => state.closeTurnModal);
-  const showTurnChangeModal = useGameStore((state) => state.showTurnChangeModal); // 턴 바뀔때 모달 
-  
+  const showTurnChangeModal = useGameStore(
+    (state) => state.showTurnChangeModal
+  ); // 턴 바뀔때 모달
+
   // 말풍선
   const bubbles = useGameStore((state) => state.bubbles);
   const addBubbleStore = useGameStore((state) => state.addBubble);
@@ -129,9 +148,14 @@ const SilentScreamPage = () => {
   // 추가 상태
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
+  // 게임 정상 종료 여부
+  const isNormalEnd = useGameStore((state) => state.isNormalEnd);
+  const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
+
   // 1️. 첫 페이지 로딩
   useEffect(() => {
     console.log("keywordIdx", keywordIdx);
+    console.log("keywordList", keywordList);
     handleTimerPrepareSequence(roomId);
   }, [roomId]);
 
@@ -147,7 +171,10 @@ const SilentScreamPage = () => {
 
   // 제출자가 아닐 경우 keywordIdx가 변경되면 제시어 카드 띄우기
   useEffect(() => {
-    if (!norIdxList?.includes(myIdx) && keywordList.length > 0) {
+    if (
+      !norIdxList?.map((e) => e.idx).includes(myIdx) &&
+      keywordList.length > 0
+    ) {
       setKeyword(keywordList[keywordIdx]);
     }
   }, [keywordIdx, keywordList, norIdxList]);
@@ -213,7 +240,7 @@ const SilentScreamPage = () => {
       if (e.key === "Enter" && !isSubmitModalOpen && !hasSubmittedRef.current) {
         if (document.activeElement.tagName === "INPUT") return;
         if (document.activeElement.tagName === "TEXTAREA") return;
-        if (norIdxList.includes(myIdx)) {
+        if (norIdxList.map((e) => e.idx).includes(myIdx)) {
           setIsSubmitModalOpen(true);
           setHasSubmitted(true);
         }
@@ -277,16 +304,20 @@ const SilentScreamPage = () => {
           />
           {/* 말풍선 */}
           {bubbles
-          .filter((b) => {
-            const pid = Number.isNaN(Number(p.userAccountId)) ? String(p.userAccountId): Number(p.userAccountId);
-            const bid = Number.isNaN(Number(b.userId)) ? String(b.userId): Number(b.userId);
-            return pid === bid;
-          })
-          .map((bubble) => (
-            <div key={bubble.id} className="absolute -top-5 left-50 z-50">
-              <InputBubble text={bubble.text} />
-            </div>
-          ))}
+            .filter((b) => {
+              const pid = Number.isNaN(Number(p.userAccountId))
+                ? String(p.userAccountId)
+                : Number(p.userAccountId);
+              const bid = Number.isNaN(Number(b.userId))
+                ? String(b.userId)
+                : Number(b.userId);
+              return pid === bid;
+            })
+            .map((bubble) => (
+              <div key={bubble.id} className="absolute -top-5 left-50 z-50">
+                <InputBubble text={bubble.text} />
+              </div>
+            ))}
         </div>
       );
     });
@@ -342,19 +373,44 @@ const SilentScreamPage = () => {
 
   // 최종 누가 이겼는지
   useEffect(() => {
-    console.log(win);
-    console.log(isWinModalOpen);
+    // console.log(win);
+    // console.log(isWinModalOpen);
+    // console.log(isNormalEnd);
     if (win) {
       setIsWinModalOpen(true);
+
       const timeout = setTimeout(() => {
         // 게임 종료 후 대기방 복귀 - 정상 입장 플래그 설정
+        // 비정상 게임 종료때 IsNormalEnd false된것을 대비하여 리셋
+
         sessionStorage.setItem("waitingPageNormalEntry", "true");
         navigate(`/waiting/${roomId}`, { state: { room: roomInfo } });
+        useGameStore.getState().setIsNormalEnd(true);
+        useGameStore.getState().setIsAbnormalPerson(null);
       }, 5000);
 
       return () => clearTimeout(timeout);
     }
   }, [win]);
+
+  // 모달 사운드
+  useEffect(() => {
+    if (isGameStartModalOpen) {
+      playSound("game_start");
+    }
+  }, [isGameStartModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isTurnModalOpen) {
+      playSound("turn_change");
+    }
+  }, [isTurnModalOpen, playSound]);
+
+  useEffect(() => {
+    if (isWinModalOpen) {
+      playSound("game_over");
+    }
+  }, [isWinModalOpen, playSound]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -424,7 +480,7 @@ const SilentScreamPage = () => {
         )}
 
         {/* Keyword 카드 (발화자 + 상대팀 보임) */}
-        {!norIdxList.includes(myIdx) && (
+        {!norIdxList.map((e) => e.idx).includes(myIdx) && (
           <div className="absolute top-32 right-42 z-20">
             <KeywordCard keyword={keywordList[keywordIdx]} />
           </div>
@@ -432,12 +488,12 @@ const SilentScreamPage = () => {
 
         <div className="absolute top-80 right-40 z-20 flex flex-col items-center">
           {/* 발화자용 PASS 버튼 */}
-          {repIdxList.includes(myIdx) && (
+          {repIdxList.map((e) => e.idx).includes(myIdx) && (
             <PassButton onClick={() => emitGamePass({ roomId })} />
           )}
 
           {/* 정답 제출 버튼 */}
-          {norIdxList.includes(myIdx) && (
+          {norIdxList.map((e) => e.idx).includes(myIdx) && (
             <RightButton
               children="제출"
               onClick={() => {
@@ -475,7 +531,7 @@ const SilentScreamPage = () => {
           onClose={handleSubmitModalClose}
           onSubmit={(inputAnswer) => {
             try {
-              const clientMsgId = `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+              const clientMsgId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
               // 1) 낙관적 버블 (store에만)
               addBubbleStore({
@@ -514,15 +570,18 @@ const SilentScreamPage = () => {
         </p>
       </PopUpModal>
 
-
       {/* 최종 승자 모달 */}
       {isWinModalOpen && (
-        <GameResultModal win={win} 
-        redTeam={redTeam} 
-        blueTeam={blueTeam} 
-        isOpen={isWinModalOpen} 
-        onClose={() => setIsWinModalOpen(false)} />)}
-
+        <GameResultModal
+          win={win}
+          isNormalEnd={isNormalEnd}
+          isAbnormalPerson={isAbnormalPerson}
+          redTeam={redTeam}
+          blueTeam={blueTeam}
+          isOpen={isWinModalOpen}
+          onClose={() => setIsWinModalOpen(false)}
+        />
+      )}
 
       {/* PASS 모달 */}
       <PopUpModal isOpen={isPassModalOpen} onClose={closePassModal}>

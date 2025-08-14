@@ -6,9 +6,15 @@ import pookiepookie from "../../../assets/character/pookiepookie.png";
 import crown from "../../../assets/icon/crown.png";
 import KickButton from "../../atoms/button/KickButton";
 import characterImageMap from "../../../utils/characterImageMap";
+import entryEffect from "../../../assets/effect/entry.gif";
 
-const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
-  console.log("user", user);
+const WaitingUserCard = ({
+  user,
+  isMe,
+  isMyRoomMaster,
+  onRightClickKick,
+  showEntry = false,
+}) => {
   const borderColor =
     user.team === "red" ? "border-red-500" : "border-blue-500";
 
@@ -31,40 +37,53 @@ const WaitingUserCard = ({ user, isMe, isMyRoomMaster, onRightClickKick }) => {
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-48 h-56 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
+        className={`relative w-56 h-66 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
       >
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
 
-        {/* 캐릭터 이미지 */}
-        <img
-          src={characterImageMap[user?.characterName] || pookiepookie}
-          alt="character"
-          className="w-24 h-24 object-contain mb-1"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = pookiepookie;
-          }}
-        />
+        {/* 캐릭터 이미지 + 입장 이펙트 */}
+        <div className="relative w-24 h-24 mb-1">
+          {/* 캐릭터 이미지 */}
+          <img
+            src={characterImageMap[user?.characterName] || pookiepookie}
+            alt="character"
+            className="w-24 h-24 object-contain mb-1"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = pookiepookie;
+            }}
+          />
+
+          {/* 입장 이펙트 */}
+          {showEntry && (
+            <img
+              src={entryEffect}
+              alt="entry effect"
+              aria-hidden
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
+                 w-full h-full object-contain pointer-events-none z-30 scale-150"
+            />
+          )}
+        </div>
 
         {/* 방장 뱃지 */}
         {user.isHost && (
-          <div className="absolute top-1">
+          <div className="absolute top-1 flex items-center">
             <img src={crown} alt="방장" className="w-16 h-16" />
           </div>
         )}
+        {/* 닉네임 */}
+        <div
+          className={`mt-2 truncate w-[180px] text-sm font-bold ${
+            isMe ? "text-amber-500" : "text-black"
+          } ${isMe ? "bg-amber-100" : "bg-red-50"} rounded px-2 py-1 text-center`}
+        >
+          {user.userNickname}
+        </div>
 
         {/* Ready 뱃지 */}
         {user.isReady && <UserReady team={user.team} />}
-      </div>
-
-      {/* 닉네임 */}
-      <div
-        className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-violet-200" : "bg-red-50"
-        } rounded px-2 py-1 text-center`}
-      >
-        {user.userNickname}
       </div>
     </div>
   );

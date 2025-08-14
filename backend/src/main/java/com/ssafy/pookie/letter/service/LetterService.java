@@ -87,7 +87,7 @@ public class LetterService {
     public LetterResponseDto getLetterDetail(Long userAccountId, Long letterId) throws Exception {
         Letters letter = lettersRepository.findByLetterIdAndUserInvolved(letterId, userAccountId)
                 .orElseThrow(() -> new Exception("letter not found"));
-        if (letter.getReceiver().getId().equals(userAccountId)) {
+        if (!letter.getReceiver().getId().equals(userAccountId) && !letter.getSender().getId().equals(userAccountId)) {
             throw new Exception("receiver and user is not match.");
         }
         if (letter.getStatus().equals(LetterStatus.NOT_READ)) {
@@ -99,7 +99,13 @@ public class LetterService {
         return LetterResponseDto.of(letter);
     }
 
-    public boolean deleteLetters(Long userAccountId, Long letterId) {
+    public boolean deleteLetters(Long userAccountId, Long letterId) throws Exception {
+        Letters letter = lettersRepository.findByLetterIdAndUserInvolved(letterId, userAccountId)
+                .orElseThrow(() -> new Exception("letter not found"));
+        if (letter.getStatus().equals(LetterStatus.NOT_READ)) {
+            UserDto user = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
+            notificationService.readEvent(user);
+        }
         int deletedRows = lettersRepository.deleteByLetterIdAndUserInvolved(letterId, userAccountId);
         return deletedRows > 0;
     }

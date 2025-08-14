@@ -1,27 +1,33 @@
 // 경로 : src/components/atoms/user/UserExp.jsx
-// user 캐릭터 진화단계(step) , 경험치 props로 전달받으면 됩니다 
+// user 캐릭터 진화단계(step) , 경험치(exp) + [forceFull] 선택적으로 전달
 
-const UserExp = ({step, exp}) => {
+const UserExp = ({ step, exp, forceFull = false }) => {
+  const maxExpByStep = { 0: 100, 1: 200, 2: 0 }; // 2는 만렙
+  const maxExp = maxExpByStep[step];
 
-    // 단계별 필요로하는 경험치 고정
-    const maxExpByStep = {
-        1: 10000,
-        2: 1000000,
-        3: 0,
-    }
+  // 강제 FULL 또는 만렙이면 100%
+  let percent;
+  if (forceFull || step === 2) {
+    percent = 100;
+  } else {
+    percent = maxExp > 0 ? (exp / maxExp) * 100 : 0;
+  }
 
-    const maxExp = maxExpByStep[step];
+  const isFull = percent >= 100;
 
-    const percent = maxExp > 0 ?(exp / maxExp) * 100 : 0;
-
-    return (
-        <div className="w-50 h-6 rounded-full border-2 border-gray-700 bg-gray-200 overflow-hidden">
-        <div
-          className="h-full bg-gray-600 transition-all duration-300"
-          style={{ width: `${percent}%` }}
-        ></div>
-      </div>
-    )
-}
+  return (
+    <div className="w-50 h-6 rounded-full border-2 border-gray-700 bg-gray-200 overflow-hidden relative" aria-label="exp-bar">
+      <div
+        className={`h-full transition-all duration-300 ${isFull ? "bg-yellow-400" : "bg-gray-600"}`}
+        style={{ width: `${percent}%` }}
+      />
+      {isFull && (
+        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-black">
+          FULL
+        </span>
+      )}
+    </div>
+  );
+};
 
 export default UserExp;

@@ -33,16 +33,14 @@ public class DrawService {
 
             UserDto userDto = onlinePlayerManager.getMemberInLobby(userAccountId).getUser();
             Map<String, Object> msg = convertDrawEventToMsg(drawEvent);
-            messageSenderManager.sendMessageBroadCast(userDto.getSession(), drawEvent.getRoomId(), null, msg);
+            messageSenderManager.sendMessageBroadCastOther(userDto.getSession(), drawEvent.getRoomId(), null, msg);
         } catch (Exception e) {
-            e.printStackTrace();
-            log.info("{}", e.getMessage());
+            log.error("DRAW ERROR : {}", e.getMessage());
             throw e;
         }
     }
 
     private Map<String, Object> convertDrawEventToMsg(DrawEvent drawEvent) {
-        log.info(String.valueOf(drawEvent));
         return Map.of(
                 "type", MessageDto.Type.GAME_DRAW_EVENT.toString(),
                 "roomId", drawEvent.getRoomId(),

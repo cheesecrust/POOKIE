@@ -12,11 +12,15 @@ import com.ssafy.pookie.game.ingame.dto.SubmitAnswerDto;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
 import com.ssafy.pookie.game.message.manager.MessageSenderManager;
-import com.ssafy.pookie.game.room.dto.JoinDto;
-import com.ssafy.pookie.game.room.dto.RoomGameTypeChangeRequestDto;
-import com.ssafy.pookie.game.room.dto.RoomMasterForcedRemovalDto;
-import com.ssafy.pookie.game.room.dto.TurnDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameLeaveRequestDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameOverRequestDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
+import com.ssafy.pookie.game.mini.dto.MiniGameScoreUpdateRequestDto;
+import com.ssafy.pookie.game.mini.service.MiniGameService;
+import com.ssafy.pookie.game.room.dto.*;
+import com.ssafy.pookie.game.room.service.FollowService;
 import com.ssafy.pookie.game.room.service.GameRoomService;
+import com.ssafy.pookie.game.room.service.InviteService;
 import com.ssafy.pookie.game.server.manager.OnlinePlayerManager;
 import com.ssafy.pookie.game.server.service.GameServerService;
 import com.ssafy.pookie.game.timer.dto.TimerRequestDto;
@@ -46,6 +50,9 @@ public class GameServerHandler extends TextWebSocketHandler {
     private final GameChatService gameChatService;
     private final GameRoomService gameRoomService;
     private final InGameService inGameService;
+    private final MiniGameService miniGameService;
+    private final InviteService inviteService;
+    private final FollowService followService;
     private final SocketMetrics socketMetrics;
     private final MessageSenderManager messageSenderManager;
 
@@ -61,8 +68,8 @@ public class GameServerHandler extends TextWebSocketHandler {
             UserDto user = new UserDto().mapUserDto(session);
             JoinDto join;
             TurnDto gameResult;
-            log.info("REQUEST TYPE : {}", msg.getType());
-            log.info("payload\nSession : {}\n{}", session.getAttributes().get("userEmail"), msg.getPayload());
+//            log.info("REQUEST TYPE : {}", msg.getType());
+//            log.info("payload\nSession : {}\n{}", session.getAttributes().get("nickname"), msg.getPayload());
             socketMetrics.recordMessageReceived(msg.getType().toString(), message.getPayload().length());
             switch (msg.getType()) {
                 // Room
@@ -102,6 +109,11 @@ public class GameServerHandler extends TextWebSocketHandler {
                     start.setUser(user);
 //                    gameTimerService.beforeStartGameTimer(session, start);
                     inGameService.handleGameStart(session, start);
+                    break;
+                case WAITING_ROOM_UPDATE:
+                    RoomUpdateRequestDto roomUpdateRequest = objectMapper.convertValue(msg.getPayload(), RoomUpdateRequestDto.class);
+                    roomUpdateRequest.setUser(user);
+                    gameRoomService.handleWaitingRoomUpdate(roomUpdateRequest);
                     break;
                 case GAME_TURN_OVER:
                     gameResult = objectMapper.convertValue(msg.getPayload(), TurnDto.class);
@@ -147,12 +159,44 @@ public class GameServerHandler extends TextWebSocketHandler {
                     drawEvent.setUser(user);
                     drawService.drawEvent(drawEvent);
                     break;
+                case MINIGAME_JOIN:
+                    // 미니 게임은 별도로 처리
+                    miniGameService.handleJoinMiniGameRoom(new MiniGameRoomDto(user));
+                    break;
+                case MINIGAME_SCORE_UPDATE:
+                    MiniGameScoreUpdateRequestDto miniGameScoreUpdateRequestDto
+                            = objectMapper.convertValue(msg.getPayload(), MiniGameScoreUpdateRequestDto.class);
+                    miniGameScoreUpdateRequestDto.setUser(user);
+                    miniGameService.handleUpdateMiniGameScore(miniGameScoreUpdateRequestDto);
+                    break;
+                case MINIGAME_OVER:
+                    MiniGameOverRequestDto miniGameOverRequestDto
+                            = objectMapper.convertValue(msg.getPayload(), MiniGameOverRequestDto.class);
+                    miniGameOverRequestDto.setUser(user);
+                    miniGameService.handleMiniGameOver(miniGameOverRequestDto);
+                    break;
+                case MINIGAME_REGAME:
+                    miniGameService.handleMiniGameRegame(user);
+                    break;
+                case MINIGAME_LEAVE:
+                    miniGameService.handleMiniGameLeave(new MiniGameLeaveRequestDto(user));
+                    break;
+                case INVITE:
+                    InviteRequestDto inviteRequestDto = objectMapper.convertValue(msg.getPayload(), InviteRequestDto.class);
+                    inviteRequestDto.setUser(user);
+                    inviteService.handleInvite(inviteRequestDto);
+                    break;
+                case FOLLOW:
+                    FollowRequestDto followRequestDto = objectMapper.convertValue(msg.getPayload(), FollowRequestDto.class);
+                    followRequestDto.setUser(user);
+                    followService.handleFollow(followRequestDto);
+                    break;
             }
             socketMetrics.endMessageProcessing(messageSample, msg.getType().toString());
         } catch(Exception e) {
-            log.error("{}",e.getMessage());
+            log.error("Handler ERROR : {}", e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));
@@ -162,7 +206,7 @@ public class GameServerHandler extends TextWebSocketHandler {
     // web socket 연결하는 순간 user를 만든다.
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("[WebSocket] Conncted : "+ session.getId());
+        log.info("[WebSocket] Conncted : {} - {}", session.getId(), session.getAttributes().get("nickname"));
 
         socketMetrics.recordConnectionAttempt();
         Timer.Sample connectionSample = socketMetrics.startConnectionHandling();
@@ -180,9 +224,10 @@ public class GameServerHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        log.info("[WebSocket] Disconnected : "+ session.getId());
+        log.info("[WebSocket] Disconnected :  {} - {}", session.getId(), session.getAttributes().get("nickname"));
         socketMetrics.recordConnectionClosed(session.getId());
         onlinePlayerManager.removeFromLobby(session);
+        onlinePlayerManager.removeMiniGameRoom((Long) session.getAttributes().get("userAccountId"));
         log.info(onlinePlayerManager.getLobby().size() + " Lobby Users found");
     }
 }

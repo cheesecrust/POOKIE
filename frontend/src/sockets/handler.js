@@ -36,7 +36,7 @@ export const handleSocketMessage = (msg, handlers) => {
             .catch((err) => {
                 console.error("[SocketRouter] WAITING_JOINED(home) 핸들러 로딩 실패:", err);
             });
-        
+
         // 동시에 대기실에 있는 다른 사용자들에게도 알림
         import("./waiting/handleWaitingMessage")
             .then((mod) => mod.default?.(msg, {
@@ -79,6 +79,27 @@ export const handleSocketMessage = (msg, handlers) => {
             });
         return;
     }
+
+    // Interrupt 게임중일때 방에서 한명 나갔을때 이벤트 
+    if (msg.type === "INTERRUPT") {
+        import("./game/handleGameMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] INTERRUPT 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
+    // 알림 메시지 -> Home 쪽으로 
+    if (msg.type === "NOTIFICATION") {
+        import("./home/handleHomeMessage")
+            .then((mod) => mod.default?.(msg, handlers))
+            .catch((err) => {
+                console.error("[SocketRouter] NOTIFICATION 핸들러 로딩 실패:", err);
+            });
+        return;
+    }
+
     const typePrefix = msg.type.split("_")[0];
 
     // 타이머 게임쪽으로 
@@ -90,6 +111,8 @@ export const handleSocketMessage = (msg, handlers) => {
             });
         return;
     }
+    
+
 
     const routeMap = { // 접두사로 구분
         ROOM: () => {
@@ -106,6 +129,7 @@ export const handleSocketMessage = (msg, handlers) => {
                 navigate: handlers?.navigate,
             })), // waiting
         GAME: () => import("./game/handleGameMessage").then((mod) => mod.default?.(msg, handlers)), // game
+        MINIGAME: () => import("./minigame/handleMiniGameMessage").then((mod) => mod.default?.(msg, handlers)), // minigame
     };
 
     const handlerFn = routeMap[typePrefix]; // 접두사있는지 확인

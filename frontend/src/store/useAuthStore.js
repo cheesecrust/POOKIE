@@ -6,6 +6,7 @@ import axiosInstance from "../lib/axiosInstance";
 import { connectSocket, getSocket } from '../sockets/websocket'; // getSocket 추가
 import useRoomStore from './useRoomStore';
 import useGameStore from './useGameStore';
+import useHomeStore from './useHomeStore';
 
 const useAuthStore = create(
   persist(
@@ -81,9 +82,18 @@ const useAuthStore = create(
             onGameTimerEnd: (data) => {
               useGameStore.getState().setGameTimerEnd(data);
             },
+            onGameTimerStart: (data) => {
+              useGameStore.getState().setGameTimerStart(data);
+            },
             onWaitingGameOver: (data) => {
               // useGameStore.getState().setGameResult(data);
               useGameStore.getState().setWaitingGameOver(data);
+            },
+            onInterrupt: (data) => {
+              useGameStore.getState().setInterrupt(data);
+            },
+            onNotification: (data) => {
+              useHomeStore.getState().setNotification(data);
             },
           }
         });

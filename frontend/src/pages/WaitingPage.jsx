@@ -2,7 +2,7 @@
 
 // 방정보 받아오기 위해서서
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import handleWaitingMessage from "../sockets/waiting/handleWaitingMessage";
 import { getSocket, updateHandlers } from "../sockets/websocket";
 import pookiepookie from "../assets/character/pookiepookie.png";
@@ -21,6 +21,10 @@ import GameTypeToggleButton from "../components/organisms/waiting/GameTypeToggle
 import characterImageMap from "../utils/characterImageMap";
 import useAuthStore from "../store/useAuthStore";
 import useGameStore from "../store/useGameStore";
+import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
+
+import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
+
 import {
   emitTeamChange,
   emitReadyChange,
@@ -28,7 +32,10 @@ import {
   emitStartGame,
   emitForceRemove,
   emitGameTypeChange,
+  emitRoomUpdate,
 } from "../sockets/waiting/emit";
+
+import useSound from "../utils/useSound";
 
 const WaitingPage = () => {
   const navigate = useNavigate();
@@ -62,10 +69,36 @@ const WaitingPage = () => {
     }
   };
 
+  // 입장 이펙트 추가
+  const { playSound } = useSound();
+  const prevMemRef = useRef(new Set());
+  const [entryEffectMap, setEntryEffectMap] = useState({}); // { [userId]: true/false }
+  const entryTimersRef = useRef({});
+  const ENTRY_MS = 1500;
+  const entryShownRef = useRef(new Set()); // 이펙트 1회 재생 기록
+
+  const triggerEntryEffect = (uid) => {
+    // 이미 보여준 user라면 skip
+    if (entryShownRef.current.has(uid)) return;
+
+    // 최초 1회 실행
+    entryShownRef.current.add(uid);
+    setEntryEffectMap((prev) => ({ ...prev, [uid]: true }));
+    if (entryTimersRef.current[uid]) clearTimeout(entryTimersRef.current[uid]);
+    entryTimersRef.current[uid] = setTimeout(() => {
+      setEntryEffectMap((prev) => ({ ...prev, [uid]: false }));
+      delete entryTimersRef.current[uid];
+    }, ENTRY_MS);
+  };
+
   useEffect(() => {
     if (!roomId) return;
     setRoomId(roomId);
   }, [roomId, setRoomId]);
+
+  useEffect(() => {
+    emitRoomUpdate({ roomId });
+  }, []);
 
   useEffect(() => {
     const isActualBrowserRefresh = () => {
@@ -104,32 +137,32 @@ const WaitingPage = () => {
 
   // ❗ 새로고침(F5, Ctrl+R) 또는 뒤로가기 시 모달 띄우기 기능 (기본 비활성화)
 
-  // useEffect(() => {
-  //   window.history.pushState(null, "", location.pathname);
+  useEffect(() => {
+    window.history.pushState(null, "", location.pathname);
 
-  //   const handlePopState = (e) => {
-  //     e.preventDefault();
-  //     console.log("🔙 뒤로가기 감지됨");
-  //     setIsExitModalOpen(true);
-  //     window.history.pushState(null, "", location.pathname);
-  //   };
+    const handlePopState = (e) => {
+      e.preventDefault();
+      console.log("🔙 뒤로가기 감지됨");
+      setIsExitModalOpen(true);
+      window.history.pushState(null, "", location.pathname);
+    };
 
-  //   const handleKeyDown = (e) => {
-  //     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
-  //       e.preventDefault();
-  //       console.log("🔄 새로고침 감지됨");
-  //       setIsExitModalOpen(true);
-  //     }
-  //   };
+    const handleKeyDown = (e) => {
+      if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
+        e.preventDefault();
+        console.log("🔄 새로고침 감지됨");
+        setIsExitModalOpen(true);
+      }
+    };
 
-  //   window.addEventListener("popstate", handlePopState);
-  //   window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("keydown", handleKeyDown);
 
-  //   return () => {
-  //     window.removeEventListener("popstate", handlePopState);
-  //     window.removeEventListener("keydown", handleKeyDown);
-  //   };
-  // }, [location.pathname]);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [location.pathname]);
 
   // WebSocket 메시지 수신 처리
   useEffect(() => {
@@ -175,7 +208,10 @@ const WaitingPage = () => {
 
   // emit & navigate 로직
   // 방 나가기
-  const handleLeaveRoom = () => emitLeaveRoom({ roomId: room.id });
+  const handleLeaveRoom = () => {
+    playSound("leave");
+    emitLeaveRoom({ roomId: room.id });
+  };
 
   // 게임 시작
   const handleStartGame = () => {
@@ -217,7 +253,7 @@ const WaitingPage = () => {
   const userSlots = room
     ? (() => {
         // RED와 BLUE를 그대로 합침 (순서 보존)
-        console.log("room", room);
+
         const allUsers = [...room.RED, ...room.BLUE];
 
         //  그대로 순서대로 카드 정보 생성
@@ -277,9 +313,62 @@ const WaitingPage = () => {
     return true;
   };
 
+  // 입장/퇴장 이펙트
+  useEffect(() => {
+    if (!room || !user) return;
+
+    const currentMem = new Set(
+      [...(room?.RED || []), ...(room?.BLUE || [])].map((u) => String(u.id))
+    );
+    const prevMem = prevMemRef.current;
+
+    if (prevMem.size === 0) {
+      // 첫 진입: 본인에게만 1회 효과
+      const meId = String(user.userAccountId);
+      if (currentMem.has(meId)) {
+        playSound("entry");
+        triggerEntryEffect(meId);
+      }
+      prevMemRef.current = currentMem;
+      return;
+    }
+
+    // 새로 들어온 멤버
+    const addMem = [...currentMem].filter((id) => !prevMem.has(id));
+    if (addMem.length > 0) {
+      playSound("entry");
+      addMem.forEach((id) => triggerEntryEffect(id)); // ✅ 들어온 사람 각각에게 카드 오버레이
+    }
+
+    // 나간 멤버(= prev - current)
+    const removeMem = [...prevMem].filter((id) => !currentMem.has(id));
+    if (removeMem.length > 0) {
+      const anotherLeft = removeMem.some(
+        (id) => id !== String(user.userAccountId)
+      );
+      if (anotherLeft) playSound("leave");
+
+      // ✅ 떠난 유저는 기록 제거(재입장 시 다시 1회 재생 가능)
+      removeMem.forEach((id) => entryShownRef.current.delete(id));
+    }
+
+    // 상태 업데이트
+    prevMemRef.current = currentMem;
+  }, [room, user?.userAccountId, playSound]);
+
+  // 언마운트 시, 타이머 정리
+  useEffect(() => {
+    return () => {
+      Object.values(entryTimersRef.current).forEach(clearTimeout);
+      entryTimersRef.current = {};
+    };
+  }, []);
+
   // UI
   return (
     <div className="flex flex-row h-screen">
+      {/* 친구 버튼 */}
+      <FriendMessageWrapper />
       {/* 유저와 설정 관련 */}
       <section
         className="basis-3/4 flex flex-col"
@@ -317,9 +406,9 @@ const WaitingPage = () => {
             {isHost ? (
               <ModalButton
                 onClick={handleStartGameClick}
-                className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
+                className="text-lg py-3 w-37 h-15 rounded-xl"
               >
-                START
+                게임 시작
               </ModalButton>
             ) : (
               <ModalButton
@@ -337,6 +426,7 @@ const WaitingPage = () => {
             <WaitingUserList
               userSlots={userSlots}
               roomMasterId={room?.master?.id}
+              entryEffectMap={entryEffectMap}
               onRightClickKick={(user) => {
                 setKickTarget(user);
                 setKickModalOpen(true);
@@ -347,7 +437,8 @@ const WaitingPage = () => {
       </section>
       {/* 채팅과 카메라 */}
       <section className="basis-1/4 flex flex-col bg-rose-300">
-        <div className="basis-1/8 m-4 flex justify-end items-center">
+        <div className="basis-1/8 m-4 flex justify-between items-center">
+          <InfoGuideButton />
           <ModalButton
             className="text-lg px-2 py-1 rounded-md w-37 h-15"
             onClick={() => setIsExitModalOpen(true)}
@@ -361,10 +452,11 @@ const WaitingPage = () => {
         </div>
 
         <div className="basis-4/8 relative flex justify-center items-center">
+          <p className="text-xl text-white">까 꿍 ^_^</p>
           <div className="absolute bottom-0">
             <ChatBox
               className="w-full"
-              height="300px"
+              height="400px"
               roomId={room.id}
               team={team}
             />

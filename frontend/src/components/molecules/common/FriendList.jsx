@@ -11,11 +11,12 @@ const FriendList = ({ friends = [], onRemoveFriend }) => {
         if (friend) {
           return (
             <FriendCard
-              key={idx}
+              key={friend.userId}
               friendId={friend.userId}
               nickname={friend.nickname}
-              characterName={friend.characterName}
-              isOnline={friend.status === 'ACTIVE'}
+              characterName={friend.repCharacter.characterName}
+              status={friend.status}
+              isOnline={friend.online}
               onRemoveFriend={onRemoveFriend}
             />
           )

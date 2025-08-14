@@ -78,6 +78,11 @@ const handleWaitingMessage = (data, handlers = {}) => {
             break;
         }
 
+        case "WAITING_ROOM_UPDATED": {
+            updateClientState(data.room);
+            break;
+        }
+
         case "GAME_STARTED": {
             const { turn, round, game_init } = data;
             console.log("🟢 게임 시작 메시지 수신:", data);
@@ -98,7 +103,9 @@ const handleWaitingMessage = (data, handlers = {}) => {
             resetIsSamePoseTimerEnd()
             resetIsSilentScreamTimerEnd()
 
-            navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
+            setTimeout(() => {
+                navigate(`/${room.gameType.toLowerCase()}/${room.id}`);
+            }, 3000);
             break;
         }
 
