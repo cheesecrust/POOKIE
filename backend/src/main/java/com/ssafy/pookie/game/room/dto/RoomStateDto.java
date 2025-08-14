@@ -309,4 +309,8 @@ public class RoomStateDto {
         log.info("Room {} was prepared game start", this.roomId);
         return true;
     }
+
+    public void killTimer() {
+        if(timer!=null) this.timer.stop();
+    }
 }
