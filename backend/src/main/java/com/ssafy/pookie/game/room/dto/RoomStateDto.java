@@ -300,7 +300,10 @@ public class RoomStateDto {
     public boolean isPreparedStart() throws IllegalArgumentException {
         if(this.sessions.size() < 6) throw new IllegalArgumentException("6명 이상 모여야 시작 가능합니다.");
         if(this.users.get("RED").size() != this.users.get("BLUE").size()) throw new IllegalArgumentException("팀원 수가 맞지 않습니다.");
-        if(!this.status.equals(Status.WAITING)) throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
+        if(!this.status.equals(Status.WAITING)) {
+//            throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
+            this.status = Status.WAITING;
+        }
         this.users.keySet().forEach((team) -> {
             this.users.get(team).forEach((user) -> {
                 if(user.getStatus() != UserDto.Status.READY) throw new IllegalArgumentException("준비완료가 되지 않았습니다.");

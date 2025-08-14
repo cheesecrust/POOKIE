@@ -376,9 +376,6 @@ export default function FallingFoodPage() {
         clearTimeout(overTimeoutRef.current);
         overTimeoutRef.current = null;
       }
-      try {
-        emitMiniGameLeave();
-      } catch {}
     };
   }, []);
 

@@ -34,9 +34,10 @@ export default function InfoGuideButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-12 h-12 m-2 text-rose-400 text-xl rounded-full shadow-lg font-semibold bg-pink-100 hover:bg-pink-200"
+        className="w-20 h-12 m-2 bg-rose-400 text-sm rounded-xl text-white
+         shadow-lg shadow-rose-400/50 font-semibold hover:bg-rose-500"
       >
-        ?
+        게임 소개
       </button>
 
       {open && (

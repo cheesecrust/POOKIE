@@ -26,8 +26,10 @@ import {
   emitPainterChange,
 } from "../sockets/game/emit.js";
 import { updateHandlers } from "../sockets/websocket";
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 
 const SketchRelayPage = () => {
+  useRefreshExit({ redirect: true });
   const navigate = useNavigate();
   const { playSound } = useSound();
 
@@ -278,27 +280,6 @@ const SketchRelayPage = () => {
     norIdxList,
     repIdx,
   ]);
-
-  // // +) 내 역할 차례 결정
-  // useEffect(() => {
-  //   if (!myTeam || !turn) return;
-
-  //   if (myTeam !== turn) {
-  //     setUserRole("spectator");
-  //     setIsMyTurn(false);
-  //     return;
-  //   }
-
-  //   console.log(currentDrawer)
-  //   // 내 팀 차례라면: 현재 드로어와 비교해 역할 부여
-  //   if (currentDrawer?.idx === myIdx) {
-  //     setUserRole("drawer");
-  //     setIsMyTurn(true);
-  //   } else {
-  //     setUserRole("guesser");
-  //     setIsMyTurn(false);
-  //   }
-  // }, [myTeam, turn, currentDrawer?.idx, myIdx]);
 
   // 6️⃣ 첫 로딩 상태 관리
   useEffect(() => {
@@ -833,7 +814,7 @@ const SketchRelayPage = () => {
           <div className="mt-2 text-2xl font-extrabold leading-tight break-keep text-gray-900">
             {keyword || "정답!"}
           </div>
-        </div>      
+        </div>
       )}
 
       {/* 정답 모달 */}

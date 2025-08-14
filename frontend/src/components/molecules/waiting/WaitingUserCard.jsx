@@ -37,7 +37,7 @@ const WaitingUserCard = ({
       onContextMenu={handleContextMenu}
     >
       <div
-        className={`relative w-52 h-64 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
+        className={`relative w-56 h-66 border-4 ${borderColor} bg-red-50 flex flex-col items-center justify-center p-2`}
       >
         {/* ✅ 강퇴 버튼 (방장이고, 자기 자신이 아닐 때만 표시) */}
         {isMyRoomMaster && !isMe && <KickButton onClick={handleKickClick} />}
@@ -73,18 +73,17 @@ const WaitingUserCard = ({
             <img src={crown} alt="방장" className="w-16 h-16" />
           </div>
         )}
+        {/* 닉네임 */}
+        <div
+          className={`mt-2 truncate w-[180px] text-sm font-bold ${
+            isMe ? "text-amber-500" : "text-black"
+          } ${isMe ? "bg-amber-100" : "bg-red-50"} rounded px-2 py-1 text-center`}
+        >
+          {user.userNickname}
+        </div>
 
         {/* Ready 뱃지 */}
         {user.isReady && <UserReady team={user.team} />}
-      </div>
-
-      {/* 닉네임 */}
-      <div
-        className={`mt-2 truncate w-[120px] text-sm font-bold ${
-          isMe ? "bg-violet-300/90" : "bg-red-50"
-        } rounded px-2 py-1 text-center`}
-      >
-        {user.userNickname}
       </div>
     </div>
   );
