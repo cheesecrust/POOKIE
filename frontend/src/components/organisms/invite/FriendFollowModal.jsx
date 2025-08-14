@@ -1,14 +1,14 @@
-// 친구 초대 모달 
+//
 
 // src/components/organisms/waiting/FriendInviteModal.jsx
 import { useEffect, useState } from "react";
 import axiosInstance from "../../../lib/axiosInstance";
 import RightButton from "../../atoms/button/RightButton";
 import Pagination from "../../molecules/home/Pagination";
+import { emitFollow } from "../../../sockets/waiting/emit";
 import BasicModal from "../../atoms/modal/BasicModal";
-import { emitInvite } from "../../../sockets/waiting/emit";
 
-const FriendInviteModal = ({ roomId, onClose }) => {
+const FriendFollowModal = ({ onClose }) => {
   const [friends, setFriends] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,7 +22,6 @@ const FriendInviteModal = ({ roomId, onClose }) => {
     setNoticeMsg(msg);
     setNoticeOpen(true);
   };
-
   const closeNotice = () => setNoticeOpen(false);
 
   // 친구 목록 api
@@ -43,46 +42,36 @@ const FriendInviteModal = ({ roomId, onClose }) => {
     }
   };
 
-  // 현재 페이지 바뀔 때마다 목록 불러오기
-  useEffect(() => {
-    fetchFriends(currentPage - 1);
-  }, [currentPage]);
+  useEffect(() => { fetchFriends(currentPage - 1); }, [currentPage]);
 
-  // id 추출 함수
+  // id 추출
   const getId = (f) => f?.userId;
 
-  // 초대
-  const handleInvite = (friend) => {
+  // 따라가기 동작
+  const handleFollow = async (friend) => {
     const id = getId(friend);
-    if (!id || !roomId) return;
-
-    // 온라인 여부
-    const online = friend?.online;
-
+    if (!id) {
+      openNotice("유효하지 않은 유저입니다.");
+      return;
+    }
+    const online = !!friend?.online;
     if (!online) {
       openNotice(`${friend?.nickname ?? "해당 유저"}님은 오프라인입니다.`);
       return;
     }
-
     try {
-      emitInvite({ roomId, invitedUserId: id });
-      openNotice(`${friend?.nickname ?? "친구"}님에게 초대를 보냈습니다!`);
+      emitFollow({ userId:id });
     } catch (e) {
-      console.log("초대 실패:", e);
-      openNotice("초대 전송에 실패했어요. 잠시 후 다시 시도해주세요.");
+      console.log("따라가기 실패", e);
     }
   };
 
   return (
     <div className="w-[420px] max-w-[92vw]">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-bold">친구 초대</h2>
+        <h2 className="text-xl font-bold">친구 따라가기</h2>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="text-black hover:opacity-70 text-xl leading-none"
-            aria-label="닫기"
-          >
+          <button onClick={onClose} className="text-black hover:opacity-70 text-xl leading-none" aria-label="닫기">
             ×
           </button>
         )}
@@ -127,10 +116,10 @@ const FriendInviteModal = ({ roomId, onClose }) => {
                   </div>
 
                   <RightButton
-                    onClick={() => handleInvite(f)}
+                    onClick={() => handleFollow(f)}
                     className="ml-3 shrink-0 px-3 h-8 rounded text-xs border-2 bg-white border-black hover:bg-gray-100"
                   >
-                    초대
+                    따라가기
                   </RightButton>
                 </div>
               );
@@ -146,9 +135,8 @@ const FriendInviteModal = ({ roomId, onClose }) => {
             totalPages={totalPages}
           />
         </div>
-      </div>
 
-      {/* 알림 모달 */}
+        {/* 알림 모달 */}
       <BasicModal isOpen={noticeOpen} onClose={closeNotice}>
         <div className="w-[280px] max-w-[82vw] text-center">
           <p className="whitespace-pre-line">{noticeMsg}</p>
@@ -159,8 +147,10 @@ const FriendInviteModal = ({ roomId, onClose }) => {
           </div>
         </div>
       </BasicModal>
+
+      </div>
     </div>
   );
 };
 
-export default FriendInviteModal;
+export default FriendFollowModal;

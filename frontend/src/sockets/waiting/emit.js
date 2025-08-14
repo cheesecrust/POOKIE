@@ -75,3 +75,10 @@ export const emitInvite = ({ invitedUserId,roomId}) => {
 		roomId,
 	})
 }
+
+// 친구 따라가기 emit 
+export const emitFollow = ({userId}) => {
+	sendMessage('FOLLOW',{
+		userId,
+	})
+}

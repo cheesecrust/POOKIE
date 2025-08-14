@@ -1,3 +1,5 @@
+// 초대 받은 사람에게 뜨는 모달 
+
 // src/components/organisms/invite/InviteModal.jsx
 import useHomeStore from "../../../store/useHomeStore";
 import BasicModal from "../../atoms/modal/BasicModal";
@@ -15,9 +17,6 @@ const InviteModal = () => {
 
   // 초대한 친구 닉네임 
   const inviteUser = data.inviteUser;
-  
-  console.log("data", data);
-  console.log("invite", invite);
   
   if (!inviteGate) return null; //
   
