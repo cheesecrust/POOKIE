@@ -23,7 +23,7 @@ const OAuthCallback = () => {
                 console.log('🆔 userAccountId:', userAccountId);
         
                 if (accessToken) {
-                    localStorage.setItem('accessToken', accessToken);
+                    // localStorage.setItem('accessToken', accessToken);
                     store.setAccessToken(accessToken);
                     store.setUser({ email, nickname, userAccountId });
                     store.setIsLoggedIn(true); 

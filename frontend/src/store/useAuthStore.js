@@ -105,6 +105,9 @@ const useAuthStore = create(
           const res = await axiosInstance.post('/auth/login', { email, password });
           const { accessToken, userAccountId, nickname } = res.data.data;
 
+          // 로그인 시작 시 혹시 남아있을지 모르는 플래그 끄기
+          set({ isLoggingOut: false });
+
           // 저장
           set({
             accessToken,
