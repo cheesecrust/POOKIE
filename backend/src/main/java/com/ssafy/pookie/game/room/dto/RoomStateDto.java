@@ -301,8 +301,7 @@ public class RoomStateDto {
         if(this.sessions.size() < 6) throw new IllegalArgumentException("6명 이상 모여야 시작 가능합니다.");
         if(this.users.get("RED").size() != this.users.get("BLUE").size()) throw new IllegalArgumentException("팀원 수가 맞지 않습니다.");
         if(!this.status.equals(Status.WAITING)) {
-//            throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
-            this.status = Status.WAITING;
+            throw new IllegalArgumentException("대기방의 상태가 부정확합니다.");
         }
         this.users.keySet().forEach((team) -> {
             this.users.get(team).forEach((user) -> {
@@ -315,5 +314,13 @@ public class RoomStateDto {
 
     public void killTimer() {
         if(timer!=null) this.timer.stop();
+    }
+
+    // 방에서 이상한 유저 찾기
+    public void findInvalidUser() {
+        for(String team : this.users.keySet()) {
+            this.users.get(team).removeIf((user) -> !user.getSession().isOpen());
+        }
+        this.status = Status.WAITING;
     }
 }
