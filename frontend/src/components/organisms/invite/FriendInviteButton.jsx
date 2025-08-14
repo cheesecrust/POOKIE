@@ -1,3 +1,4 @@
+// 친구 초대 버튼 (대기실 버튼 클릭시 모달 뜸뜸)
 import {useState} from "react";
 import RightButton from "../../atoms/button/RightButton";
 import BasicModal from "../../atoms/modal/BasicModal";
