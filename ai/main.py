@@ -732,6 +732,12 @@ async def upload_images(
                 atomic_write(img, team_round_latest)
                 atomic_write(img, overall_latest)
 
+        # 클라이언트 안내 메시지
+        client_msg = (
+            "손 제스처가 충분히 보이지 않아 판정에 실패했습니다. "
+            f"(감지 {imgs_with_any_hand}/{need}) 3명 모두 화면에 손을 보여주세요."
+        )
+
         return {
             "ok": True,
             "all_pass": False,
@@ -744,6 +750,7 @@ async def upload_images(
             "hand_status": [{"L": m["status"]["L"], "R": m["status"]["R"]} for m in hand_metas],
             "idle_per_image": idle_flags,
             "reason": f"negative_filter:no_enough_hands ({imgs_with_any_hand}/{need})",
+            "client_message": client_msg,
         }
 
     # ── 규칙 #1: 모두 idle이면 탈락(손이 전혀 안 보임) ──
