@@ -22,6 +22,8 @@ import {
 } from "../sockets/websocket";
 import handleHomeMessage from "../sockets/home/handleHomeMessage";
 
+import FriendFollowButton from "../components/organisms/invite/FriendFollowButton";
+
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,6 +149,7 @@ const HomePage = () => {
               >
                 혼자 하기
               </ModalButton>
+              <FriendFollowButton/>
             </div>
           </div>
 
@@ -218,6 +221,7 @@ const HomePage = () => {
           isOpen={roomCreateModalOpen}
           onClose={() => setRoomCreateModalOpen(false)}
         />
+
       </main>
       {/* 하단 고정 푸터 */}
       <Footer />

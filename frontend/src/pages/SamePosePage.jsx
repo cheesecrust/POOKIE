@@ -9,7 +9,7 @@ import background_same_pose from "../assets/background/background_samepose.gif";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useSound from "../utils/useSound";
-
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 import axios from "axios";
 
 import useAuthStore from "../store/useAuthStore.js";
@@ -27,6 +27,9 @@ import {
 } from "../sockets/game/emit.js";
 
 const SamePosePage = () => {
+  // 요구사항: F5/뒤로가기 → 소켓만 끊기
+  useRefreshExit({ redirect: true });
+
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { playSound } = useSound();
@@ -589,6 +592,17 @@ const SamePosePage = () => {
     }
   }, [isResultOpen, playSound]);
 
+  useEffect(() => {
+    if (time === 5) {
+      playSound("camera_shutter");
+    }
+  }, [time, playSound]);
+  useEffect(() => {
+    if (time === 8) {
+      playSound("countdown");
+    }
+  }, [time, playSound]);
+
   // 게임 정상 종료 여부
   const isNormalEnd = useGameStore((state) => state.isNormalEnd);
   const isAbnormalPerson = useGameStore((state) => state.isAbnormalPerson);
@@ -604,21 +618,21 @@ const SamePosePage = () => {
         <section className="basis-3/9 flex flex-col p-4">
           <div className="grid grid-cols-3 items-center gap-6 px-6">
             <div className="col-span-1 flex justify-start">
-              <div className="text-sm text-gray-800 leading-tight w-full max-w-[300px]">
+              <div className="text-md text-gray-800 leading-tight w-full max-w-[300px]">
                 <span className="mb-2 block">제시어에 맞게</span>
                 <span className="mb-2 block">
                   최대한 <b className="text-pink-500">정자세</b>에서 동작을
                   취해주세요.
                 </span>
                 <span className="block">
-                  <b className="text-cyan-500">손</b>을 정확히 보여야
+                  <b className="text-cyan-700">손</b>을 정확히 보여야
                 </span>
                 <span>정확한 판정이 가능합니다 !</span>
               </div>
             </div>
 
             <div className="col-span-1 flex flex-col items-center">
-              <div className="relative text-center text-2xl mb-3">
+              <div className="relative text-center text-3xl mb-3">
                 <span
                   className={turn === "RED" ? "text-red-500" : "text-blue-700"}
                 >

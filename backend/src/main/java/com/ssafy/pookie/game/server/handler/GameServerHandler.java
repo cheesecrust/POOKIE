@@ -196,7 +196,7 @@ public class GameServerHandler extends TextWebSocketHandler {
         } catch(Exception e) {
             log.error("Handler ERROR : {}", e.getMessage());
             socketMetrics.endMessageProcessing(messageSample, "ERROR");
-            messageSenderManager.sendMessageToUser(session, Map.of(
+            onlinePlayerManager.sendToMessageUser(session, Map.of(
                     "type", "Error",
                     "msg", "요청처리 중 문제가 발생하였습니다."
             ));

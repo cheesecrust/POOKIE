@@ -26,7 +26,12 @@
 import WaitingUserCard from "../../molecules/waiting/WaitingUserCard";
 import useAuthStore from "../../../store/useAuthStore";
 
-const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick, entryEffectMap = {} }) => {
+const WaitingUserList = ({
+  userSlots,
+  roomMasterId,
+  onRightClickKick,
+  entryEffectMap = {},
+}) => {
   const { user } = useAuthStore();
 
   // 항상 6개의 슬롯을 만들어서 빈 슬롯도 표시되도록 함
@@ -36,7 +41,7 @@ const WaitingUserList = ({ userSlots, roomMasterId, onRightClickKick, entryEffec
   }
 
   return (
-    <div className="grid grid-cols-3 gap-12 w-full px-4 py-4">
+    <div className="grid grid-cols-3 gap-14 w-full px-4 py-4">
       {paddedSlots.map((u, index) => (
         <div key={index} className="flex justify-around items-center">
           {u ? (

@@ -36,10 +36,10 @@ public class InviteService {
                     "roomTitle", room.getRoomTitle(),
                     "roomGameType", room.getGameType().toString()
             ));
-            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
-                    "type", MessageDto.Type.INVITED,
-                    "msg", "초대를 보냈습니다."
-            ));
+//            onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(
+//                    "type", MessageDto.Type.INVITED,
+//                    "msg", "초대를 보냈습니다."
+//            ));
         } catch (IllegalArgumentException e) {
             log.error("Invite Request Error : {}", e.getMessage());
             onlinePlayerManager.sendToMessageUser(request.getUser().getSession(), Map.of(

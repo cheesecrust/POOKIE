@@ -5,6 +5,7 @@ import connectLiveKit from "../utils/connectLiveKit";
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import useRefreshExit from "../hooks/useRefreshExit"; // 새로고침 소켓끊기
 
 import backgroundSilentScream from "../assets/background/background_silentscream.gif";
 import RoundInfo from "../components/molecules/games/RoundInfo";
@@ -30,6 +31,7 @@ import {
 } from "../sockets/game/emit.js";
 
 const SilentScreamPage = () => {
+  useRefreshExit({ redirect: true });
   const navigate = useNavigate();
   const { playSound } = useSound();
 

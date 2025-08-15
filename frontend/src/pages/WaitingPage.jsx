@@ -138,32 +138,32 @@ const WaitingPage = () => {
 
   // ❗ 새로고침(F5, Ctrl+R) 또는 뒤로가기 시 모달 띄우기 기능 (기본 비활성화)
 
-  // useEffect(() => {
-  //   window.history.pushState(null, "", location.pathname);
+  useEffect(() => {
+    window.history.pushState(null, "", location.pathname);
 
-  //   const handlePopState = (e) => {
-  //     e.preventDefault();
-  //     console.log("🔙 뒤로가기 감지됨");
-  //     setIsExitModalOpen(true);
-  //     window.history.pushState(null, "", location.pathname);
-  //   };
+    const handlePopState = (e) => {
+      e.preventDefault();
+      console.log("🔙 뒤로가기 감지됨");
+      setIsExitModalOpen(true);
+      window.history.pushState(null, "", location.pathname);
+    };
 
-  //   const handleKeyDown = (e) => {
-  //     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
-  //       e.preventDefault();
-  //       console.log("🔄 새로고침 감지됨");
-  //       setIsExitModalOpen(true);
-  //     }
-  //   };
+    const handleKeyDown = (e) => {
+      if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
+        e.preventDefault();
+        console.log("🔄 새로고침 감지됨");
+        setIsExitModalOpen(true);
+      }
+    };
 
-  //   window.addEventListener("popstate", handlePopState);
-  //   window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("keydown", handleKeyDown);
 
-  //   return () => {
-  //     window.removeEventListener("popstate", handlePopState);
-  //     window.removeEventListener("keydown", handleKeyDown);
-  //   };
-  // }, [location.pathname]);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [location.pathname]);
 
   // WebSocket 메시지 수신 처리
   useEffect(() => {
@@ -403,9 +403,14 @@ const WaitingPage = () => {
               onToggle={handleGameTypeChange}
               isHost={isHost}
             />
+
+
           </div>
 
           <div className="basis-2/5 flex flex-row gap-4 p-2 items-center justify-end">
+            {/* 친구 초대 버튼 */}
+            <FriendInviteButton roomId={room.id}/>
+            {/* 팀 버튼 */}
             <TeamToggleButton
               currentTeam={team}
               onClick={handleTeamToggle}
@@ -414,9 +419,9 @@ const WaitingPage = () => {
             {isHost ? (
               <ModalButton
                 onClick={handleStartGameClick}
-                className="text-lg px-6 py-3 w-37 h-15 rounded-xl"
+                className="text-lg py-3 w-37 h-15 rounded-xl"
               >
-                START
+                게임 시작
               </ModalButton>
             ) : (
               <ModalButton
