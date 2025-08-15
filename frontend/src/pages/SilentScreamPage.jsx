@@ -277,17 +277,35 @@ const SilentScreamPage = () => {
   // 역할 부여
   useEffect(() => {
     // 내가 받지 못한 유저일 경우 역할 수동 부여
-    const hasRole = participants.some((p) => p.role);
+    console.log(participants)
     const hasEnoughData = repIdxList.length > 0 && norIdxList.length > 0;
 
-    if (!hasRole && hasEnoughData) {
+    const teamFilter = (p) => p.team === turn;
+
+    const missed = participants.some(p => teamFilter(p) && (p.role == null));
+    const repCount = participants.filter(p => teamFilter(p) && (p.role === "REP")).length;
+    const norCount = participants.filter(p => teamFilter(p) && (p.role === "NOR")).length;
+    console.log("missed", missed);
+    console.log("repCount", repCount);
+    console.log("norCount", norCount);
+
+    // 반대팀은 전원 null이어야 한다
+    const otherTeam = turn === "RED" ? "BLUE" : "RED";
+    const otherAllNull = participants
+      .filter(p => p.team === otherTeam)
+      .every(p => p.role === null);
+
+    const needFix = missed || (repCount !== repIdxList.length) || (norCount !== norIdxList.length) || !otherAllNull;
+
+    if (hasEnoughData && needFix) {
       useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
       console.log("🛠 역할 수동 설정 완료: SilentScreamPage fallback");
     }
-  }, [repIdxList, norIdxList, participants]);
+  }, [repIdxList, norIdxList, participants.length, turn]);
 
   // livekit 렌더 + 말풍선 함수
   const renderVideoByRole = (roleGroup, positionStyles) => {
+    console.log(roleGroup)
     return roleGroup.map((p, idx) => {
       return (
         <div

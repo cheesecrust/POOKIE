@@ -24,7 +24,7 @@ import useGameStore from "../store/useGameStore";
 import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
 
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
-import FriendInviteButton from "../components/organisms/invite/FriendInviteButton";
+import cleanupLiveKit from "../utils/cleanupLiveKit";
 
 import {
   emitTeamChange,
@@ -211,6 +211,13 @@ const WaitingPage = () => {
   // 방 나가기
   const handleLeaveRoom = () => {
     playSound("leave");
+    
+    // LiveKit 연결 정리
+    const { roomInstance, resetLiveKit } = useGameStore.getState();
+    if (roomInstance) {
+      cleanupLiveKit({ roomInstance, resetLiveKit });
+    }
+    
     emitLeaveRoom({ roomId: room.id });
   };
 
