@@ -24,6 +24,7 @@ import useGameStore from "../store/useGameStore";
 import InfoGuideButton from "../components/organisms/waiting/InfoGuideButton";
 
 import FriendMessageWrapper from "../components/organisms/common/FriendMessageWrapper";
+import FriendInviteButton from "../components/organisms/invite/FriendInviteButton"
 import cleanupLiveKit from "../utils/cleanupLiveKit";
 
 import {
