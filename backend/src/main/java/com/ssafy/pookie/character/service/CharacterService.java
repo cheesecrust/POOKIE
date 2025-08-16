@@ -65,16 +65,10 @@ public class CharacterService {
     public RepCharacterResponseDto getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
                 characterCatalogRepository.findByUserAccount_IdAndIsRepresent(userAccountId, true);
-        for(CharacterCatalog c : catalog) {
-            System.out.print(c.getCharacter().getName()+", ");
-        }
-        System.out.println();
         if (catalog.size() > 1) {
-            System.out.println("TOO MANY COOKIE");
             throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
         }
         if (catalog.isEmpty()) {
-            System.out.println("REP COOKIE NOT FOUND");
             throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
         }
 
