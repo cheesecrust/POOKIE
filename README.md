@@ -47,6 +47,12 @@ Pookie Platform
 - **이미지 처리**: OpenCV with CLAHE
 - **유사도 계산**: Cosine similarity with keyword weighting
 
+### 인프라 아키텍쳐
+
+
+### ERD
+
+
 ## 🎮 게임 소개
 
 - **턴 기반 시스템**: 모든 게임은 타이머 기반 차례 교체 게임입니다.
@@ -55,7 +61,6 @@ Pookie Platform
 AI를 활용한 포즈 인식 기술로 제시된 포즈를 따라하는 게임입니다.
 - **기술**: MediaPipe 포즈 랜드마크 + 손 랜드마크 인식
 - **점수 계산**: 코사인 유사도 기반 정확도 측정
-
 
 ### 🤫 Silent Scream (몸짓 게임)
 제시된 단어를 몸짓으로 표현하여 다른 플레이어가 맞추는 게임입니다.
@@ -66,40 +71,6 @@ AI를 활용한 포즈 인식 기술로 제시된 포즈를 따라하는 게임�
 팀원들이 돌아가며 그림을 그려 완성하는 협동 게임입니다.
 - **실시간 드로잉**: WebSocket을 통한 실시간 그림 동기화
 
-## 🛠️ 기술 스택
-
-### Frontend
-```json
-{
-  "react": "^19.1.0",
-  "vite": "^7.0.4",
-  "tailwindcss": "^4.1.11",
-  "zustand": "^5.0.6",
-  "livekit-client": "^2.15.3",
-  "openvidu-browser": "^2.31.0"
-}
-```
-
-### Backend
-```gradle
-dependencies {
-  implementation 'org.springframework.boot:spring-boot-starter-web'
-  implementation 'org.springframework.boot:spring-boot-starter-websocket'
-  implementation 'org.springframework.boot:spring-boot-starter-security'
-  implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-  implementation 'io.livekit:livekit-server:0.10.0'
-  implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-}
-```
-
-### AI Service
-```txt
-fastapi==0.116.1
-mediapipe==0.10.21
-opencv-contrib-python==4.11.0.86
-scikit-learn==1.7.1
-```
-
 ## 🚀 시작하기
 
 ### 사전 요구사항
@@ -107,45 +78,6 @@ scikit-learn==1.7.1
 - **Java** 17+
 - **Python** 3.8+
 - **MySQL** 8.0+
-
-### 설치 및 실행
-
-#### 1. Frontend 실행
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-#### 2. Backend 실행
-```bash
-cd backend
-./gradlew bootRun
-```
-
-#### 3. AI Service 실행
-```bash
-cd ai
-pip install -r requirements.txt
-python main.py
-```
-
-### 환경 설정
-
-#### Backend 설정 (application.properties)
-```properties
-# Database
-spring.datasource.url=jdbc:mysql://localhost:3306/pookie
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-
-# JWT
-jwt.secret=your_jwt_secret
-
-# LiveKit
-livekit.api.key=your_livekit_key
-livekit.api.secret=your_livekit_secret
-```
 
 ## 📁 프로젝트 구조
 
@@ -178,33 +110,6 @@ livekit.api.secret=your_livekit_secret
 │   ├── 📄 main.py                  # FastAPI 서버
 │   └── 📄 requirements.txt
 └── 📄 README.md
-```
-
-## 아키텍쳐 구조
-
-## erd
-
-## 🔧 주요 설정
-
-### Frontend 개발 서버
-```bash
-npm run dev        # 개발 서버 시작 (http://localhost:5173)
-npm run build      # 프로덕션 빌드
-npm run lint       # ESLint 실행
-npm run preview    # 프로덕션 빌드 미리보기
-```
-
-### Backend 개발
-```bash
-./gradlew bootRun          # 개발 서버 시작 (http://localhost:8080)
-./gradlew build            # 애플리케이션 빌드
-./gradlew test             # 테스트 실행
-./gradlew bootJar          # 실행 가능한 JAR 생성
-```
-
-### AI Service
-```bash
-python main.py             # FastAPI 서버 시작 (http://localhost:8000)
 ```
 
 ## 🎮 게임 플레이 가이드
