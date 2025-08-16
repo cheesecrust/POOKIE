@@ -180,6 +180,10 @@ livekit.api.secret=your_livekit_secret
 └── 📄 README.md
 ```
 
+## 아키텍쳐 구조
+
+## erd
+
 ## 🔧 주요 설정
 
 ### Frontend 개발 서버
