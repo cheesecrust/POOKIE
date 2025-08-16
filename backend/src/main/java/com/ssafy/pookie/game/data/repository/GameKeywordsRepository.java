@@ -17,5 +17,10 @@ public interface GameKeywordsRepository extends JpaRepository<GameKeywords,Long>
             "JOIN gk.game gt WHERE gt.gameName = :gameName")
     Long countByGameName(@Param("gameName") String gameName);
 
+    // 정확한 키워드 set 가져오기
+    @Query("SELECT gk.id FROM GameKeywords gk " +
+            "JOIN gk.game gt WHERE gt.gameName = :gameName")
+    List<Long> getKeywordIdxByGameName(@Param("gameName") String gameName);
+
     List<GameKeywords> findByIdIn(Collection<Long> ids);
 }
