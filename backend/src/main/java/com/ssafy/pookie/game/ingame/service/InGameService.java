@@ -115,14 +115,14 @@ public class InGameService {
         int keywordCnt = room.getGameType() == RoomStateDto.GameType.SILENTSCREAM ?
                 15 : 1;
         // DB 에서 전체 키워드의 개수 추출
-        Long keywordSetCnt = gameKeywordsRepository.countByGameName(room.getGameType().toString());
+        List<Long> keywordIdxSet = gameKeywordsRepository.getKeywordIdxByGameName(room.getGameType().toString());
         Set<Long> keywordSet = room.getGameInfo().getKeywordSet();
         Set<Long> tempKeywordSet = new HashSet<>();
         while(tempKeywordSet.size() < keywordCnt) {
-            Long pkIdx = new Random().nextLong(keywordSetCnt)+1;
+            Integer pkIdx = new Random().nextInt(keywordIdxSet.size());
 
-            if(!keywordSet.add(pkIdx)) continue;
-            tempKeywordSet.add(pkIdx);
+            if(!keywordSet.add(keywordIdxSet.get(pkIdx))) continue;
+            tempKeywordSet.add(keywordIdxSet.get(pkIdx));
         }
         // DB 로 tempKeywordSet 전송하여 제시어 set 받아옴
         // 제시어 set client 로 전달
