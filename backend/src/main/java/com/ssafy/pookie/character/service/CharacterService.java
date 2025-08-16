@@ -65,9 +65,12 @@ public class CharacterService {
     public RepCharacterResponseDto getRepPookie(Long userAccountId) {
         List<CharacterCatalog> catalog =
                 characterCatalogRepository.findByUserAccount_IdAndIsRepresent(userAccountId, true);
-
-        if (catalog.size() > 1) throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
-        if (catalog.isEmpty()) throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
+        if (catalog.size() > 1) {
+            throw new CustomException(ErrorCode.TOO_MANY_POOKIES);
+        }
+        if (catalog.isEmpty()) {
+            throw new CustomException(ErrorCode.REP_POKIE_NOT_FOUND);
+        }
 
         int characterId = catalog.get(0).getCharacter().getId();
 

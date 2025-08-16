@@ -8,6 +8,7 @@ import UserExp from "../components/atoms/user/UserExp";
 import InventoryList from "../components/organisms/myRoom/InventoryList";
 import StoreList from "../components/organisms/myRoom/StoreList";
 import CharacterDex from "../components/organisms/dex/CharacterDex";
+import useAuthStore from "../store/useAuthStore";
 
 import coinImg from "../assets/item/coin.png";
 import evolveEffect from "../assets/effect/evolve.gif";
@@ -23,7 +24,7 @@ const MyRoomPage = () => {
   const evolveTimeRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("도감");
-  // const { setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
   const [userInfo, setUserInfo] = useState(null);
 
   const [coin, setCoin] = useState(null);
@@ -34,13 +35,22 @@ const MyRoomPage = () => {
   const [growingPookie, setGrowingPookie] = useState(null);
 
   // 대표/성장 요약 (도감에서)
-  const [dexSummary, setDexSummary] = useState({ repName: null, growingName: null });
+  const [dexSummary, setDexSummary] = useState({
+    repName: null,
+    growingName: null,
+  });
 
   const repName = userInfo?.repCharacter?.characterName;
-  const forceFull = repName ? (dexSummary.growingName ? dexSummary.growingName !== repName : true) : false;
+  const forceFull = repName
+    ? dexSummary.growingName
+      ? dexSummary.growingName !== repName
+      : true
+    : false;
 
   // 대표 변경 감지 (id가 있으면 우선, 없으면 name 폴백)
-  const repKey = userInfo?.repCharacter?.characterId ?? userInfo?.repCharacter?.characterName;
+  const repKey =
+    userInfo?.repCharacter?.characterId ??
+    userInfo?.repCharacter?.characterName;
   const prevRepKeyRef = useRef(null);
 
   // step 비교용
@@ -54,8 +64,8 @@ const MyRoomPage = () => {
     try {
       const res = await axiosInstance.get("/characters/catalog");
       const list = res.data || [];
-      const rep = list.find(d => d.represent)?.characterName ?? null;
-      const growing = list.find(d => d.growing)?.characterName ?? null;
+      const rep = list.find((d) => d.represent)?.characterName ?? null;
+      const growing = list.find((d) => d.growing)?.characterName ?? null;
       setDexSummary({ repName: rep, growingName: growing });
     } catch (e) {
       console.log("도감 요약 조회 실패:", e);
@@ -69,7 +79,7 @@ const MyRoomPage = () => {
       setUserInfo(res.data.data);
       setCoin(res.data.data.coin);
       setStep(res.data.data.repCharacter.step);
-      // setUser(res.data.data);
+      setUser(res.data.data);
       setExp(res.data.data.repCharacter.exp);
     } catch (err) {
       console.log("AuthInfo 에러", err);
@@ -93,15 +103,15 @@ const MyRoomPage = () => {
     }, 1800);
   };
 
-  // 키우고 있는 푸키 조회 
-  const myPookie = async() => {
+  // 키우고 있는 푸키 조회
+  const myPookie = async () => {
     try {
       const res = await axiosInstance.get("/characters/my-pookie");
       setGrowingPookie(res.data);
     } catch (err) {
       console.log("my-pookie 에러", err);
     }
-  }
+  };
 
   // 초기 로드
   useEffect(() => {
@@ -124,7 +134,7 @@ const MyRoomPage = () => {
     };
   }, [step]);
 
-  // 인벤토리 탭 누를때마다 myPookie() 갱신 
+  // 인벤토리 탭 누를때마다 myPookie() 갱신
   useEffect(() => {
     setIsInventoryOpen(activeTab === "인벤토리");
     if (activeTab === "인벤토리") myPookie();
@@ -168,19 +178,51 @@ const MyRoomPage = () => {
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded-md">
-                {!isInventoryOpen ? <span className="font-semibold">대표 푸키:</span> : <span className="font-semibold">성장중인 푸키:</span>}
-                  {!isInventoryOpen ? <span>{userInfo?.repCharacter?.characterName}</span> : <span>{growingPookie?.name}</span>}
+                  {!isInventoryOpen ? (
+                    <span className="font-semibold">대표 푸키:</span>
+                  ) : (
+                    <span className="font-semibold">성장중인 푸키:</span>
+                  )}
+                  {!isInventoryOpen ? (
+                    <span>{userInfo?.repCharacter?.characterName}</span>
+                  ) : (
+                    <span>{growingPookie?.name}</span>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center p-2 rounded-md">
-                  {!isInventoryOpen ? <span className="font-semibold">레벨:</span> : <span className="font-semibold">레벨:</span>}
-                  {!isInventoryOpen ? <span>LV {typeof step === "number" ? step + 1 : "-"}</span> : <span>LV {typeof growingPookie?.step === "number" ? growingPookie.step + 1 : "-"}</span>}
+                  {!isInventoryOpen ? (
+                    <span className="font-semibold">레벨:</span>
+                  ) : (
+                    <span className="font-semibold">레벨:</span>
+                  )}
+                  {!isInventoryOpen ? (
+                    <span>LV {typeof step === "number" ? step + 1 : "-"}</span>
+                  ) : (
+                    <span>
+                      LV{" "}
+                      {typeof growingPookie?.step === "number"
+                        ? growingPookie.step + 1
+                        : "-"}
+                    </span>
+                  )}
                 </div>
 
                 <div className="p-2 rounded-md">
                   <div className="flex justify-between items-center mb-1">
-                    {!isInventoryOpen ? <span className="font-semibold">Exp:</span> : <span className="font-semibold">Exp:</span>}
-                    {!isInventoryOpen ? <UserExp step={step} exp={exp} forceFull={forceFull} /> : <UserExp step={growingPookie?.step} exp={growingPookie?.exp} />}
+                    {!isInventoryOpen ? (
+                      <span className="font-semibold">Exp:</span>
+                    ) : (
+                      <span className="font-semibold">Exp:</span>
+                    )}
+                    {!isInventoryOpen ? (
+                      <UserExp step={step} exp={exp} forceFull={forceFull} />
+                    ) : (
+                      <UserExp
+                        step={growingPookie?.step}
+                        exp={growingPookie?.exp}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -191,8 +233,10 @@ const MyRoomPage = () => {
               <div className="w-full h-full flex items-center justify-center">
                 <img
                   src={
-                    !isInventoryOpen ? characterImageMap[userInfo?.repCharacter?.characterName] : characterImageMap[growingPookie?.name] ||
-                    characterImageMap.default
+                    !isInventoryOpen
+                      ? characterImageMap[userInfo?.repCharacter?.characterName]
+                      : characterImageMap[growingPookie?.name] ||
+                        characterImageMap.default
                   }
                   alt="대표 캐릭터"
                   className="max-w-full max-h-[250px] object-contain"
@@ -217,7 +261,11 @@ const MyRoomPage = () => {
 
           {/* 돈 영역 */}
           <div className="absolute top-24 right-36 flex items-center gap-2">
-            <img src={coinImg} alt="coin" className="w-10 h-10 object-contain" />
+            <img
+              src={coinImg}
+              alt="coin"
+              className="w-10 h-10 object-contain"
+            />
             <div className="w-[200px] h-[40px] flex justify-end items-center bg-white border-2 border-black rounded-full px-4 py-1 shadow-md">
               <span className="font-bold text-lg tracking-widest">
                 {userInfo?.coin?.toLocaleString?.() ?? 0}
@@ -263,7 +311,10 @@ const MyRoomPage = () => {
 
               {activeTab === "인벤토리" && (
                 <div className="text-center py-10">
-                  <InventoryList onUseSuccess={refreshAll} refreshTrigger={activeTab} />
+                  <InventoryList
+                    onUseSuccess={refreshAll}
+                    refreshTrigger={activeTab}
+                  />
                 </div>
               )}
             </div>
