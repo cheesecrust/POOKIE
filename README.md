@@ -47,11 +47,11 @@ Pookie Platform
 - **이미지 처리**: OpenCV with CLAHE
 - **유사도 계산**: Cosine similarity with keyword weighting
 
-### 인프라 아키텍쳐
+### 🌐 인프라 아키텍쳐
+![alt text](image.png)
 
-
-### ERD
-
+### 🗃️ ERD
+![alt text](image-1.png)
 
 ## 🎮 게임 소개
 
