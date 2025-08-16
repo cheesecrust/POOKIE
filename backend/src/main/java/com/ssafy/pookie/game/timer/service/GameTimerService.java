@@ -29,7 +29,8 @@ public class GameTimerService {
 
     public void gameStartTimer(RoomStateDto room, TimerRequestDto timerRequest) throws IOException {
         log.info("TIMER START REQUEST : ROOM {}", room.getRoomId());
-        if(!onlinePlayerManager.isAuthorized(timerRequest.getUser().getSession(), room) || !onlinePlayerManager.isMaster(timerRequest.getUser().getSession(), room)) {
+        if(!onlinePlayerManager.isAuthorized(timerRequest.getUser().getSession(), room) || !onlinePlayerManager.isMaster(timerRequest.getUser().getSession(), room) ||
+        !room.getStatus().equals(RoomStateDto.Status.START)) {
             messageSenderManager.sendMessageToUser(timerRequest.getUser().getSession(), timerRequest.getRoomId(), Map.of(
                     "type", MessageDto.Type.ERROR.toString(),
                     "msg", "잘못된 요청입니다."

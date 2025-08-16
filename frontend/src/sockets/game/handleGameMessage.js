@@ -15,7 +15,14 @@ export default async function handleGameMessage(msg, handlers) {
       // livekit 연결
       const { repIdxList, norIdxList, keywordList } = msg;
 
-      useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+      if (gameType === "SILENTSCREAM") {
+        console.log("SILENTSCREAM 역할 부여")
+        useGameStore.getState().setGameRoles({ repIdxList, norIdxList });
+      } else if (gameType === "SAMEPOSE") {
+        console.log("SAMEPOSE 역할 부여")
+        console.log("repIdxList", repIdxList)
+        useGameStore.getState().setGameRoles2({ repIdxList });
+      }
       handlers?.onGameKeyword?.(msg);
       break;
 

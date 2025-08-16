@@ -209,7 +209,7 @@ public class GameRoomService {
                     "type", MessageDto.Type.ROOM_LIST.toString(),
                     "roomList", gameServerService.existingRoomList()
             ));
-            log.error("LEAVE REQUEST SUCCESS : {} FROM ROOM {}", session.getAttributes().get("nickname"), room.getRoomId());
+            log.info("LEAVE REQUEST SUCCESS : {} FROM ROOM {}", session.getAttributes().get("nickname"), room.getRoomId());
         } catch(IllegalArgumentException e) {
             log.error("LEAVE REQUEST FAIL : {}", session.getAttributes().get("nickname"));
             log.error("REASON : {}", e.getMessage());
