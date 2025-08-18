@@ -62,7 +62,7 @@ public class JwtTokenProvider {
      */
     public String createSocialAccessToken(Long userAccountId, String email, String nickname, String provider) {
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + 10 * 60 * 1000L); // 10분
+        Date expiration = new Date(now.getTime() + 604800000); // 10분 -> 7일로 변경..
 
         String token = Jwts.builder()
                 .setSubject(email)
