@@ -53,6 +53,10 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	// WebSocket 테스트용 라이브러리
+	testImplementation 'org.awaitility:awaitility:4.2.0'
+	testImplementation 'com.h2database:h2:2.1.214'
 
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
