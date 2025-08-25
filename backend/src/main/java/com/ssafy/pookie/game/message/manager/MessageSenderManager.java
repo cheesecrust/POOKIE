@@ -12,21 +12,28 @@ import org.springframework.web.socket.WebSocketSession;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 @Component
 @Slf4j
 public class MessageSenderManager {
 //    private ArrayDeque<SendMessageDto> sendMessage = new ArrayDeque<>();
-    private Map<String, ArrayDeque<SendMessageDto>> sendMessage = new HashMap<>();
+    private Map<String, ArrayDeque<SendMessageDto>> sendMessage = new ConcurrentHashMap<>();
     private final OnlinePlayerManager onlinePlayerManager;
 
     @Scheduled(fixedRate = 5)
     private void sendMessageSchedule() {
         if(sendMessage.isEmpty()) return;
         sendMessage.entrySet().forEach((messageSet) -> {
-            if(!messageSet.getValue().isEmpty()) {  // Exception 방지
-                SendMessageDto message = messageSet.getValue().pollFirst();
+            ArrayDeque<SendMessageDto> queue = messageSet.getValue();
+            SendMessageDto message = null;
+            synchronized (queue) {
+                if (!queue.isEmpty()) {
+                    message = queue.pollFirst();
+                }
+            }
+            if (message != null) {
                 try {
                     if (message.getMsgType().equals(SendMessageDto.sendType.BROADCAST)) {
                         onlinePlayerManager.broadCastMessageToRoomUser(message.getSession(), message.getRoomId(),
@@ -44,7 +51,9 @@ public class MessageSenderManager {
                     }
                     log.error("Message 전송 실패 : \n{}\n{}", e.getMessage(), message.getPayload());
                     log.info("재시도합니다.");
-                    messageSet.getValue().offerFirst(message);
+                    synchronized (queue) {
+                        queue.offerFirst(message);
+                    }
                 }
             }
         });
@@ -56,7 +65,10 @@ public class MessageSenderManager {
                 .msgType(SendMessageDto.sendType.USER)
                 .payload(payload).build();
 
-        this.sendMessage.get(roomId).offerLast(sendMessageReq);
+        ArrayDeque<SendMessageDto> queue = this.sendMessage.get(roomId);
+        synchronized (queue) {
+            queue.offerLast(sendMessageReq);
+        }
     }
 
     public void sendMessageBroadCast(WebSocketSession session, String roomId, UserDto.Team team, Map<String, Object> payload) {
@@ -67,7 +79,10 @@ public class MessageSenderManager {
                 .team(team)
                 .payload(payload).build();
 
-        this.sendMessage.get(roomId).offerLast(sendMessageReq);
+        ArrayDeque<SendMessageDto> queue = this.sendMessage.get(roomId);
+        synchronized (queue) {
+            queue.offerLast(sendMessageReq);
+        }
     }
 
     public void sendMessageBroadCastOther(WebSocketSession session, String roomId, UserDto.Team team, Map<String, Object> payload) {
@@ -78,7 +93,10 @@ public class MessageSenderManager {
                 .team(team)
                 .payload(payload).build();
 
-        this.sendMessage.get(roomId).offerLast(sendMessageReq);
+        ArrayDeque<SendMessageDto> queue = this.sendMessage.get(roomId);
+        synchronized (queue) {
+            queue.offerLast(sendMessageReq);
+        }
     }
 
     public void createRoomMessageQueue(String roomId) {
@@ -88,7 +106,12 @@ public class MessageSenderManager {
 
     public void clearRoomMessageQueue(String roomId) {
         // 채팅이 전송되지 않을 위험이 있음
-        sendMessage.get(roomId).clear();
+        ArrayDeque<SendMessageDto> queue = sendMessage.get(roomId);
+        if (queue != null) {
+            synchronized (queue) {
+                queue.clear();
+            }
+        }
     }
 
     public void removeRoomMessageQueue(String roomId) {

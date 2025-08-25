@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  h2:
+    console:
+      enabled: true
+  
+  sql:
+    init:
+      mode: never  # 수동으로 데이터 로딩 제어
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: "testSecretKeyForWebSocketTestingPurposesOnly123456789"
+  access-expiration: 600000
+  refresh-expiration: 1200000
+
+# WebSocket 설정
+server:
+  port: 0  # 랜덤 포트 사용
+
+# 로깅 설정
+logging:
+  level:
+    com.ssafy.pookie: DEBUG
+    org.springframework.web.socket: DEBUG
+    io.micrometer: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 메트릭 설정
+management:
+  metrics:
+    export:
+      simple:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: metrics,health
