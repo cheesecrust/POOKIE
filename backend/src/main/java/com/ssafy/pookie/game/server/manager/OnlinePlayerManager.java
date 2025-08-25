@@ -5,6 +5,7 @@ import com.ssafy.pookie.auth.model.UserAccounts;
 import com.ssafy.pookie.auth.repository.UserAccountsRepository;
 import com.ssafy.pookie.game.ingame.service.InGameService;
 import com.ssafy.pookie.game.message.dto.MessageDto;
+import com.ssafy.pookie.game.message.manager.MessageSenderManager;
 import com.ssafy.pookie.game.mini.dto.MiniGameRoomDto;
 import com.ssafy.pookie.game.reward.service.RewardService;
 import com.ssafy.pookie.game.room.dto.RoomStateDto;
@@ -39,12 +40,31 @@ public class OnlinePlayerManager {
     private final ConcurrentHashMap<Long, MiniGameRoomDto> miniGameRooms = new ConcurrentHashMap<>();     // <userAccountId, MiniGameRoomDto>
     private final SocketMetrics socketMetrics;
     private final RewardService rewardService;
+    private final MessageSenderManager messageSenderManager;
+
+    /*
+        세션으로부터 roomId를 찾는 헬퍼 메서드
+     */
+    private String findRoomIdBySession(WebSocketSession session) {
+        for (RoomStateDto room : rooms.values()) {
+            if (room.getSessions().contains(session)) {
+                return room.getRoomId();
+            }
+        }
+        return null; // 방에 속하지 않은 세션
+    }
 
     /*
         특정 유저에게만 Message 전달
      */
     public void sendToMessageUser(WebSocketSession session, Map<String, Object> msg) throws IOException {
-        session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+        String roomId = findRoomIdBySession(session);
+        if (roomId != null) {
+            messageSenderManager.sendMessageToUser(session, roomId, msg);
+        } else {
+            // 방에 속하지 않은 세션의 경우 직접 전송 (로비 등)
+            session.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
+        }
     }
     // 현재 방에 있는 유저들에게 BraodCast
     // 메시지 전달 유형
@@ -54,16 +74,11 @@ public class OnlinePlayerManager {
         RoomStateDto room = this.rooms.get(roomId);
         if(!isAuthorized(session, room)) return;
 
-        // 1. 팀원들에게만 전달
-        if(team != null) {
-            for(UserDto user : room.getUsers().get(team)) {
-                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        } else {    // 2. BroadCast 전달
-            for(WebSocketSession user : room.getSessions()) {
-                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        }
+        // team을 UserDto.Team으로 변환
+        UserDto.Team teamEnum = team != null ? UserDto.Team.valueOf(team) : null;
+        
+        // MessageSenderManager를 통해 브로드캐스트
+        messageSenderManager.sendMessageBroadCast(session, roomId, teamEnum, msg);
     }
 
     /*
@@ -241,18 +256,11 @@ public class OnlinePlayerManager {
         RoomStateDto room = this.rooms.get(roomId);
         if(!isAuthorized(session, room)) return;
 
-        // 1. 팀원들에게만 전달
-        if(team != null) {
-            for(UserDto user : room.getUsers().get(team)) {
-                if (user.getSession().equals(session)) continue;
-                user.getSession().sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        } else {    // 2. BroadCast 전달
-            for(WebSocketSession user : room.getSessions()) {
-                if (user.equals(session)) continue;
-                user.sendMessage(new TextMessage(new ObjectMapper().writeValueAsString(msg)));
-            }
-        }
+        // team을 UserDto.Team으로 변환
+        UserDto.Team teamEnum = team != null ? UserDto.Team.valueOf(team) : null;
+        
+        // MessageSenderManager를 통해 브로드캐스트 (자신 제외)
+        messageSenderManager.sendMessageBroadCastOther(session, roomId, teamEnum, msg);
     }
 
     public void removeMiniGameRoom(Long userAccountId) {
@@ -261,7 +269,7 @@ public class OnlinePlayerManager {
 
     public boolean isInvalid(WebSocketSession session) {
 //        return this.lobby.contains(session.getAttributes().get("userAccountId"));
-        return session.isOpen();
+        return !session.isOpen();
     }
 
     //  Duplicated User
