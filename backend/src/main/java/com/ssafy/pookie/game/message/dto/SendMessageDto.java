@@ -17,4 +17,15 @@ public class SendMessageDto {
     private UserDto.Team team;
     private String roomId;
     private Map<String, Object> payload;
+    @Builder.Default
+    private int retryCount = 0;
+    private static final int MAX_RETRY_COUNT = 3;
+    
+    public boolean canRetry() {
+        return retryCount < MAX_RETRY_COUNT;
+    }
+    
+    public void incrementRetry() {
+        this.retryCount++;
+    }
 }
